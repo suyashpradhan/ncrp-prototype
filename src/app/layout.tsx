@@ -21,12 +21,12 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
-    <html lang="en">
+    <html lang="en" data-scroll-behavior="smooth">
       <body>
         <a className="skip-link" href="#main-content">Skip to main content</a>
         <AppShell>
           <DemoCaseProvider initialCase={syntheticCase} initialNow={DEMO_NOW}>
-            <div id="main-content">{children}</div>
+            {children}
           </DemoCaseProvider>
         </AppShell>
       </body>

@@ -4,7 +4,7 @@ import { formatCurrency } from "../../presentation/format";
 
 export function CaseSummary({ caseData }: { caseData: Case }) {
   return (
-    <dl className="case-summary" aria-label="Synthetic complaint summary">
+    <dl className="case-summary" aria-label={UI_MESSAGES.overview.summaryLabel.defaultMessage}>
       <div>
         <dt>{UI_MESSAGES.common.reportedLoss.defaultMessage}</dt>
         <dd>{formatCurrency(caseData.complaint.reportedAmount)}</dd>

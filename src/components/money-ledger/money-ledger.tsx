@@ -20,7 +20,7 @@ export function MoneyLedger({ caseData }: { caseData: Case }) {
 
       <section className="section-pad ledger-section" aria-labelledby="ledger-list-heading">
         <div className="shell narrow-shell">
-          <div className="reconciliation-panel" aria-label="Case amount reconciliation">
+          <div className="reconciliation-panel" role="region" aria-label={UI_MESSAGES.ledger.reconciliationLabel.defaultMessage}>
             <dl>
               <div>
                 <dt>{UI_MESSAGES.ledger.reported.defaultMessage}</dt>
@@ -65,7 +65,11 @@ export function MoneyLedger({ caseData }: { caseData: Case }) {
                     <span className="field-label">{UI_MESSAGES.common.institution.defaultMessage}</span>
                     <span>{path.beneficiaryInstitution?.name ?? UI_MESSAGES.common.unknownInstitution.defaultMessage}</span>
                   </div>
-                  <Link className="icon-link" href={`/money-path/${path.id}`} aria-label={`View ${formatCurrency(path.amount)} money path`}>
+                  <Link
+                    className="icon-link"
+                    href={`/money-path/${path.id}`}
+                    aria-label={`${UI_MESSAGES.common.viewPath.defaultMessage}: ${formatCurrency(path.amount)}`}
+                  >
                     <span aria-hidden="true">→</span>
                   </Link>
                 </li>

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { UI_MESSAGES } from "../content/en";
+import { CaseNavigation } from "./case-navigation";
 
 type AppShellProps = {
   children: ReactNode;
@@ -24,14 +25,11 @@ export function AppShell({ children }: AppShellProps) {
           </Link>
           <span className="prototype-label">{UI_MESSAGES.prototype.label.defaultMessage}</span>
         </div>
-        <nav className="case-nav" aria-label={UI_MESSAGES.navigation.label.defaultMessage}>
-          <div className="shell nav-inner">
-            <Link href="/">{UI_MESSAGES.navigation.overview.defaultMessage}</Link>
-            <Link href="/ledger">{UI_MESSAGES.navigation.ledger.defaultMessage}</Link>
-          </div>
-        </nav>
+        <CaseNavigation />
       </header>
-      <main>{children}</main>
+      <main id="main-content" tabIndex={-1}>
+        {children}
+      </main>
       <footer className="site-footer">
         <div className="shell footer-inner">
           <p>{UI_MESSAGES.prototype.fullDisclosure.defaultMessage}</p>

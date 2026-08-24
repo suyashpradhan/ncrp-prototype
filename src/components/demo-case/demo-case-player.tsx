@@ -13,13 +13,15 @@ export function DemoCasePlayer({ moneyPathId }: { moneyPathId: string }) {
   const nextEvent = getNextSyntheticEventType(path);
   const latestForPath = lastUpdate?.moneyPathId === moneyPathId ? lastUpdate : null;
   const headingId = `demo-player-${moneyPathId}`;
+  const descriptionId = `${headingId}-description`;
+  const nextEventId = `${headingId}-next-event`;
 
   return (
     <aside className="demo-player" aria-labelledby={headingId}>
       <div className="demo-player-copy">
         <p className="demo-label">{UI_MESSAGES.demo.label.defaultMessage}</p>
         <h2 id={headingId}>{UI_MESSAGES.demo.title.defaultMessage}</h2>
-        <p>{UI_MESSAGES.demo.description.defaultMessage}</p>
+        <p id={descriptionId}>{UI_MESSAGES.demo.description.defaultMessage}</p>
       </div>
 
       <dl className="demo-player-facts">
@@ -33,7 +35,7 @@ export function DemoCasePlayer({ moneyPathId }: { moneyPathId: string }) {
         </div>
         <div>
           <dt>{UI_MESSAGES.demo.nextEvent.defaultMessage}</dt>
-          <dd>
+          <dd id={nextEventId}>
             {nextEvent
               ? EVENT_MESSAGES[nextEvent].defaultMessage
               : UI_MESSAGES.demo.complete.defaultMessage}
@@ -46,6 +48,7 @@ export function DemoCasePlayer({ moneyPathId }: { moneyPathId: string }) {
           className="demo-primary-button"
           type="button"
           disabled={!nextEvent}
+          aria-describedby={`${descriptionId} ${nextEventId}`}
           onClick={() => simulateNextUpdate(moneyPathId)}
         >
           {UI_MESSAGES.demo.simulate.defaultMessage}
@@ -55,7 +58,7 @@ export function DemoCasePlayer({ moneyPathId }: { moneyPathId: string }) {
         </button>
       </div>
 
-      <p className="demo-update" aria-live="polite">
+      <p className="demo-update" role="status" aria-live="polite" aria-atomic="true">
         {latestForPath
           ? `${UI_MESSAGES.demo.latestUpdate.defaultMessage}: ${EVENT_MESSAGES[latestForPath.eventType].defaultMessage}`
           : UI_MESSAGES.demo.noUpdate.defaultMessage}

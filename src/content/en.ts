@@ -80,6 +80,7 @@ export const UI_MESSAGES = {
     ),
     ledgerCta: message("overview.ledgerCta", "Open money ledger"),
     pathCount: message("overview.pathCount", "Four portions · four current states"),
+    summaryLabel: message("overview.summaryLabel", "Synthetic complaint summary"),
   },
   ledger: {
     eyebrow: message("ledger.eyebrow", "Reconciled money ledger"),
@@ -93,6 +94,7 @@ export const UI_MESSAGES = {
     difference: message("ledger.difference", "Unaccounted difference"),
     reconciled: message("ledger.reconciled", "All money paths reconcile to the reported loss."),
     pathList: message("ledger.pathList", "Money paths"),
+    reconciliationLabel: message("ledger.reconciliationLabel", "Case amount reconciliation"),
   },
   detail: {
     eyebrow: message("detail.eyebrow", "Money path detail"),

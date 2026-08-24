@@ -10,9 +10,15 @@ export function SopClockView({ path, now, compact = false }: { path: MoneyPath; 
     return compact ? null : <p className="no-clock">{UI_MESSAGES.common.noClock.defaultMessage}</p>;
   }
 
+  const clockLabelId = `clock-label-${path.id}`;
+
   return (
-    <div className={`clock ${overdue.isOverdue ? "clock-overdue" : "clock-on-time"}`}>
-      <span className="field-label">{UI_MESSAGES.common.processClock.defaultMessage}</span>
+    <div
+      className={`clock ${overdue.isOverdue ? "clock-overdue" : "clock-on-time"}`}
+      role="group"
+      aria-labelledby={clockLabelId}
+    >
+      <span className="field-label" id={clockLabelId}>{UI_MESSAGES.common.processClock.defaultMessage}</span>
       <strong>{clock.label.defaultMessage}</strong>
       <div className="clock-current">
         <span>{UI_MESSAGES.clock.day.defaultMessage} {overdue.elapsedDays}</span>
