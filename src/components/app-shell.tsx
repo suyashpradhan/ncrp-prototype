@@ -32,7 +32,12 @@ export function AppShell({ children }: AppShellProps) {
       </main>
       <footer className="site-footer">
         <div className="shell footer-inner">
-          <p>{UI_MESSAGES.prototype.fullDisclosure.defaultMessage}</p>
+          <div className="footer-disclosure">
+            <p>{UI_MESSAGES.prototype.fullDisclosure.defaultMessage}</p>
+            <Link className="footer-link" href="/about">
+              {UI_MESSAGES.footer.aboutLink.defaultMessage}
+            </Link>
+          </div>
           <p>{UI_MESSAGES.footer.guardrail.defaultMessage}</p>
         </div>
       </footer>

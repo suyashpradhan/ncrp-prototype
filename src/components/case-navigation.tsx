@@ -12,6 +12,7 @@ export function CaseNavigation() {
       ? "location"
       : undefined;
   const ledgerCurrent = pathname === "/ledger" ? "page" : undefined;
+  const aboutCurrent = pathname === "/about" ? "page" : undefined;
 
   return (
     <nav className="case-nav" aria-label={UI_MESSAGES.navigation.label.defaultMessage}>
@@ -21,6 +22,9 @@ export function CaseNavigation() {
         </Link>
         <Link href="/ledger" aria-current={ledgerCurrent}>
           {UI_MESSAGES.navigation.ledger.defaultMessage}
+        </Link>
+        <Link href="/about" aria-current={aboutCurrent}>
+          {UI_MESSAGES.navigation.about.defaultMessage}
         </Link>
       </div>
     </nav>

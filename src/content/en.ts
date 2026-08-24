@@ -2,7 +2,7 @@ import type { FinancialState, LegalOutcomeState } from "../domain/outcomes";
 import type { ProcessEventType } from "../domain/events";
 import type { FraudType } from "../domain/case";
 import type { Message } from "../domain/messages";
-import type { ProcessRoute } from "../sop/processes";
+import type { ProcessRoute, Provenance } from "../sop/processes";
 
 const message = (key: string, defaultMessage: string): Message => ({ key, defaultMessage });
 
@@ -23,9 +23,10 @@ export const UI_MESSAGES = {
     name: message("brand.name", "Money Path"),
   },
   navigation: {
-    label: message("navigation.label", "Case sections"),
+    label: message("navigation.label", "Primary navigation"),
     overview: message("navigation.overview", "Case overview"),
     ledger: message("navigation.ledger", "Money ledger"),
+    about: message("navigation.about", "About"),
   },
   common: {
     waitingOn: message("common.waitingOn", "Waiting on"),
@@ -112,6 +113,22 @@ export const UI_MESSAGES = {
       "Events are shown most recent first. This is a history, not a whole-case progress bar.",
     ),
     provenance: message("detail.provenance", "Why is this shown?"),
+    provenanceIntro: message(
+      "detail.provenanceIntro",
+      "This explains the encoded source behind the recorded process information shown above.",
+    ),
+    provenanceSource: message("detail.provenanceSource", "Source"),
+    provenanceProcess: message("detail.provenanceProcess", "Recorded process"),
+    provenanceReference: message("detail.provenanceReference", "Reference used in this demo"),
+    provenanceNote: message("detail.provenanceNote", "Prototype note"),
+    provenanceMissing: message(
+      "detail.provenanceMissing",
+      "No SOP-derived source is attached to this money path, so the application does not infer a restoration route or deadline.",
+    ),
+    provenanceLearnMore: message(
+      "detail.provenanceLearnMore",
+      "How this prototype uses process sources",
+    ),
     noRecordedProcess: message("detail.noRecordedProcess", "No process route currently recorded"),
     rightNow: message("detail.rightNow", "Right now"),
     honestOutcomes: message("detail.honestOutcomes", "Honest outcomes"),
@@ -150,6 +167,79 @@ export const UI_MESSAGES = {
       "footer.guardrail",
       "This prototype explains supplied synthetic state; it does not determine legal entitlement.",
     ),
+    aboutLink: message("footer.aboutLink", "About this prototype"),
+  },
+  about: {
+    eyebrow: message("about.eyebrow", "About this prototype"),
+    title: message(
+      "about.title",
+      "A clearer view of an existing financial-resolution process.",
+    ),
+    intro: message(
+      "about.intro",
+      "Money Path is a standalone hackathon prototype showing how one reported cyber-fraud loss can become several concurrent money paths with different actors and process states.",
+    ),
+    disclosureTitle: message("about.disclosureTitle", "This is not a government service."),
+    disclosureBody: message(
+      "about.disclosureBody",
+      "It is not NCRP or MRM, it is not connected to a live complaint, and it does not represent government endorsement or deployment.",
+    ),
+    modeledEyebrow: message("about.modeledEyebrow", "Modeled structure"),
+    modeledTitle: message("about.modeledTitle", "What the process model represents"),
+    modeledIntro: message(
+      "about.modeledIntro",
+      "These are conceptual relationships and encoded rules represented in the demonstration.",
+    ),
+    modeledItems: [
+      message(
+        "about.modeledItem.moneyPaths",
+        "One reported loss can be represented as several money paths that reconcile to the reported total.",
+      ),
+      message(
+        "about.modeledItem.actors",
+        "The represented actors include the citizen, Investigating Officer, police authority, beneficiary account holder and bank.",
+      ),
+      message(
+        "about.modeledItem.rules",
+        "Process 1 stages and procedural clocks are encoded for the demonstration from the January 2026 NCRP-CFCFRMS SOP.",
+      ),
+      message(
+        "about.modeledItem.separation",
+        "Recorded process, financial outcome and legal outcome remain separate concepts.",
+      ),
+    ],
+    syntheticEyebrow: message("about.syntheticEyebrow", "Synthetic case data"),
+    syntheticTitle: message("about.syntheticTitle", "What is completely mocked"),
+    syntheticIntro: message(
+      "about.syntheticIntro",
+      "None of the case details shown in this application describe a real person or live government record.",
+    ),
+    syntheticItems: [
+      message("about.syntheticItem.citizen", "The citizen, complaint and acknowledgement number."),
+      message("about.syntheticItem.accounts", "Banks, beneficiary accounts and masked account numbers."),
+      message("about.syntheticItem.activity", "Police, bank, court and account-holder activity."),
+      message("about.syntheticItem.events", "Timestamps, holds, requests, directions and restoration events."),
+      message("about.syntheticItem.integrations", "All NCRP, CFCFRMS, MRM, police and banking integrations."),
+    ],
+    boundariesEyebrow: message("about.boundariesEyebrow", "Product boundaries"),
+    boundariesTitle: message("about.boundariesTitle", "What this prototype does not do"),
+    boundariesIntro: message(
+      "about.boundariesIntro",
+      "The interface explains supplied synthetic state. It does not create or alter official state.",
+    ),
+    boundaryItems: [
+      message("about.boundaryItem.reporting", "It does not file or modify a cybercrime complaint or restoration request."),
+      message("about.boundaryItem.route", "It does not select an SOP process or decide legal entitlement."),
+      message("about.boundaryItem.deadline", "It does not invent an end-to-end deadline or predict a refund date."),
+      message("about.boundaryItem.advice", "It does not provide personalised legal advice or declare an actor legally at fault."),
+    ],
+    provenanceEyebrow: message("about.provenanceEyebrow", "Source transparency"),
+    provenanceTitle: message("about.provenanceTitle", "How provenance is used"),
+    provenanceBody: message(
+      "about.provenanceBody",
+      "When a money path shows an SOP-derived route or procedural clock, its detail view can expose the encoded source, recorded process, demonstration reference and a prototype note. Provenance explains why information is displayed; it is not evidence of live official action or legal entitlement.",
+    ),
+    principle: message("about.principle", "Rules determine state. The interface explains state."),
   },
   notFound: {
     eyebrow: message("notFound.eyebrow", "Money path not found"),
@@ -160,6 +250,13 @@ export const UI_MESSAGES = {
     ),
   },
 } as const;
+
+export const PROVENANCE_SOURCE_MESSAGES = {
+  JAN_2026_NCRP_CFCFRMS_SOP: message(
+    "provenanceSource.january2026Sop",
+    "January 2026 NCRP-CFCFRMS SOP",
+  ),
+} satisfies Record<Provenance["source"], Message>;
 
 export const PROCESS_ROUTE_MESSAGES = {
   PROCESS_1: message("processRoute.process1", "Process 1"),

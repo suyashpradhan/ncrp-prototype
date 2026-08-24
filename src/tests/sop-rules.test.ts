@@ -144,7 +144,13 @@ describe("SOP selectors", () => {
     expect(explainRecordedProcess(recorded).recordedProcess).toBe("PROCESS_1");
     expect(explainRecordedProcess(recorded).factsHeading.defaultMessage).toBe("Recorded case facts");
     expect(explainRecordedProcess(recorded).facts).toHaveLength(4);
+    expect(explainRecordedProcess(recorded).provenance).toEqual(recorded.provenance);
+    expect(explainRecordedProcess(recorded).provenance[0]).toMatchObject({
+      source: "JAN_2026_NCRP_CFCFRMS_SOP",
+      process: "PROCESS_1",
+    });
     expect(explainRecordedProcess(unrecorded).recordedProcess).toBeNull();
     expect(explainRecordedProcess(unrecorded).facts).toEqual([]);
+    expect(explainRecordedProcess(unrecorded).provenance).toEqual([]);
   });
 });
