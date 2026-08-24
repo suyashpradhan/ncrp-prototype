@@ -25,7 +25,7 @@ const RECORDED_FACT_MESSAGES = {
   },
   COURT_DIRECTION_RECORDED: {
     key: "recordedFact.courtDirection",
-    defaultMessage: "A court direction is recorded for this money path.",
+    defaultMessage: "A court direction is recorded for this amount.",
   },
 } satisfies Record<ProcessRouteFact, Message>;
 

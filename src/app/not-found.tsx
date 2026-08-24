@@ -8,7 +8,7 @@ export default function NotFound() {
         <p className="eyebrow">{UI_MESSAGES.notFound.eyebrow.defaultMessage}</p>
         <h1>{UI_MESSAGES.notFound.title.defaultMessage}</h1>
         <p>{UI_MESSAGES.notFound.body.defaultMessage}</p>
-        <Link className="button-link" href="/">{UI_MESSAGES.common.backToOverview.defaultMessage}</Link>
+        <Link className="button-link" href="/case">{UI_MESSAGES.common.backToOverview.defaultMessage}</Link>
       </div>
     </section>
   );

@@ -3,7 +3,7 @@ import type { MoneyPath } from "../../domain/case";
 import { PROVENANCE_SOURCE_MESSAGES, UI_MESSAGES } from "../../content/en";
 import { formatProcessRoute } from "../../presentation/format";
 
-export function ProvenanceView({ path }: { path: MoneyPath }) {
+export function ProvenanceView({ path, collapsible = true }: { path: MoneyPath; collapsible?: boolean }) {
   if (path.provenance.length === 0) {
     return (
       <div className="provenance-empty">
@@ -15,10 +15,8 @@ export function ProvenanceView({ path }: { path: MoneyPath }) {
     );
   }
 
-  return (
-    <details className="provenance-details">
-      <summary>{UI_MESSAGES.detail.provenance.defaultMessage}</summary>
-      <div className="provenance-content">
+  const content = (
+    <div className="provenance-content">
         <p className="provenance-intro">{UI_MESSAGES.detail.provenanceIntro.defaultMessage}</p>
         {path.provenance.map((source) => (
           <dl
@@ -50,7 +48,15 @@ export function ProvenanceView({ path }: { path: MoneyPath }) {
         <Link className="text-link provenance-learn-more" href="/about#provenance">
           {UI_MESSAGES.detail.provenanceLearnMore.defaultMessage}
         </Link>
-      </div>
+    </div>
+  );
+
+  if (!collapsible) return content;
+
+  return (
+    <details className="provenance-details">
+      <summary>{UI_MESSAGES.detail.provenance.defaultMessage}</summary>
+      {content}
     </details>
   );
 }

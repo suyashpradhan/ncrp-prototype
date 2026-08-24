@@ -16,8 +16,8 @@ export function AppShell({ children }: AppShellProps) {
       </div>
       <header className="site-header">
         <div className="shell header-inner">
-          <Link className="brand" href="/" aria-label={`${UI_MESSAGES.brand.name.defaultMessage} ${UI_MESSAGES.navigation.overview.defaultMessage}`}>
-            <span className="brand-mark" aria-hidden="true">MP</span>
+          <Link className="brand" href="/" aria-label={UI_MESSAGES.brand.name.defaultMessage}>
+            <span className="brand-mark" aria-hidden="true">NR</span>
             <span>
               <span className="brand-eyebrow">{UI_MESSAGES.brand.eyebrow.defaultMessage}</span>
               <span className="brand-name">{UI_MESSAGES.brand.name.defaultMessage}</span>

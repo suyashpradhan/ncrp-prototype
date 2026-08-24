@@ -2,11 +2,11 @@
 
 import { EVENT_MESSAGES, UI_MESSAGES } from "../../content/en";
 import { getNextSyntheticEventType } from "../../domain/money-path";
-import { formatCurrency, formatIndiaDate } from "../../presentation/format";
+import { formatCurrency } from "../../presentation/format";
 import { useDemoCase } from "./demo-case-provider";
 
 export function DemoCasePlayer({ moneyPathId }: { moneyPathId: string }) {
-  const { caseData, now, lastUpdate, simulateNextUpdate, resetDemo } = useDemoCase();
+  const { caseData, lastUpdate, simulateNextUpdate, resetDemo } = useDemoCase();
   const path = caseData.moneyPaths.find((item) => item.id === moneyPathId);
   if (!path) return null;
 
@@ -24,24 +24,13 @@ export function DemoCasePlayer({ moneyPathId }: { moneyPathId: string }) {
         <p id={descriptionId}>{UI_MESSAGES.demo.description.defaultMessage}</p>
       </div>
 
-      <dl className="demo-player-facts">
-        <div>
-          <dt>{UI_MESSAGES.demo.focus.defaultMessage}</dt>
-          <dd>{formatCurrency(path.amount)}</dd>
-        </div>
-        <div>
-          <dt>{UI_MESSAGES.demo.caseDate.defaultMessage}</dt>
-          <dd>{formatIndiaDate(now)}</dd>
-        </div>
-        <div>
-          <dt>{UI_MESSAGES.demo.nextEvent.defaultMessage}</dt>
-          <dd id={nextEventId}>
-            {nextEvent
-              ? EVENT_MESSAGES[nextEvent].defaultMessage
-              : UI_MESSAGES.demo.complete.defaultMessage}
-          </dd>
-        </div>
-      </dl>
+      <p className="demo-next-update" id={nextEventId}>
+        <strong>{formatCurrency(path.amount)}</strong>
+        <span aria-hidden="true"> · </span>
+        {UI_MESSAGES.demo.nextEvent.defaultMessage}: {nextEvent
+          ? EVENT_MESSAGES[nextEvent].defaultMessage
+          : UI_MESSAGES.demo.complete.defaultMessage}
+      </p>
 
       <div className="demo-player-actions">
         <button

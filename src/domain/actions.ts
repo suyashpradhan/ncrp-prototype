@@ -12,7 +12,7 @@ export const CITIZEN_ACTIONS = {
     code: "NONE",
     instruction: {
       key: "citizenAction.none",
-      defaultMessage: "Nothing is required from you right now.",
+      defaultMessage: "Nothing right now.",
     },
   },
   SUBMIT_INDEMNITY_BOND: {

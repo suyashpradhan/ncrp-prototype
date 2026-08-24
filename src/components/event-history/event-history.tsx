@@ -1,21 +1,17 @@
 import type { MoneyPath } from "../../domain/case";
-import { EVENT_MESSAGES, UI_MESSAGES } from "../../content/en";
+import { CITIZEN_MESSAGES, EVENT_MESSAGES, UI_MESSAGES } from "../../content/en";
 import { ACTOR_MESSAGES } from "../../domain/actors";
+import { deriveCitizenAmountPresentation } from "../../presentation/citizen-case";
 import { formatIndiaDate } from "../../presentation/format";
 import { getChronologicalEvents } from "../../sop/selectors";
 
 export function EventHistory({ path }: { path: MoneyPath }) {
-  const events = [...getChronologicalEvents(path)].reverse();
+  const events = getChronologicalEvents(path);
+  const current = deriveCitizenAmountPresentation(path).title;
 
   return (
-    <section className="detail-section" aria-labelledby="event-history-heading">
-      <div className="section-heading compact-heading">
-        <div>
-          <p className="eyebrow">{UI_MESSAGES.detail.eventDrivenState.defaultMessage}</p>
-          <h2 id="event-history-heading">{UI_MESSAGES.detail.eventHistory.defaultMessage}</h2>
-        </div>
-        <p>{UI_MESSAGES.detail.eventHistoryIntro.defaultMessage}</p>
-      </div>
+    <section className="citizen-detail-section" aria-labelledby="event-history-heading">
+      <h2 id="event-history-heading">{CITIZEN_MESSAGES.detail.historyTitle.defaultMessage}</h2>
       <ol className="event-list">
         {events.map((event) => (
           <li key={event.id}>
@@ -31,6 +27,10 @@ export function EventHistory({ path }: { path: MoneyPath }) {
           </li>
         ))}
       </ol>
+      <div className="current-history-item">
+        <span>{UI_MESSAGES.common.current.defaultMessage}</span>
+        <strong>{current.defaultMessage}</strong>
+      </div>
     </section>
   );
 }

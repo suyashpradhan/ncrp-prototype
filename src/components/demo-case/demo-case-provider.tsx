@@ -22,10 +22,17 @@ export type LastSimulatedUpdate = {
   occurredAt: string;
 };
 
+export const DEMO_CREDENTIALS = {
+  username: "test123",
+  password: "password123",
+} as const;
+
 type DemoCaseContextValue = {
   caseData: Case;
   now: string;
   lastUpdate: LastSimulatedUpdate | null;
+  isDemoAuthenticated: boolean;
+  authenticateDemo: (username: string, password: string) => boolean;
   simulateNextUpdate: (moneyPathId: string) => void;
   resetDemo: () => void;
 };
@@ -42,6 +49,7 @@ type DemoState = {
   caseData: Case;
   now: string;
   lastUpdate: LastSimulatedUpdate | null;
+  isDemoAuthenticated: boolean;
 };
 
 export function DemoCaseProvider({ children, initialCase, initialNow }: DemoCaseProviderProps) {
@@ -49,7 +57,19 @@ export function DemoCaseProvider({ children, initialCase, initialNow }: DemoCase
     caseData: initialCase,
     now: initialNow,
     lastUpdate: null,
+    isDemoAuthenticated: false,
   }));
+
+  const authenticateDemo = useCallback((username: string, password: string) => {
+    const matches =
+      username === DEMO_CREDENTIALS.username && password === DEMO_CREDENTIALS.password;
+
+    if (matches) {
+      setState((current) => ({ ...current, isDemoAuthenticated: true }));
+    }
+
+    return matches;
+  }, []);
 
   const simulateNextUpdate = useCallback((moneyPathId: string) => {
     setState((current) => {
@@ -61,6 +81,7 @@ export function DemoCaseProvider({ children, initialCase, initialNow }: DemoCase
 
       const nextNow = advanceSyntheticDateByOneDay(current.now);
       return {
+        ...current,
         caseData: simulateNextCaseUpdate(current.caseData, moneyPathId, nextNow),
         now: nextNow,
         lastUpdate: { moneyPathId, eventType, occurredAt: nextNow },
@@ -69,12 +90,17 @@ export function DemoCaseProvider({ children, initialCase, initialNow }: DemoCase
   }, []);
 
   const resetDemo = useCallback(() => {
-    setState({ caseData: initialCase, now: initialNow, lastUpdate: null });
+    setState((current) => ({
+      caseData: initialCase,
+      now: initialNow,
+      lastUpdate: null,
+      isDemoAuthenticated: current.isDemoAuthenticated,
+    }));
   }, [initialCase, initialNow]);
 
   const value = useMemo(
-    () => ({ ...state, simulateNextUpdate, resetDemo }),
-    [state, simulateNextUpdate, resetDemo],
+    () => ({ ...state, authenticateDemo, simulateNextUpdate, resetDemo }),
+    [state, authenticateDemo, simulateNextUpdate, resetDemo],
   );
 
   return <DemoCaseContext value={value}>{children}</DemoCaseContext>;

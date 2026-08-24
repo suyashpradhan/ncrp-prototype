@@ -3,7 +3,7 @@ import { UI_MESSAGES } from "../../content/en";
 
 export const metadata: Metadata = {
   title: "About this prototype",
-  description: "What Money Path represents, what is synthetic, and how process provenance is shown.",
+  description: "What NCRP Recovery represents, what is synthetic, and how process provenance is shown.",
 };
 
 export default function AboutPage() {

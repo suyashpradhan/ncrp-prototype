@@ -1,10 +1,5 @@
-import type { Metadata } from "next";
-import { MoneyLedgerScreen } from "../../components/demo-case/money-ledger-screen";
-
-export const metadata: Metadata = {
-  title: "Money ledger",
-};
+import { redirect } from "next/navigation";
 
 export default function LedgerPage() {
-  return <MoneyLedgerScreen />;
+  redirect("/case#money-status");
 }

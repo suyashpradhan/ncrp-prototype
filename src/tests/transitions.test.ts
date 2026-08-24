@@ -41,7 +41,7 @@ describe("synthetic case-player transitions", () => {
     expect(deriveCurrentStage(bank)).toBe("BANK_INTERIM_CUSTODY");
     expect(deriveCurrentOwner(bank)).toBe("BANK");
     expect(deriveApplicableSopClock(bank)).toMatchObject({
-      semantics: "UP_TO",
+      semantics: "WITHIN",
       startedAt: "2026-08-30T10:00:00.000Z",
     });
     expect(deriveCurrentStage(confirmed)).toBe("INTERIM_CUSTODY_CONFIRMED");

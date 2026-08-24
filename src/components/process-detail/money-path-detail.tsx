@@ -1,17 +1,22 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import type { MoneyPath } from "../../domain/case";
-import { FINANCIAL_STATE_MESSAGES, LEGAL_OUTCOME_MESSAGES, UI_MESSAGES } from "../../content/en";
 import {
+  CITIZEN_MESSAGES,
+  FINANCIAL_STATE_MESSAGES,
+  LEGAL_OUTCOME_MESSAGES,
+  UI_MESSAGES,
+} from "../../content/en";
+import {
+  deriveCitizenAction,
   deriveCurrentOwner,
   deriveCurrentStage,
   deriveFinancialOutcome,
   deriveLegalOutcome,
-  derivePlainLanguageStatus,
 } from "../../sop/selectors";
 import { explainRecordedProcess } from "../../sop/explanations";
+import { deriveCitizenAmountPresentation } from "../../presentation/citizen-case";
 import { formatCurrency, formatProcessRoute, getActorLabel } from "../../presentation/format";
-import { CitizenActionView } from "../citizen-action/citizen-action";
 import { SopClockView } from "../sop-clock/sop-clock";
 import { EventHistory } from "../event-history/event-history";
 import { ProvenanceView } from "../provenance/provenance";
@@ -27,88 +32,112 @@ export function MoneyPathDetail({
 }) {
   const stage = deriveCurrentStage(path);
   const owner = deriveCurrentOwner(path);
-  const status = derivePlainLanguageStatus(path);
+  const action = deriveCitizenAction(path);
+  const presentation = deriveCitizenAmountPresentation(path);
   const financial = deriveFinancialOutcome(path);
   const legal = deriveLegalOutcome(path);
   const process = explainRecordedProcess(path);
 
   return (
     <>
-      <section className="detail-hero section-pad">
+      <section className="citizen-detail-hero section-pad">
         <div className="shell narrow-shell">
-          <Link className="back-link" href="/">← {UI_MESSAGES.common.backToOverview.defaultMessage}</Link>
-          <p className="eyebrow">{UI_MESSAGES.detail.eyebrow.defaultMessage}</p>
-          <div className="detail-title-row">
-            <div>
-              <h1>{formatCurrency(path.amount)}</h1>
-              <p className="lede">{UI_MESSAGES.detail.title.defaultMessage}</p>
-            </div>
-            <span className="stage-code">{stage.replaceAll("_", " ")}</span>
-          </div>
-          <p className="detail-institution">
-            {path.beneficiaryInstitution?.name ?? UI_MESSAGES.common.noBeneficiaryInstitution.defaultMessage}
-            {path.beneficiaryInstitution?.maskedAccount ? ` · ${path.beneficiaryInstitution.maskedAccount}` : ""}
-          </p>
+          <Link className="back-link" href="/case#money-status">← {UI_MESSAGES.common.backToOverview.defaultMessage}</Link>
+          <h1>
+            {formatCurrency(path.amount)}{stage === "INTERIM_CUSTODY_CONFIRMED" ? " received" : ""}
+          </h1>
+          {path.beneficiaryInstitution ? (
+            <p className="detail-institution">
+              {path.beneficiaryInstitution.name}
+              {path.beneficiaryInstitution.maskedAccount ? ` · ${path.beneficiaryInstitution.maskedAccount}` : ""}
+            </p>
+          ) : null}
         </div>
       </section>
 
-      <div className="shell narrow-shell detail-layout section-pad">
-        {demoControl}
-        <section className="detail-section process-summary" aria-labelledby="process-summary-heading">
-          <p className="eyebrow">{UI_MESSAGES.detail.rightNow.defaultMessage}</p>
-          <h2 id="process-summary-heading">{UI_MESSAGES.detail.processSummary.defaultMessage}</h2>
-          <div className="detail-status-callout">
-            <span className="field-label">{UI_MESSAGES.common.currentStep.defaultMessage}</span>
-            <p>{status.defaultMessage}</p>
+      <div className="shell narrow-shell citizen-detail-layout section-pad">
+        <section className="citizen-detail-section" aria-labelledby="whats-happening-heading">
+          <h2 id="whats-happening-heading">{CITIZEN_MESSAGES.detail.whatsHappening.defaultMessage}</h2>
+          <div className="citizen-status-answer">
+            <h3>{presentation.title.defaultMessage}</h3>
+            <p>{presentation.detailExplanation?.defaultMessage ?? presentation.explanation.defaultMessage}</p>
           </div>
-          <dl className="detail-facts">
-            <div>
-              <dt>{UI_MESSAGES.common.waitingOn.defaultMessage}</dt>
-              <dd>{getActorLabel(owner, path)}</dd>
+          {owner !== "NONE" ? (
+            <dl className="citizen-detail-facts">
+              <div>
+                <dt>{UI_MESSAGES.common.waitingOn.defaultMessage}</dt>
+                <dd>{getActorLabel(owner, path)}</dd>
+              </div>
+            </dl>
+          ) : null}
+          {stage === "INTERIM_CUSTODY_CONFIRMED" ? (
+            <div className="interim-status">
+              <strong>{UI_MESSAGES.common.legalOutcome.defaultMessage}</strong>
+              <p>{CITIZEN_MESSAGES.detail.interimStatus.defaultMessage}</p>
+              <details>
+                <summary>{CITIZEN_MESSAGES.detail.interimHelp.defaultMessage}</summary>
+                <p>{CITIZEN_MESSAGES.detail.interimExplanation.defaultMessage}</p>
+              </details>
             </div>
-            <div>
-              <dt>{UI_MESSAGES.common.recordedProcess.defaultMessage}</dt>
-              <dd>{formatProcessRoute(path.selectedProcess)}</dd>
-            </div>
-          </dl>
-          <CitizenActionView path={path} />
+          ) : null}
+        </section>
+
+        <section className="citizen-detail-section action-answer" aria-labelledby="action-heading">
+          <h2 id="action-heading">{CITIZEN_MESSAGES.detail.actionTitle.defaultMessage}</h2>
+          <p className="action-answer-word">
+            {action.code === "NONE"
+              ? CITIZEN_MESSAGES.detail.no.defaultMessage
+              : CITIZEN_MESSAGES.detail.yes.defaultMessage}
+          </p>
+          <p>
+            {action.code === "NONE"
+              ? CITIZEN_MESSAGES.detail.noAction.defaultMessage
+              : action.instruction.defaultMessage}
+          </p>
+        </section>
+
+        <section className="citizen-detail-section" aria-labelledby="clock-heading">
+          <h2 id="clock-heading">{CITIZEN_MESSAGES.detail.clockTitle.defaultMessage}</h2>
           <SopClockView path={path} now={now} />
         </section>
 
-        <section className="detail-section" aria-labelledby="outcomes-heading">
-          <p className="eyebrow">{UI_MESSAGES.detail.honestOutcomes.defaultMessage}</p>
-          <h2 id="outcomes-heading">{UI_MESSAGES.detail.outcomes.defaultMessage}</h2>
-          <div className="outcome-grid">
-            <div className="outcome-card">
-              <span className="field-label">{UI_MESSAGES.common.financialOutcome.defaultMessage}</span>
-              <strong>{FINANCIAL_STATE_MESSAGES[financial.state].defaultMessage}</strong>
-              <p>{financial.explanation.defaultMessage}</p>
-            </div>
-            <div className="outcome-card">
-              <span className="field-label">{UI_MESSAGES.common.legalOutcome.defaultMessage}</span>
-              <strong>{LEGAL_OUTCOME_MESSAGES[legal.state].defaultMessage}</strong>
-              <p>{legal.explanation.defaultMessage}</p>
-            </div>
-          </div>
+        <section className="citizen-detail-section" aria-labelledby="next-heading">
+          <h2 id="next-heading">{CITIZEN_MESSAGES.detail.nextTitle.defaultMessage}</h2>
+          <p>{presentation.nextStep.defaultMessage}</p>
         </section>
 
-        <section className="detail-section" aria-labelledby="route-heading">
-          <p className="eyebrow">{UI_MESSAGES.detail.authoritativeRecord.defaultMessage}</p>
-          <h2 id="route-heading">{UI_MESSAGES.detail.routeInterpreter.defaultMessage}</h2>
-          <div className="route-card">
-            <h3>{process.heading.defaultMessage}</h3>
-            <p className="route-guardrail">{UI_MESSAGES.detail.routeGuardrail.defaultMessage}</p>
-            {process.facts.length > 0 ? (
-              <>
-                <h4>{process.factsHeading.defaultMessage}</h4>
-                <ul>{process.facts.map((fact) => <li key={fact.key}>{fact.defaultMessage}</li>)}</ul>
-              </>
-            ) : null}
-            <ProvenanceView path={path} />
-          </div>
-        </section>
+        {demoControl}
 
         <EventHistory path={path} />
+
+        <details className="official-process-details">
+          <summary>{CITIZEN_MESSAGES.detail.officialSummary.defaultMessage}</summary>
+          <div className="official-process-content">
+            <h2>{CITIZEN_MESSAGES.detail.officialTitle.defaultMessage}</h2>
+            <p className="route-guardrail">{UI_MESSAGES.detail.routeGuardrail.defaultMessage}</p>
+            <dl className="official-process-facts">
+              <div>
+                <dt>{UI_MESSAGES.common.recordedProcess.defaultMessage}</dt>
+                <dd>{formatProcessRoute(path.selectedProcess)}</dd>
+              </div>
+              <div>
+                <dt>{UI_MESSAGES.common.financialOutcome.defaultMessage}</dt>
+                <dd>{FINANCIAL_STATE_MESSAGES[financial.state].defaultMessage}</dd>
+              </div>
+              <div>
+                <dt>{UI_MESSAGES.common.legalOutcome.defaultMessage}</dt>
+                <dd>{LEGAL_OUTCOME_MESSAGES[legal.state].defaultMessage}</dd>
+              </div>
+            </dl>
+            {process.facts.length > 0 ? (
+              <div className="recorded-facts">
+                <h3>{CITIZEN_MESSAGES.detail.recordedFacts.defaultMessage}</h3>
+                <ul>{process.facts.map((fact) => <li key={fact.key}>{fact.defaultMessage}</li>)}</ul>
+              </div>
+            ) : null}
+            <ProvenanceView path={path} collapsible={false} />
+          </div>
+        </details>
       </div>
     </>
   );

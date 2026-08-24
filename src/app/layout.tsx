@@ -7,10 +7,10 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "Money Path · Synthetic financial-resolution prototype",
-    template: "%s · Money Path",
+    default: "NCRP Recovery · Independent hackathon prototype",
+    template: "%s · NCRP Recovery",
   },
-  description: "A synthetic citizen view of concurrent NCRP/CFCFRMS financial-resolution processes.",
+  description: "A synthetic citizen view of what is happening to money after a financial cyber fraud is reported.",
 };
 
 export const viewport: Viewport = {

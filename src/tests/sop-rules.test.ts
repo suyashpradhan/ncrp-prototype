@@ -73,7 +73,7 @@ describe("SOP selectors", () => {
 
     expect(deriveApplicableSopClock(path)).toMatchObject({
       durationDays: 15,
-      semantics: "UP_TO",
+      semantics: "WITHIN",
       startedAt: "2026-08-20T10:00:00.000Z",
     });
     expect(deriveOverdueState(path, DEMO_NOW)).toEqual({

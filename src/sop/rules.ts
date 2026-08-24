@@ -94,11 +94,11 @@ export const SOP_RULES: Readonly<Record<ProcessStage, SopRule>> = {
     stage: "BANK_INTERIM_CUSTODY",
     owner: "BANK",
     durationDays: 15,
-    clockSemantics: "UP_TO",
+    clockSemantics: "WITHIN",
     citizenAction: CITIZEN_ACTIONS.NONE,
     clockLabel: {
       key: "clock.bankInterimCustody",
-      defaultMessage: "Bank action may take up to 15 calendar days from recorded receipt",
+      defaultMessage: "Within 15 calendar days after the bank receives the direction",
     },
     provenance: PROCESS_1_PROVENANCE,
   },

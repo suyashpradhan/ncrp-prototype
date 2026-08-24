@@ -19,7 +19,7 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: MoneyPathPageProps): Promise<Metadata> {
   const { pathId } = await params;
   const path = getMoneyPath(pathId);
-  return { title: path ? `${formatCurrency(path.amount)} money path` : "Money path not found" };
+  return { title: path ? `${formatCurrency(path.amount)} details` : "Amount not found" };
 }
 
 export default async function MoneyPathPage({ params }: MoneyPathPageProps) {
