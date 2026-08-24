@@ -1,5 +1,5 @@
 import type { ProcessEvent } from "./events";
-import type { ProcessRoute, ProcessRouteReason, Provenance } from "../sop/processes";
+import type { ProcessRoute, ProcessRouteFact, Provenance } from "../sop/processes";
 
 export type FraudType =
   | "INVESTMENT_SCAM"
@@ -33,7 +33,7 @@ export type MoneyPath = {
   /** Authoritative mocked backend state; selectors never choose this route. */
   selectedProcess: ProcessRoute | null;
   /** Authoritative explanation facts attached to the recorded route. */
-  recordedRouteReasons: ProcessRouteReason[];
+  recordedRouteFacts: ProcessRouteFact[];
   events: ProcessEvent[];
   provenance: Provenance[];
 };

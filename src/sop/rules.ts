@@ -7,6 +7,7 @@ export type SopRule = {
   stage: ProcessStage;
   owner: Actor;
   durationDays: number | null;
+  clockSemantics: "WITHIN" | "UP_TO" | null;
   citizenAction: CitizenAction;
   clockLabel: Message | null;
   provenance: Provenance | null;
@@ -24,6 +25,7 @@ export const SOP_RULES: Readonly<Record<ProcessStage, SopRule>> = {
     stage: "MONEY_PATH_IDENTIFIED",
     owner: "INVESTIGATING_OFFICER",
     durationDays: null,
+    clockSemantics: null,
     citizenAction: CITIZEN_ACTIONS.NONE,
     clockLabel: null,
     provenance: null,
@@ -32,6 +34,7 @@ export const SOP_RULES: Readonly<Record<ProcessStage, SopRule>> = {
     stage: "ACCOUNT_HOLDER_NOTICE",
     owner: "INVESTIGATING_OFFICER",
     durationDays: 7,
+    clockSemantics: "WITHIN",
     citizenAction: CITIZEN_ACTIONS.NONE,
     clockLabel: {
       key: "clock.accountHolderNotice",
@@ -43,10 +46,11 @@ export const SOP_RULES: Readonly<Record<ProcessStage, SopRule>> = {
     stage: "ACCOUNT_HOLDER_RESPONSE",
     owner: "ACCOUNT_HOLDER",
     durationDays: 15,
+    clockSemantics: "UP_TO",
     citizenAction: CITIZEN_ACTIONS.NONE,
     clockLabel: {
       key: "clock.accountHolderResponse",
-      defaultMessage: "Account-holder response window: 15 calendar days",
+      defaultMessage: "Account holder may respond for up to 15 calendar days",
     },
     provenance: PROCESS_1_PROVENANCE,
   },
@@ -54,6 +58,7 @@ export const SOP_RULES: Readonly<Record<ProcessStage, SopRule>> = {
     stage: "SP_DCP_APPROVAL",
     owner: "SP_DCP",
     durationDays: null,
+    clockSemantics: null,
     citizenAction: CITIZEN_ACTIONS.NONE,
     clockLabel: null,
     provenance: PROCESS_1_PROVENANCE,
@@ -62,6 +67,7 @@ export const SOP_RULES: Readonly<Record<ProcessStage, SopRule>> = {
     stage: "INDEMNITY_BOND_REQUIRED",
     owner: "CITIZEN",
     durationDays: null,
+    clockSemantics: null,
     citizenAction: CITIZEN_ACTIONS.SUBMIT_INDEMNITY_BOND,
     clockLabel: null,
     provenance: PROCESS_1_PROVENANCE,
@@ -70,6 +76,16 @@ export const SOP_RULES: Readonly<Record<ProcessStage, SopRule>> = {
     stage: "BANK_DIRECTION",
     owner: "INVESTIGATING_OFFICER",
     durationDays: null,
+    clockSemantics: null,
+    citizenAction: CITIZEN_ACTIONS.NONE,
+    clockLabel: null,
+    provenance: PROCESS_1_PROVENANCE,
+  },
+  BANK_DIRECTION_RECEIPT: {
+    stage: "BANK_DIRECTION_RECEIPT",
+    owner: "BANK",
+    durationDays: null,
+    clockSemantics: null,
     citizenAction: CITIZEN_ACTIONS.NONE,
     clockLabel: null,
     provenance: PROCESS_1_PROVENANCE,
@@ -78,10 +94,11 @@ export const SOP_RULES: Readonly<Record<ProcessStage, SopRule>> = {
     stage: "BANK_INTERIM_CUSTODY",
     owner: "BANK",
     durationDays: 15,
+    clockSemantics: "UP_TO",
     citizenAction: CITIZEN_ACTIONS.NONE,
     clockLabel: {
       key: "clock.bankInterimCustody",
-      defaultMessage: "Bank interim-custody window: 15 calendar days",
+      defaultMessage: "Bank action may take up to 15 calendar days from recorded receipt",
     },
     provenance: PROCESS_1_PROVENANCE,
   },
@@ -89,6 +106,7 @@ export const SOP_RULES: Readonly<Record<ProcessStage, SopRule>> = {
     stage: "INTERIM_CUSTODY_CONFIRMED",
     owner: "NONE",
     durationDays: null,
+    clockSemantics: null,
     citizenAction: CITIZEN_ACTIONS.NONE,
     clockLabel: null,
     provenance: PROCESS_1_PROVENANCE,
@@ -97,6 +115,7 @@ export const SOP_RULES: Readonly<Record<ProcessStage, SopRule>> = {
     stage: "EXITED_FINANCIAL_SYSTEM",
     owner: "NONE",
     durationDays: null,
+    clockSemantics: null,
     citizenAction: CITIZEN_ACTIONS.NONE,
     clockLabel: null,
     provenance: null,
@@ -105,6 +124,7 @@ export const SOP_RULES: Readonly<Record<ProcessStage, SopRule>> = {
     stage: "NOT_CURRENTLY_HELD",
     owner: "INVESTIGATING_OFFICER",
     durationDays: null,
+    clockSemantics: null,
     citizenAction: CITIZEN_ACTIONS.NONE,
     clockLabel: null,
     provenance: null,
@@ -113,6 +133,7 @@ export const SOP_RULES: Readonly<Record<ProcessStage, SopRule>> = {
     stage: "COURT_ROUTE",
     owner: "COURT",
     durationDays: null,
+    clockSemantics: null,
     citizenAction: CITIZEN_ACTIONS.NONE,
     clockLabel: null,
     provenance: {

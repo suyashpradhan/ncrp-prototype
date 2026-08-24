@@ -10,13 +10,14 @@ import { getSopRule } from "./rules";
 const EVENT_STAGE: Partial<Record<ProcessEvent["type"], ProcessStage>> = {
   MONEY_PATH_IDENTIFIED: "MONEY_PATH_IDENTIFIED",
   AMOUNT_HELD: "MONEY_PATH_IDENTIFIED",
-  ACCOUNT_HOLDER_NOTICE_REQUIRED: "ACCOUNT_HOLDER_NOTICE",
+  REQUEST_ASSIGNED_TO_IO: "ACCOUNT_HOLDER_NOTICE",
   ACCOUNT_HOLDER_NOTICE_ISSUED: "ACCOUNT_HOLDER_RESPONSE",
   ACCOUNT_HOLDER_RESPONDED: "SP_DCP_APPROVAL",
   ACCOUNT_HOLDER_NON_RESPONSE_RECORDED: "SP_DCP_APPROVAL",
   SP_DCP_APPROVAL_RECORDED: "INDEMNITY_BOND_REQUIRED",
   INDEMNITY_BOND_RECORDED: "BANK_DIRECTION",
-  BANK_DIRECTION_ISSUED: "BANK_INTERIM_CUSTODY",
+  BANK_DIRECTION_ISSUED: "BANK_DIRECTION_RECEIPT",
+  BANK_DIRECTION_RECEIVED: "BANK_INTERIM_CUSTODY",
   INTERIM_CUSTODY_CONFIRMED: "INTERIM_CUSTODY_CONFIRMED",
   AMOUNT_EXITED_FINANCIAL_SYSTEM: "EXITED_FINANCIAL_SYSTEM",
   AMOUNT_NOT_CURRENTLY_HELD: "NOT_CURRENTLY_HELD",
@@ -49,6 +50,10 @@ const STAGE_MESSAGES = {
     key: "stage.bankDirection",
     defaultMessage: "Waiting for the Investigating Officer to issue the bank direction.",
   },
+  BANK_DIRECTION_RECEIPT: {
+    key: "stage.bankDirectionReceipt",
+    defaultMessage: "The direction has been issued and is awaiting recorded receipt by the bank.",
+  },
   BANK_INTERIM_CUSTODY: {
     key: "stage.bankInterimCustody",
     defaultMessage: "The bank has received the interim-custody direction.",
@@ -74,6 +79,7 @@ const STAGE_MESSAGES = {
 export type SopClock = {
   stage: ProcessStage;
   durationDays: number;
+  semantics: "WITHIN" | "UP_TO";
   startedAt: string;
   label: Message;
   provenance: Provenance;
@@ -96,11 +102,17 @@ function toTimestamp(value: string | Date): number {
   return timestamp;
 }
 
-function latestStageEvent(path: MoneyPath): ProcessEvent {
-  const event = path.events
+export function getChronologicalEvents(path: MoneyPath): ProcessEvent[] {
+  return path.events
     .map((item, index) => ({ item, index, timestamp: toTimestamp(item.occurredAt) }))
-    .filter(({ item }) => EVENT_STAGE[item.type] !== undefined)
-    .sort((a, b) => b.timestamp - a.timestamp || b.index - a.index)[0]?.item;
+    .sort((a, b) => a.timestamp - b.timestamp || a.index - b.index)
+    .map(({ item }) => item);
+}
+
+function latestStageEvent(path: MoneyPath): ProcessEvent {
+  const event = getChronologicalEvents(path)
+    .filter((item) => EVENT_STAGE[item.type] !== undefined)
+    .at(-1);
 
   if (!event) {
     throw new Error(`Money path ${path.id} has no event from which a stage can be derived.`);
@@ -133,22 +145,36 @@ export function deriveApplicableSopClock(path: MoneyPath): SopClock | null {
   const stage = deriveCurrentStage(path);
   const rule = getSopRule(stage);
 
-  if (rule.durationDays === null || rule.clockLabel === null || rule.provenance === null) {
+  if (
+    rule.durationDays === null ||
+    rule.clockSemantics === null ||
+    rule.clockLabel === null ||
+    rule.provenance === null
+  ) {
     return null;
   }
 
   return {
     stage,
     durationDays: rule.durationDays,
+    semantics: rule.clockSemantics,
     startedAt: event.occurredAt,
     label: rule.clockLabel,
     provenance: rule.provenance,
   };
 }
 
-function utcCalendarDay(timestamp: number): number {
-  const date = new Date(timestamp);
-  return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+const INDIA_DATE_PARTS = new Intl.DateTimeFormat("en-IN", {
+  timeZone: "Asia/Kolkata",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
+function indiaCalendarDay(timestamp: number): number {
+  const parts = INDIA_DATE_PARTS.formatToParts(new Date(timestamp));
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return Date.UTC(Number(values.year), Number(values.month) - 1, Number(values.day));
 }
 
 export function deriveElapsedDays(path: MoneyPath, now: string | Date): number | null {
@@ -159,7 +185,7 @@ export function deriveElapsedDays(path: MoneyPath, now: string | Date): number |
   }
 
   const elapsed =
-    (utcCalendarDay(toTimestamp(now)) - utcCalendarDay(toTimestamp(clock.startedAt))) /
+    (indiaCalendarDay(toTimestamp(now)) - indiaCalendarDay(toTimestamp(clock.startedAt))) /
     86_400_000;
 
   return Math.max(0, Math.floor(elapsed));
@@ -183,19 +209,46 @@ export function deriveOverdueState(path: MoneyPath, now: string | Date): Overdue
   };
 }
 
-function hasEvent(path: MoneyPath, type: ProcessEvent["type"]): boolean {
+function eventHistoryIncludes(path: MoneyPath, type: ProcessEvent["type"]): boolean {
   return path.events.some((event) => event.type === type);
 }
 
 export function deriveFinancialState(path: MoneyPath): FinancialState {
-  if (hasEvent(path, "INTERIM_CUSTODY_CONFIRMED")) return "INTERIM_CUSTODY";
-  if (hasEvent(path, "AMOUNT_EXITED_FINANCIAL_SYSTEM")) return "EXITED_FINANCIAL_SYSTEM";
-  if (hasEvent(path, "AMOUNT_NOT_CURRENTLY_HELD")) return "NOT_CURRENTLY_HELD";
-  if (path.selectedProcess === "PROCESS_2") return "MULTI_VICTIM_ATTRIBUTION";
-  if (hasEvent(path, "ACCOUNT_HOLDER_NOTICE_REQUIRED") || hasEvent(path, "BANK_DIRECTION_ISSUED")) {
-    return "RESTORATION_PROCESSING";
+  let state: FinancialState =
+    path.selectedProcess === "PROCESS_2" ? "MULTI_VICTIM_ATTRIBUTION" : "HELD";
+
+  for (const event of getChronologicalEvents(path)) {
+    switch (event.type) {
+      case "AMOUNT_HELD":
+        state = path.selectedProcess === "PROCESS_2" ? "MULTI_VICTIM_ATTRIBUTION" : "HELD";
+        break;
+      case "AMOUNT_NOT_CURRENTLY_HELD":
+        state = "NOT_CURRENTLY_HELD";
+        break;
+      case "AMOUNT_EXITED_FINANCIAL_SYSTEM":
+        state = "EXITED_FINANCIAL_SYSTEM";
+        break;
+      case "INTERIM_CUSTODY_CONFIRMED":
+        state = "INTERIM_CUSTODY";
+        break;
+      case "REQUEST_ASSIGNED_TO_IO":
+      case "ACCOUNT_HOLDER_NOTICE_ISSUED":
+      case "ACCOUNT_HOLDER_RESPONDED":
+      case "ACCOUNT_HOLDER_NON_RESPONSE_RECORDED":
+      case "SP_DCP_APPROVAL_RECORDED":
+      case "INDEMNITY_BOND_RECORDED":
+      case "BANK_DIRECTION_ISSUED":
+      case "BANK_DIRECTION_RECEIVED":
+        if (state === "HELD" || state === "RESTORATION_PROCESSING") {
+          state = "RESTORATION_PROCESSING";
+        }
+        break;
+      default:
+        break;
+    }
   }
-  return "HELD";
+
+  return state;
 }
 
 const FINANCIAL_MESSAGES = {
@@ -228,7 +281,7 @@ export function deriveFinancialOutcome(path: MoneyPath): FinancialOutcome {
 }
 
 export function deriveLegalOutcome(path: MoneyPath): LegalOutcome {
-  if (hasEvent(path, "INTERIM_CUSTODY_CONFIRMED")) {
+  if (eventHistoryIncludes(path, "INTERIM_CUSTODY_CONFIRMED")) {
     return {
       state: "INTERIM_CUSTODY_UNDER_RECORDED_PROCESS",
       recordedProcess: path.selectedProcess,
@@ -239,7 +292,10 @@ export function deriveLegalOutcome(path: MoneyPath): LegalOutcome {
     };
   }
 
-  if (hasEvent(path, "COURT_ROUTE_RECORDED") || hasEvent(path, "ACCOUNT_HOLDER_CONTESTED")) {
+  if (
+    eventHistoryIncludes(path, "COURT_ROUTE_RECORDED") ||
+    eventHistoryIncludes(path, "ACCOUNT_HOLDER_CONTESTED")
+  ) {
     return {
       state: "COURT_ROUTE_RECORDED",
       recordedProcess: path.selectedProcess,

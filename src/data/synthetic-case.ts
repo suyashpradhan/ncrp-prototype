@@ -32,7 +32,7 @@ export const syntheticCase: Case = {
         maskedAccount: "•••• 1842",
       },
       selectedProcess: "PROCESS_1",
-      recordedRouteReasons: [
+      recordedRouteFacts: [
         "SINGLE_VICTIM_RECORDED",
         "AMOUNT_HELD_AT_BENEFICIARY_ACCOUNT",
         "FIR_REGISTERED",
@@ -59,8 +59,8 @@ export const syntheticCase: Case = {
           actor: "CITIZEN",
         },
         {
-          id: "path-73-notice-required",
-          type: "ACCOUNT_HOLDER_NOTICE_REQUIRED",
+          id: "path-73-assigned-to-io",
+          type: "REQUEST_ASSIGNED_TO_IO",
           occurredAt: "2026-08-15T10:00:00.000Z",
           actor: "INVESTIGATING_OFFICER",
         },
@@ -74,7 +74,7 @@ export const syntheticCase: Case = {
         maskedAccount: "•••• 7710",
       },
       selectedProcess: "PROCESS_1",
-      recordedRouteReasons: [
+      recordedRouteFacts: [
         "SINGLE_VICTIM_RECORDED",
         "AMOUNT_HELD_AT_BENEFICIARY_ACCOUNT",
         "FIR_REGISTERED",
@@ -95,8 +95,14 @@ export const syntheticCase: Case = {
           actor: "BANK",
         },
         {
-          id: "path-42-notice-required",
-          type: "ACCOUNT_HOLDER_NOTICE_REQUIRED",
+          id: "path-42-mrm",
+          type: "MRM_REQUEST_RAISED",
+          occurredAt: "2026-07-22T10:00:00.000Z",
+          actor: "CITIZEN",
+        },
+        {
+          id: "path-42-assigned-to-io",
+          type: "REQUEST_ASSIGNED_TO_IO",
           occurredAt: "2026-07-23T10:00:00.000Z",
           actor: "INVESTIGATING_OFFICER",
         },
@@ -127,8 +133,14 @@ export const syntheticCase: Case = {
         {
           id: "path-42-bank-direction",
           type: "BANK_DIRECTION_ISSUED",
-          occurredAt: "2026-08-20T10:00:00.000Z",
+          occurredAt: "2026-08-19T10:00:00.000Z",
           actor: "INVESTIGATING_OFFICER",
+        },
+        {
+          id: "path-42-bank-direction-received",
+          type: "BANK_DIRECTION_RECEIVED",
+          occurredAt: "2026-08-20T10:00:00.000Z",
+          actor: "BANK",
         },
       ],
     },
@@ -139,7 +151,7 @@ export const syntheticCase: Case = {
         name: "Synthetic cash-withdrawal trail",
       },
       selectedProcess: null,
-      recordedRouteReasons: [],
+      recordedRouteFacts: [],
       provenance: [],
       events: [
         {
@@ -161,7 +173,7 @@ export const syntheticCase: Case = {
       id: "path-not-currently-held",
       amount: 60_000,
       selectedProcess: null,
-      recordedRouteReasons: [],
+      recordedRouteFacts: [],
       provenance: [],
       events: [
         {

@@ -31,6 +31,10 @@ const NEXT_TRANSITION: Partial<Record<ProcessStage, SyntheticTransition>> = {
     eventType: "BANK_DIRECTION_ISSUED",
     actor: "INVESTIGATING_OFFICER",
   },
+  BANK_DIRECTION_RECEIPT: {
+    eventType: "BANK_DIRECTION_RECEIVED",
+    actor: "BANK",
+  },
   BANK_INTERIM_CUSTODY: {
     eventType: "INTERIM_CUSTODY_CONFIRMED",
     actor: "BANK",
