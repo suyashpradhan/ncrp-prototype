@@ -1,0 +1,34 @@
+export type ProcessRoute =
+  | "PROCESS_1"
+  | "PROCESS_2"
+  | "PROCESS_3"
+  | "PROCESS_4"
+  | "PROCESS_5";
+
+export type ProcessStage =
+  | "MONEY_PATH_IDENTIFIED"
+  | "ACCOUNT_HOLDER_NOTICE"
+  | "ACCOUNT_HOLDER_RESPONSE"
+  | "SP_DCP_APPROVAL"
+  | "INDEMNITY_BOND_REQUIRED"
+  | "BANK_DIRECTION"
+  | "BANK_INTERIM_CUSTODY"
+  | "INTERIM_CUSTODY_CONFIRMED"
+  | "EXITED_FINANCIAL_SYSTEM"
+  | "NOT_CURRENTLY_HELD"
+  | "COURT_ROUTE";
+
+export type ProcessRouteReason =
+  | "SINGLE_VICTIM_RECORDED"
+  | "AMOUNT_HELD_AT_BENEFICIARY_ACCOUNT"
+  | "FIR_REGISTERED"
+  | "SECTION_106_3_ROUTE_RECORDED"
+  | "MULTIPLE_OR_COMPETING_CLAIMS_RECORDED"
+  | "COURT_DIRECTION_RECORDED";
+
+export type Provenance = {
+  source: "JAN_2026_NCRP_CFCFRMS_SOP";
+  process?: ProcessRoute;
+  section?: string;
+  note: string;
+};
