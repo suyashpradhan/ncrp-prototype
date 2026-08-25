@@ -1,7 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { UI_MESSAGES } from "../content/en";
-import { CaseNavigation } from "./case-navigation";
 
 type AppShellProps = {
   children: ReactNode;
@@ -16,16 +15,24 @@ export function AppShell({ children }: AppShellProps) {
       </div>
       <header className="site-header">
         <div className="shell header-inner">
-          <Link className="brand" href="/" aria-label={UI_MESSAGES.brand.name.defaultMessage}>
-            <span className="brand-mark" aria-hidden="true">NR</span>
+          <Link
+            className="brand"
+            href="/"
+            aria-label={UI_MESSAGES.brand.name.defaultMessage}
+          >
             <span>
-              <span className="brand-eyebrow">{UI_MESSAGES.brand.eyebrow.defaultMessage}</span>
-              <span className="brand-name">{UI_MESSAGES.brand.name.defaultMessage}</span>
+              <span className="brand-name">
+                {UI_MESSAGES.brand.name.defaultMessage}
+              </span>
+              <span className="brand-service">
+                {UI_MESSAGES.brand.eyebrow.defaultMessage}
+              </span>
             </span>
           </Link>
-          <span className="prototype-label">{UI_MESSAGES.prototype.label.defaultMessage}</span>
+          <span className="prototype-label">
+            {UI_MESSAGES.prototype.label.defaultMessage}
+          </span>
         </div>
-        <CaseNavigation />
       </header>
       <main id="main-content" tabIndex={-1}>
         {children}
@@ -34,9 +41,17 @@ export function AppShell({ children }: AppShellProps) {
         <div className="shell footer-inner">
           <div className="footer-disclosure">
             <p>{UI_MESSAGES.prototype.fullDisclosure.defaultMessage}</p>
-            <Link className="footer-link" href="/about">
-              {UI_MESSAGES.footer.aboutLink.defaultMessage}
-            </Link>
+            <nav className="footer-links" aria-label="Secondary navigation">
+              <Link className="footer-link" href="/how-it-works">
+                {UI_MESSAGES.footer.howLink.defaultMessage}
+              </Link>
+              <Link className="footer-link" href="/about">
+                {UI_MESSAGES.footer.aboutLink.defaultMessage}
+              </Link>
+              <Link className="footer-link" href="/about#provenance">
+                {UI_MESSAGES.footer.sourcesLink.defaultMessage}
+              </Link>
+            </nav>
           </div>
           <p>{UI_MESSAGES.footer.guardrail.defaultMessage}</p>
         </div>

@@ -14,13 +14,13 @@ export function SopClockView({ path, now, compact = false }: { path: MoneyPath; 
 
   if (compact) {
     if (clock.stage === "ACCOUNT_HOLDER_NOTICE" && overdue.isOverdue) {
-      return <p className="citizen-clock-summary">This step has crossed its recorded 7-day process window.</p>;
+      return <p className="citizen-clock-summary">This step is currently on Day {overdue.elapsedDays} of its recorded 7-day process window.</p>;
     }
 
     if (clock.stage === "BANK_INTERIM_CUSTODY") {
       return (
         <p className="citizen-clock-summary">
-          Day {overdue.elapsedDays} of the 15-day bank process window.
+          Day {overdue.elapsedDays} of the bank&apos;s 15-calendar-day process window.
         </p>
       );
     }
@@ -34,27 +34,26 @@ export function SopClockView({ path, now, compact = false }: { path: MoneyPath; 
 
   return (
     <div
-      className={`clock ${overdue.isOverdue ? "clock-overdue" : "clock-on-time"}`}
+      className="citizen-clock-detail"
       role="group"
       aria-labelledby={clockLabelId}
     >
-      <strong id={clockLabelId}>
+      <p id={clockLabelId}>
         {clock.stage === "ACCOUNT_HOLDER_NOTICE"
           ? CITIZEN_MESSAGES.clock.sopWindow.defaultMessage
           : clock.stage === "BANK_INTERIM_CUSTODY"
             ? CITIZEN_MESSAGES.clock.bankWindow.defaultMessage
             : clock.label.defaultMessage}
-      </strong>
-      <div className="clock-current">
-        <span>{CITIZEN_MESSAGES.clock.currentCase.defaultMessage}: {UI_MESSAGES.clock.day.defaultMessage} {overdue.elapsedDays}.</span>
-        {overdue.isOverdue ? (
-          <span className="overdue-copy">
-            This process step is {overdue.daysOverdue} {overdue.daysOverdue === 1 ? "day" : "days"} beyond that recorded window.
-          </span>
-        ) : (
-          <span>{UI_MESSAGES.clock.withinWindow.defaultMessage}</span>
-        )}
+      </p>
+      <div className="synthetic-day">
+        <span>{CITIZEN_MESSAGES.clock.currentCase.defaultMessage}</span>
+        <strong>{UI_MESSAGES.clock.day.defaultMessage} {overdue.elapsedDays}</strong>
       </div>
+      {overdue.isOverdue ? (
+        <p className="clock-context">
+          This step is currently {overdue.daysOverdue} {overdue.daysOverdue === 1 ? "day" : "days"} beyond its recorded process window.
+        </p>
+      ) : null}
     </div>
   );
 }

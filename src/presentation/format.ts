@@ -17,12 +17,22 @@ const INDIA_DATE_FORMATTER = new Intl.DateTimeFormat("en-IN", {
   year: "numeric",
 });
 
+const INDIA_SHORT_DATE_FORMATTER = new Intl.DateTimeFormat("en-IN", {
+  timeZone: "Asia/Kolkata",
+  day: "numeric",
+  month: "short",
+});
+
 export function formatCurrency(amount: number): string {
   return INR_FORMATTER.format(amount);
 }
 
 export function formatIndiaDate(value: string): string {
   return INDIA_DATE_FORMATTER.format(new Date(value));
+}
+
+export function formatIndiaShortDate(value: string): string {
+  return INDIA_SHORT_DATE_FORMATTER.format(new Date(value));
 }
 
 export function formatProcessRoute(route: ProcessRoute | null): string {

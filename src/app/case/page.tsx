@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { CaseOverviewScreen } from "../../components/demo-case/case-overview-screen";
 
 export const metadata: Metadata = {
-  title: "My case",
+  title: "Your reported financial fraud",
 };
 
 export default function CasePage() {

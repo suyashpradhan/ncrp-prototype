@@ -2,7 +2,7 @@ import { CITIZEN_MESSAGES } from "../content/en";
 import type { MoneyPath } from "../domain/case";
 import type { Message } from "../domain/messages";
 import type { ProcessStage } from "../sop/processes";
-import { deriveCurrentStage } from "../sop/selectors";
+import { deriveCitizenAction, deriveCurrentOwner, deriveCurrentStage } from "../sop/selectors";
 
 export type CitizenAmountPresentation = {
   title: Message;
@@ -78,6 +78,10 @@ const STAGE_PRESENTATION: Record<ProcessStage, CitizenAmountPresentation> = {
   BANK_INTERIM_CUSTODY: {
     title: CITIZEN_MESSAGES.amount.bankTitle,
     explanation: CITIZEN_MESSAGES.amount.bankExplanation,
+    detailExplanation: {
+      key: "amount.bankDetailExplanation",
+      defaultMessage: "The required direction has already been received by the bank.",
+    },
     nextStep: CITIZEN_MESSAGES.detail.bankNext,
   },
   INTERIM_CUSTODY_CONFIRMED: {
@@ -110,4 +114,79 @@ const STAGE_PRESENTATION: Record<ProcessStage, CitizenAmountPresentation> = {
 
 export function deriveCitizenAmountPresentation(path: MoneyPath): CitizenAmountPresentation {
   return STAGE_PRESENTATION[deriveCurrentStage(path)];
+}
+
+export function deriveCitizenDetailTitle(path: MoneyPath): Message {
+  if (deriveCurrentStage(path) === "BANK_INTERIM_CUSTODY" && path.beneficiaryInstitution) {
+    return {
+      key: "amount.bankTitle.named",
+      defaultMessage: `Waiting on ${path.beneficiaryInstitution.name.replace(" (synthetic)", "")}`,
+    };
+  }
+
+  return deriveCitizenAmountPresentation(path).title;
+}
+
+export function deriveCitizenCurrentHistoryLabel(path: MoneyPath): Message {
+  const stage = deriveCurrentStage(path);
+
+  if (stage === "ACCOUNT_HOLDER_NOTICE") {
+    return {
+      key: "history.current.accountHolderVerification",
+      defaultMessage: "Account-holder verification step",
+    };
+  }
+
+  if (stage === "BANK_INTERIM_CUSTODY") {
+    return {
+      key: "history.current.bankProcessing",
+      defaultMessage: "Bank processing step",
+    };
+  }
+
+  return deriveCitizenDetailTitle(path);
+}
+
+export type CitizenCaseActionPresentation = {
+  actionRequired: boolean;
+  heading: Message;
+  explanation: Message;
+};
+
+function numberWord(value: number): string {
+  if (value === 1) return "One";
+  if (value === 2) return "Two";
+  if (value === 3) return "Three";
+  return String(value);
+}
+
+export function deriveCitizenCaseActionPresentation(
+  paths: MoneyPath[],
+): CitizenCaseActionPresentation {
+  const actionPaths = paths.filter((path) => deriveCitizenAction(path).code !== "NONE");
+  const responsibleActors = new Set(
+    paths
+      .map(deriveCurrentOwner)
+      .filter((owner) => owner !== "NONE" && owner !== "CITIZEN" && owner !== "SYSTEM"),
+  );
+
+  if (actionPaths.length > 0) {
+    return {
+      actionRequired: true,
+      heading: CITIZEN_MESSAGES.case.actionRequired,
+      explanation: {
+        key: "case.actionRequiredExplanation",
+        defaultMessage: "Open the relevant amount below to see the recorded action.",
+      },
+    };
+  }
+
+  return {
+    actionRequired: false,
+    heading: CITIZEN_MESSAGES.case.noAction,
+    explanation: {
+      key: "case.noActionExplanation",
+      defaultMessage: `${numberWord(responsibleActors.size)} institutions currently need to act on different parts of your case.`,
+    },
+  };
 }

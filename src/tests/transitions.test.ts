@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { syntheticCase } from "../data/synthetic-case";
 import { advanceSyntheticDateByOneDay } from "../domain/demo-time";
-import { simulateNextMoneyPathEvent } from "../domain/money-path";
+import {
+  getNextSyntheticMilestoneEventType,
+  simulateNextMoneyPathEvent,
+} from "../domain/money-path";
 import {
   deriveCitizenAction,
   deriveApplicableSopClock,
@@ -13,6 +16,18 @@ import {
 } from "../sop/selectors";
 
 describe("synthetic case-player transitions", () => {
+  it("groups the reviewer demo into bank-receipt and interim-custody milestones", () => {
+    const police = syntheticCase.moneyPaths.find(
+      (path) => path.id === "path-held-io-verification",
+    )!;
+    const bank = syntheticCase.moneyPaths.find(
+      (path) => path.id === "path-bank-interim-custody",
+    )!;
+
+    expect(getNextSyntheticMilestoneEventType(police)).toBe("BANK_DIRECTION_RECEIVED");
+    expect(getNextSyntheticMilestoneEventType(bank)).toBe("INTERIM_CUSTODY_CONFIRMED");
+  });
+
   it("moves the ₹73,000 path by appending events and deriving each new state", () => {
     const original = syntheticCase.moneyPaths.find((path) => path.id === "path-held-io-verification")!;
     const response = simulateNextMoneyPathEvent(original, "2026-08-25T10:00:00.000Z");
