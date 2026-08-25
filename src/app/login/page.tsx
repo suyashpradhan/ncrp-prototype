@@ -1,10 +1,5 @@
-import type { Metadata } from "next";
-import { DemoLogin } from "../../components/demo-auth/demo-login";
-
-export const metadata: Metadata = {
-  title: "Demo login",
-};
+import { redirect } from "next/navigation";
 
 export default function LoginPage() {
-  return <DemoLogin />;
+  redirect("/#check-case");
 }

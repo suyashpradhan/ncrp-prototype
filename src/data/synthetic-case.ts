@@ -17,9 +17,9 @@ export const syntheticCase: Case = {
   fraudType: "INVESTMENT_SCAM",
   complaint: {
     id: "complaint-synthetic-001",
-    acknowledgementId: "SYN-NCRP-2026-001",
+    acknowledgementId: "NCRP-DEMO-2026-00124",
     reportedAmount: 200_000,
-    reportedAt: "2026-08-10T09:30:00.000Z",
+    reportedAt: "2026-08-12T09:30:00.000Z",
     firStatus: "REGISTERED",
     jurisdiction: "Synthetic Central District",
   },
@@ -49,7 +49,7 @@ export const syntheticCase: Case = {
         {
           id: "path-73-held",
           type: "AMOUNT_HELD",
-          occurredAt: "2026-08-13T10:00:00.000Z",
+          occurredAt: "2026-08-12T10:30:00.000Z",
           actor: "BANK",
         },
         {
@@ -85,13 +85,13 @@ export const syntheticCase: Case = {
         {
           id: "path-42-identified",
           type: "MONEY_PATH_IDENTIFIED",
-          occurredAt: "2026-08-11T10:00:00.000Z",
+          occurredAt: "2026-08-12T10:05:00.000Z",
           actor: "SYSTEM",
         },
         {
           id: "path-42-held",
           type: "AMOUNT_HELD",
-          occurredAt: "2026-08-12T10:00:00.000Z",
+          occurredAt: "2026-08-12T11:00:00.000Z",
           actor: "BANK",
         },
         {

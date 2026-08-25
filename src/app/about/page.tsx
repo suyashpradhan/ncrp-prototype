@@ -8,74 +8,37 @@ export const metadata: Metadata = {
 
 export default function AboutPage() {
   return (
-    <>
-      <section className="page-intro section-pad about-hero">
-        <div className="shell narrow-shell">
-          <p className="eyebrow">{UI_MESSAGES.about.eyebrow.defaultMessage}</p>
+    <section className="secondary-page section-pad">
+      <div className="shell reading-shell">
+        <header className="secondary-page-intro">
           <h1>{UI_MESSAGES.about.title.defaultMessage}</h1>
           <p className="lede">{UI_MESSAGES.about.intro.defaultMessage}</p>
+          <p className="service-disclosure">No live NCRP, police or banking system is connected.</p>
+        </header>
 
-          <aside className="prototype-disclosure-card" aria-labelledby="prototype-disclosure-heading">
-            <span className="prototype-disclosure-mark" aria-hidden="true">SYN</span>
-            <div>
-              <h2 id="prototype-disclosure-heading">
-                {UI_MESSAGES.about.disclosureTitle.defaultMessage}
-              </h2>
-              <p>{UI_MESSAGES.about.disclosureBody.defaultMessage}</p>
-            </div>
-          </aside>
-        </div>
-      </section>
-
-      <section className="section-pad about-comparison-section">
-        <div className="shell narrow-shell about-grid">
-          <article className="about-card about-modeled-card">
-            <p className="eyebrow">{UI_MESSAGES.about.modeledEyebrow.defaultMessage}</p>
+        <div className="secondary-sections">
+          <section id="provenance">
             <h2>{UI_MESSAGES.about.modeledTitle.defaultMessage}</h2>
             <p>{UI_MESSAGES.about.modeledIntro.defaultMessage}</p>
-            <ul className="about-list">
+            <ul>
               {UI_MESSAGES.about.modeledItems.map((item) => (
                 <li key={item.key}>{item.defaultMessage}</li>
               ))}
             </ul>
-          </article>
+            <p className="source-note">Source represented in the prototype: January 2026 NCRP-CFCFRMS SOP.</p>
+          </section>
 
-          <article className="about-card about-synthetic-card">
-            <p className="eyebrow">{UI_MESSAGES.about.syntheticEyebrow.defaultMessage}</p>
+          <section>
             <h2>{UI_MESSAGES.about.syntheticTitle.defaultMessage}</h2>
             <p>{UI_MESSAGES.about.syntheticIntro.defaultMessage}</p>
-            <ul className="about-list">
+            <ul>
               {UI_MESSAGES.about.syntheticItems.map((item) => (
                 <li key={item.key}>{item.defaultMessage}</li>
               ))}
             </ul>
-          </article>
+          </section>
         </div>
-      </section>
-
-      <section className="section-pad about-boundaries-section" aria-labelledby="prototype-boundaries-heading">
-        <div className="shell narrow-shell about-boundaries-layout">
-          <div>
-            <p className="eyebrow">{UI_MESSAGES.about.boundariesEyebrow.defaultMessage}</p>
-            <h2 id="prototype-boundaries-heading">{UI_MESSAGES.about.boundariesTitle.defaultMessage}</h2>
-            <p>{UI_MESSAGES.about.boundariesIntro.defaultMessage}</p>
-          </div>
-          <ul className="boundary-list">
-            {UI_MESSAGES.about.boundaryItems.map((item) => (
-              <li key={item.key}>{item.defaultMessage}</li>
-            ))}
-          </ul>
-        </div>
-      </section>
-
-      <section id="provenance" className="section-pad about-provenance-section" aria-labelledby="prototype-provenance-heading">
-        <div className="shell narrow-shell about-provenance-card">
-          <p className="eyebrow">{UI_MESSAGES.about.provenanceEyebrow.defaultMessage}</p>
-          <h2 id="prototype-provenance-heading">{UI_MESSAGES.about.provenanceTitle.defaultMessage}</h2>
-          <p>{UI_MESSAGES.about.provenanceBody.defaultMessage}</p>
-          <p className="about-principle">{UI_MESSAGES.about.principle.defaultMessage}</p>
-        </div>
-      </section>
-    </>
+      </div>
+    </section>
   );
 }

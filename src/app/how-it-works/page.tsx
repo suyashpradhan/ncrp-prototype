@@ -7,9 +7,8 @@ export const metadata: Metadata = {
 
 export default function HowItWorksPage() {
   return (
-    <section className="how-section section-pad">
-      <div className="shell narrow-shell">
-        <p className="eyebrow">{CITIZEN_MESSAGES.how.eyebrow.defaultMessage}</p>
+    <section className="secondary-page section-pad">
+      <div className="shell reading-shell">
         <h1>{CITIZEN_MESSAGES.how.title.defaultMessage}</h1>
         <p className="lede">{CITIZEN_MESSAGES.how.intro.defaultMessage}</p>
         <ol className="how-steps">

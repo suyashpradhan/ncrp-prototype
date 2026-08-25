@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import type { Case } from "../../domain/case";
 import { CITIZEN_MESSAGES, FRAUD_TYPE_MESSAGES, UI_MESSAGES } from "../../content/en";
 import { reconcileCaseAmounts } from "../../domain/reconciliation";
+import { deriveCitizenCaseActionPresentation } from "../../presentation/citizen-case";
 import { formatCurrency, formatIndiaDate } from "../../presentation/format";
 import { rankMoneyPathsForOverview } from "../../presentation/money-paths";
 import { MoneyPathCard } from "./money-path-card";
@@ -20,22 +21,20 @@ export function CaseOverview({
   const activeAmount =
     reconciliation.byFinancialState.HELD +
     reconciliation.byFinancialState.RESTORATION_PROCESSING;
+  const caseAction = deriveCitizenCaseActionPresentation(caseData.moneyPaths);
 
   return (
     <>
       <section className="case-intro section-pad">
-        <div className="shell case-intro-layout">
+        <div className="shell reading-shell">
           <div className="case-lead">
-            <p className="eyebrow">{CITIZEN_MESSAGES.case.eyebrow.defaultMessage}</p>
-            <h1>{formatCurrency(caseData.complaint.reportedAmount)}</h1>
-            <p className="case-person">
-              <strong>{caseData.syntheticCitizen.displayName}</strong>
-              <span aria-hidden="true"> · </span>
-              {FRAUD_TYPE_MESSAGES[caseData.fraudType].defaultMessage}
-            </p>
+            <h1>{CITIZEN_MESSAGES.case.eyebrow.defaultMessage}</h1>
+            <p className="case-total">{formatCurrency(caseData.complaint.reportedAmount)}</p>
+            <p className="case-person"><strong>{FRAUD_TYPE_MESSAGES[caseData.fraudType].defaultMessage}</strong></p>
             <p className="case-reported-date">
               {CITIZEN_MESSAGES.case.reportedOn.defaultMessage}: {formatIndiaDate(caseData.complaint.reportedAt)}
             </p>
+            <p className="synthetic-person">Synthetic case for {caseData.syntheticCitizen.displayName}</p>
             <p className="case-context">{CITIZEN_MESSAGES.case.context.defaultMessage}</p>
           </div>
 
@@ -47,13 +46,21 @@ export function CaseOverview({
               ))}
             </ul>
           </div>
+
+          <section
+            className={`case-action-summary ${caseAction.actionRequired ? "action-required" : "no-action"}`}
+            aria-labelledby="case-action-heading"
+          >
+            <h2 id="case-action-heading">{CITIZEN_MESSAGES.case.actionQuestion.defaultMessage}</h2>
+            <p className="case-action-answer">{caseAction.heading.defaultMessage}</p>
+            <p>{caseAction.explanation.defaultMessage}</p>
+          </section>
         </div>
       </section>
 
       <section id="money-status" className="money-status section-pad" aria-labelledby="current-status-heading">
-        <div className="shell citizen-shell">
+        <div className="shell reading-shell">
           <div className="citizen-section-heading">
-            <p className="eyebrow">{CITIZEN_MESSAGES.case.nowTitle.defaultMessage}</p>
             <h2 id="current-status-heading">{CITIZEN_MESSAGES.case.standingTitle.defaultMessage}</h2>
             <p className="lede">{CITIZEN_MESSAGES.case.nowIntro.defaultMessage}</p>
           </div>

@@ -14,7 +14,7 @@ export function MoneyPathDetailScreen({ moneyPathId }: { moneyPathId: string }) 
       <section className="access-prompt section-pad">
         <div className="shell narrow-shell">
           <h1>{CITIZEN_MESSAGES.case.signInPrompt.defaultMessage}</h1>
-          <Link className="button-link" href="/login">
+          <Link className="button-link" href="/#check-case">
             {CITIZEN_MESSAGES.case.signInAction.defaultMessage}
           </Link>
         </div>

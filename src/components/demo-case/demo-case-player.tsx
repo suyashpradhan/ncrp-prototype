@@ -1,7 +1,7 @@
 "use client";
 
 import { EVENT_MESSAGES, UI_MESSAGES } from "../../content/en";
-import { getNextSyntheticEventType } from "../../domain/money-path";
+import { getNextSyntheticMilestoneEventType } from "../../domain/money-path";
 import { formatCurrency } from "../../presentation/format";
 import { useDemoCase } from "./demo-case-provider";
 
@@ -10,16 +10,15 @@ export function DemoCasePlayer({ moneyPathId }: { moneyPathId: string }) {
   const path = caseData.moneyPaths.find((item) => item.id === moneyPathId);
   if (!path) return null;
 
-  const nextEvent = getNextSyntheticEventType(path);
+  const nextEvent = getNextSyntheticMilestoneEventType(path);
   const latestForPath = lastUpdate?.moneyPathId === moneyPathId ? lastUpdate : null;
   const headingId = `demo-player-${moneyPathId}`;
   const descriptionId = `${headingId}-description`;
   const nextEventId = `${headingId}-next-event`;
 
   return (
-    <aside className="demo-player" aria-labelledby={headingId}>
+    <section className="demo-player" aria-labelledby={headingId}>
       <div className="demo-player-copy">
-        <p className="demo-label">{UI_MESSAGES.demo.label.defaultMessage}</p>
         <h2 id={headingId}>{UI_MESSAGES.demo.title.defaultMessage}</h2>
         <p id={descriptionId}>{UI_MESSAGES.demo.description.defaultMessage}</p>
       </div>
@@ -52,6 +51,6 @@ export function DemoCasePlayer({ moneyPathId }: { moneyPathId: string }) {
           ? `${UI_MESSAGES.demo.latestUpdate.defaultMessage}: ${EVENT_MESSAGES[latestForPath.eventType].defaultMessage}`
           : UI_MESSAGES.demo.noUpdate.defaultMessage}
       </p>
-    </aside>
+    </section>
   );
 }

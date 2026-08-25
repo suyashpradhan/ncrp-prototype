@@ -10,7 +10,8 @@ export const metadata: Metadata = {
     default: "NCRP Recovery · Independent hackathon prototype",
     template: "%s · NCRP Recovery",
   },
-  description: "A synthetic citizen view of what is happening to money after a financial cyber fraud is reported.",
+  description:
+    "A synthetic citizen view of what is happening to money after a financial cyber fraud is reported.",
 };
 
 export const viewport: Viewport = {
@@ -19,11 +20,15 @@ export const viewport: Viewport = {
   themeColor: "#15283d",
 };
 
-export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
+export default function RootLayout({
+  children,
+}: Readonly<{ children: ReactNode }>) {
   return (
     <html lang="en" data-scroll-behavior="smooth">
       <body>
-        <a className="skip-link" href="#main-content">Skip to main content</a>
+        <a className="skip-link" href="#main-content">
+          Skip to main content
+        </a>
         <AppShell>
           <DemoCaseProvider initialCase={syntheticCase} initialNow={DEMO_NOW}>
             {children}

@@ -15,7 +15,10 @@ import {
   deriveLegalOutcome,
 } from "../../sop/selectors";
 import { explainRecordedProcess } from "../../sop/explanations";
-import { deriveCitizenAmountPresentation } from "../../presentation/citizen-case";
+import {
+  deriveCitizenAmountPresentation,
+  deriveCitizenDetailTitle,
+} from "../../presentation/citizen-case";
 import { formatCurrency, formatProcessRoute, getActorLabel } from "../../presentation/format";
 import { SopClockView } from "../sop-clock/sop-clock";
 import { EventHistory } from "../event-history/event-history";
@@ -34,6 +37,7 @@ export function MoneyPathDetail({
   const owner = deriveCurrentOwner(path);
   const action = deriveCitizenAction(path);
   const presentation = deriveCitizenAmountPresentation(path);
+  const detailTitle = deriveCitizenDetailTitle(path);
   const financial = deriveFinancialOutcome(path);
   const legal = deriveLegalOutcome(path);
   const process = explainRecordedProcess(path);
@@ -57,9 +61,13 @@ export function MoneyPathDetail({
 
       <div className="shell narrow-shell citizen-detail-layout section-pad">
         <section className="citizen-detail-section" aria-labelledby="whats-happening-heading">
-          <h2 id="whats-happening-heading">{CITIZEN_MESSAGES.detail.whatsHappening.defaultMessage}</h2>
+          <h2 id="whats-happening-heading">
+            {stage === "INTERIM_CUSTODY_CONFIRMED"
+              ? CITIZEN_MESSAGES.detail.receivedQuestion.defaultMessage
+              : CITIZEN_MESSAGES.detail.whatsHappening.defaultMessage}
+          </h2>
           <div className="citizen-status-answer">
-            <h3>{presentation.title.defaultMessage}</h3>
+            <h3>{detailTitle.defaultMessage}</h3>
             <p>{presentation.detailExplanation?.defaultMessage ?? presentation.explanation.defaultMessage}</p>
           </div>
           {owner !== "NONE" ? (
@@ -71,13 +79,16 @@ export function MoneyPathDetail({
             </dl>
           ) : null}
           {stage === "INTERIM_CUSTODY_CONFIRMED" ? (
-            <div className="interim-status">
-              <strong>{UI_MESSAGES.common.legalOutcome.defaultMessage}</strong>
-              <p>{CITIZEN_MESSAGES.detail.interimStatus.defaultMessage}</p>
-              <details>
-                <summary>{CITIZEN_MESSAGES.detail.interimHelp.defaultMessage}</summary>
+            <div className="received-outcomes">
+              <div>
+                <span>{UI_MESSAGES.common.financialOutcome.defaultMessage}</span>
+                <strong>{formatCurrency(path.amount)} received</strong>
+              </div>
+              <div>
+                <span>{UI_MESSAGES.common.legalOutcome.defaultMessage}</span>
+                <strong>{CITIZEN_MESSAGES.detail.interimStatus.defaultMessage}</strong>
                 <p>{CITIZEN_MESSAGES.detail.interimExplanation.defaultMessage}</p>
-              </details>
+              </div>
             </div>
           ) : null}
         </section>
@@ -105,8 +116,6 @@ export function MoneyPathDetail({
           <h2 id="next-heading">{CITIZEN_MESSAGES.detail.nextTitle.defaultMessage}</h2>
           <p>{presentation.nextStep.defaultMessage}</p>
         </section>
-
-        {demoControl}
 
         <EventHistory path={path} />
 
@@ -138,6 +147,8 @@ export function MoneyPathDetail({
             <ProvenanceView path={path} collapsible={false} />
           </div>
         </details>
+
+        {demoControl}
       </div>
     </>
   );

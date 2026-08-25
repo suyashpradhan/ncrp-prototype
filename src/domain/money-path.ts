@@ -51,6 +51,26 @@ export function getNextSyntheticEventType(path: MoneyPath): ProcessEventType | n
   return NEXT_TRANSITION[deriveCurrentStage(path)]?.eventType ?? null;
 }
 
+const POLICE_TO_BANK_MILESTONE_STAGES = new Set<ProcessStage>([
+  "ACCOUNT_HOLDER_NOTICE",
+  "ACCOUNT_HOLDER_RESPONSE",
+  "SP_DCP_APPROVAL",
+  "INDEMNITY_BOND_REQUIRED",
+  "BANK_DIRECTION",
+  "BANK_DIRECTION_RECEIPT",
+]);
+
+/** Groups existing deterministic events into two reviewer-visible demo updates. */
+export function getNextSyntheticMilestoneEventType(
+  path: MoneyPath,
+): ProcessEventType | null {
+  if (POLICE_TO_BANK_MILESTONE_STAGES.has(deriveCurrentStage(path))) {
+    return "BANK_DIRECTION_RECEIVED";
+  }
+
+  return getNextSyntheticEventType(path);
+}
+
 /**
  * Appends one deterministic demo event. This is a case-player helper, not a legal
  * route decision engine. Terminal or unsupported stages return the original path.

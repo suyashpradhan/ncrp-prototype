@@ -12,6 +12,7 @@ import type { Case } from "../../domain/case";
 import { advanceSyntheticDateByOneDay } from "../../domain/demo-time";
 import type { ProcessEventType } from "../../domain/events";
 import {
+  getNextSyntheticMilestoneEventType,
   getNextSyntheticEventType,
   simulateNextCaseUpdate,
 } from "../../domain/money-path";
@@ -22,9 +23,9 @@ export type LastSimulatedUpdate = {
   occurredAt: string;
 };
 
-export const DEMO_CREDENTIALS = {
-  username: "test123",
-  password: "password123",
+export const DEMO_CASE_ACCESS = {
+  acknowledgementNumber: "NCRP-DEMO-2026-00124",
+  registeredMobile: "98XXXXXX24",
 } as const;
 
 type DemoCaseContextValue = {
@@ -32,7 +33,7 @@ type DemoCaseContextValue = {
   now: string;
   lastUpdate: LastSimulatedUpdate | null;
   isDemoAuthenticated: boolean;
-  authenticateDemo: (username: string, password: string) => boolean;
+  authenticateDemo: (acknowledgementNumber: string, registeredMobile: string) => boolean;
   simulateNextUpdate: (moneyPathId: string) => void;
   resetDemo: () => void;
 };
@@ -60,9 +61,10 @@ export function DemoCaseProvider({ children, initialCase, initialNow }: DemoCase
     isDemoAuthenticated: false,
   }));
 
-  const authenticateDemo = useCallback((username: string, password: string) => {
+  const authenticateDemo = useCallback((acknowledgementNumber: string, registeredMobile: string) => {
     const matches =
-      username === DEMO_CREDENTIALS.username && password === DEMO_CREDENTIALS.password;
+      acknowledgementNumber.trim().toUpperCase() === DEMO_CASE_ACCESS.acknowledgementNumber &&
+      registeredMobile.trim().toUpperCase() === DEMO_CASE_ACCESS.registeredMobile;
 
     if (matches) {
       setState((current) => ({ ...current, isDemoAuthenticated: true }));
@@ -76,15 +78,34 @@ export function DemoCaseProvider({ children, initialCase, initialNow }: DemoCase
       const path = current.caseData.moneyPaths.find((item) => item.id === moneyPathId);
       if (!path) throw new Error(`Unknown money path: ${moneyPathId}`);
 
-      const eventType = getNextSyntheticEventType(path);
-      if (!eventType) return current;
+      const milestoneEventType = getNextSyntheticMilestoneEventType(path);
+      if (!milestoneEventType) return current;
 
-      const nextNow = advanceSyntheticDateByOneDay(current.now);
+      let nextCase = current.caseData;
+      let nextNow = current.now;
+      let appendedEventType: ProcessEventType | null = null;
+
+      for (let transitionIndex = 0; transitionIndex < 10; transitionIndex += 1) {
+        const currentPath = nextCase.moneyPaths.find((item) => item.id === moneyPathId);
+        if (!currentPath) throw new Error(`Unknown money path: ${moneyPathId}`);
+
+        const eventType = getNextSyntheticEventType(currentPath);
+        if (!eventType) break;
+
+        nextNow = advanceSyntheticDateByOneDay(nextNow);
+        nextCase = simulateNextCaseUpdate(nextCase, moneyPathId, nextNow);
+        appendedEventType = eventType;
+
+        if (eventType === milestoneEventType) break;
+      }
+
+      if (!appendedEventType) return current;
+
       return {
         ...current,
-        caseData: simulateNextCaseUpdate(current.caseData, moneyPathId, nextNow),
+        caseData: nextCase,
         now: nextNow,
-        lastUpdate: { moneyPathId, eventType, occurredAt: nextNow },
+        lastUpdate: { moneyPathId, eventType: appendedEventType, occurredAt: nextNow },
       };
     });
   }, []);
