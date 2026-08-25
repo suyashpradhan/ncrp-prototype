@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/next";
 import { AppShell } from "../components/app-shell";
 import { DemoCaseProvider } from "../components/demo-case/demo-case-provider";
@@ -35,6 +36,7 @@ export default function RootLayout({
             {children}
           </DemoCaseProvider>
         </AppShell>
+        <SpeedInsights />
         <Analytics />
       </body>
     </html>
