@@ -10,7 +10,6 @@ export function PrototypeDemoControl({ moneyPathId }: { moneyPathId: string }) {
   if (!path) return null;
 
   const nextEvent = getNextSyntheticMilestoneEventType(path);
-  if (!nextEvent) return null;
 
   const latestForPath = lastUpdate?.moneyPathId === moneyPathId ? lastUpdate : null;
   const headingId = `prototype-control-${moneyPathId}`;
@@ -23,14 +22,16 @@ export function PrototypeDemoControl({ moneyPathId }: { moneyPathId: string }) {
         <p id={descriptionId}>{UI_MESSAGES.demo.description.defaultMessage}</p>
 
         <div className="prototype-demo-actions">
-          <button
-            className="primary-button"
-            type="button"
-            aria-describedby={descriptionId}
-            onClick={() => simulateNextUpdate(moneyPathId)}
-          >
-            {UI_MESSAGES.demo.simulate.defaultMessage}
-          </button>
+          {nextEvent ? (
+            <button
+              className="primary-button"
+              type="button"
+              aria-describedby={descriptionId}
+              onClick={() => simulateNextUpdate(moneyPathId)}
+            >
+              {UI_MESSAGES.demo.simulate.defaultMessage}
+            </button>
+          ) : null}
           <button className="secondary-button" type="button" onClick={resetDemo}>
             {UI_MESSAGES.demo.reset.defaultMessage}
           </button>
@@ -39,7 +40,9 @@ export function PrototypeDemoControl({ moneyPathId }: { moneyPathId: string }) {
         <p className="prototype-demo-update" role="status" aria-live="polite" aria-atomic="true">
           {latestForPath
             ? `${UI_MESSAGES.demo.latestUpdate.defaultMessage}: ${EVENT_MESSAGES[latestForPath.eventType].defaultMessage}`
-            : UI_MESSAGES.demo.noUpdate.defaultMessage}
+            : nextEvent
+              ? UI_MESSAGES.demo.noUpdate.defaultMessage
+              : UI_MESSAGES.demo.complete.defaultMessage}
         </p>
       </div>
     </details>

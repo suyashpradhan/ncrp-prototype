@@ -30,8 +30,7 @@ export function CaseOverview({
       <section className="case-intro section-pad">
         <div className="shell reading-shell">
           <div className="case-lead">
-            <JourneyProgress current="RESOLVE" />
-            <p className="journey-stage-label">{CITIZEN_MESSAGES.case.proposedView.defaultMessage}</p>
+            <JourneyProgress current="TRACK" />
             <h1>{CITIZEN_MESSAGES.case.eyebrow.defaultMessage}</h1>
             <p className="case-summary-line">
               <strong>{formatCurrency(caseData.complaint.reportedAmount)}</strong>
@@ -63,14 +62,13 @@ export function CaseOverview({
         <div className="shell reading-shell">
           <div className="citizen-section-heading">
             <h2 id="current-status-heading">{CITIZEN_MESSAGES.case.standingTitle.defaultMessage}</h2>
+            <p>{CITIZEN_MESSAGES.case.nowIntro.defaultMessage}</p>
           </div>
           <div className="citizen-amount-list">
             {rankedPaths.map((path) => <MoneyPathCard key={path.id} path={path} now={now} />)}
           </div>
 
-          <h3 className="reconciliation-heading">
-            {CITIZEN_MESSAGES.case.reconciliationLabel.defaultMessage}
-          </h3>
+          <h3 className="reconciliation-heading">{CITIZEN_MESSAGES.case.reconciliationLabel.defaultMessage}</h3>
           <dl className="citizen-reconciliation" aria-label={CITIZEN_MESSAGES.case.reconciliationLabel.defaultMessage}>
             <div><dt>{UI_MESSAGES.common.reportedLoss.defaultMessage}</dt><dd>{formatCurrency(reconciliation.reportedAmount)}</dd></div>
             <div><dt>{CITIZEN_MESSAGES.case.active.defaultMessage}</dt><dd>{formatCurrency(activeAmount)}</dd></div>

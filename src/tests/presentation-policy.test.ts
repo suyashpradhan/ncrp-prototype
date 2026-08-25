@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { DEMO_NOW, syntheticCase } from "../data/synthetic-case";
 import { simulateNextMoneyPathEvent } from "../domain/money-path";
 import {
+  deriveCitizenOverviewDetails,
   deriveCitizenOverviewMeta,
   deriveDetailPresentationPolicy,
 } from "../presentation/citizen-case";
@@ -70,9 +71,35 @@ describe("citizen detail presentation policy", () => {
       showNextStep: false,
       showHistory: true,
       showOfficialProcess: true,
-      showDemoControl: false,
+      showDemoControl: true,
       showOutcomes: true,
     });
+  });
+
+  it("keeps overview copy separated into explanation, action and process window", () => {
+    const police = deriveCitizenOverviewDetails(
+      demoPath("path-held-io-verification"),
+      DEMO_NOW,
+    );
+    const bank = deriveCitizenOverviewDetails(
+      demoPath("path-bank-interim-custody"),
+      DEMO_NOW,
+    );
+    const exited = deriveCitizenOverviewDetails(
+      demoPath("path-exited-cash-withdrawal"),
+      DEMO_NOW,
+    );
+
+    expect(police.explanation.defaultMessage).toContain("police verification");
+    expect(police.citizenAction?.defaultMessage).toBe("Nothing right now");
+    expect(police.processWindow?.defaultMessage).toBe(
+      "Day 9 of the recorded 7-day process window",
+    );
+    expect(bank.processWindow?.defaultMessage).toBe(
+      "Day 4 of the bank's 15-day process window",
+    );
+    expect(exited.citizenAction).toBeNull();
+    expect(exited.cta.defaultMessage).toBe("What does this mean?");
   });
 
   it("compresses overview rows into state-specific summary lines", () => {

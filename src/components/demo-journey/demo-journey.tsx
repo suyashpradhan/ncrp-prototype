@@ -38,21 +38,20 @@ import { DEMO_CASE_ACCESS, useDemoCase } from "../demo-case/demo-case-provider";
 import { JourneyProgress, type JourneyProgressStep } from "./journey-progress";
 
 type JourneyView =
-  | "ACT"
-  | "WHO_AFFECTED"
+  | "REPORT_START"
   | "REPORT_INPUT"
   | "ANALYSING"
   | "ANALYSIS_RESULT"
   | "MISSING_INFORMATION"
   | "REVIEW"
   | "COMPLAINT_REGISTERED"
-  | "POST_SUBMISSION"
   | "FINANCIAL_TRAIL"
   | "MRM_REQUEST"
   | "MRM_SUBMITTED"
   | "ANALYSIS_ERROR";
 
 type ReportingFor = "SELF" | "HELPING";
+type ReportMethod = "SPEAK" | "UPLOAD" | "TYPE";
 
 const DEMO_EVIDENCE = [
   { src: "/demo/whatsapp-investment-scam.png", alt: "Synthetic WhatsApp investment conversation" },
@@ -62,23 +61,14 @@ const DEMO_EVIDENCE = [
 function StageLayout({
   progress,
   children,
-  onRestart,
 }: {
   progress: JourneyProgressStep;
   children: ReactNode;
-  onRestart?: () => void;
 }) {
   return (
-    <section id={progress === "ACT" ? "full-flow" : undefined} className="journey-stage section-pad">
+    <section id={progress === "REPORT" ? "report-fraud" : undefined} className="journey-stage section-pad">
       <div className="shell reading-shell">
-        <div className="journey-progress-row">
-          <JourneyProgress current={progress} />
-          {onRestart ? (
-            <button className="text-button journey-restart" type="button" onClick={onRestart}>
-              Restart demo
-            </button>
-          ) : null}
-        </div>
+        <JourneyProgress current={progress} />
         {children}
       </div>
     </section>
@@ -133,19 +123,16 @@ async function compressScreenshot(file: File): Promise<File> {
 
 function UrgentMoneyGuidance() {
   return (
-    <aside className="urgent-guidance" aria-labelledby="urgent-money-heading">
-      <h2 id="urgent-money-heading">Money was lost</h2>
-      <p>If this happened recently, call 1930 now. You can continue preparing the online report here.</p>
-      <a className="secondary-button" href="tel:1930">Call 1930</a>
-    </aside>
+    <p className="urgent-guidance">
+      If money was lost recently, call <a href="tel:1930">1930</a> as soon as possible.
+    </p>
   );
 }
 
 function EvidenceSafetyNotice() {
   return (
     <div className="safety-notice">
-      <p><strong>Use synthetic or test information only.</strong></p>
-      <p>Do not upload OTPs, PINs, passwords, CVVs or real sensitive financial documents. Files are not stored by this prototype.</p>
+      <p>Use synthetic or test information only. Do not upload OTPs, PINs or passwords.</p>
     </div>
   );
 }
@@ -153,8 +140,9 @@ function EvidenceSafetyNotice() {
 export function DemoJourney() {
   const router = useRouter();
   const { caseData, authenticateDemo, resetDemo } = useDemoCase();
-  const [view, setView] = useState<JourneyView>("ACT");
-  const [reportingFor, setReportingFor] = useState<ReportingFor>("SELF");
+  const [view, setView] = useState<JourneyView>("REPORT_START");
+  const [reportingFor, setReportingFor] = useState<ReportingFor | null>(null);
+  const [reportMethod, setReportMethod] = useState<ReportMethod>("SPEAK");
   const [draft, setDraft] = useState<IncidentDraft | null>(null);
   const [narrative, setNarrative] = useState("");
   const [screenshots, setScreenshots] = useState<File[]>([]);
@@ -165,6 +153,7 @@ export function DemoJourney() {
   const [loadingMessage, setLoadingMessage] = useState("Reading your evidence…");
   const [formError, setFormError] = useState<string | null>(null);
   const [missingAnswers, setMissingAnswers] = useState<Record<string, string>>({});
+  const [missingQuestionTotal, setMissingQuestionTotal] = useState(0);
   const [isEditing, setIsEditing] = useState(false);
   const [isDemoIncident, setIsDemoIncident] = useState(false);
   const recorderRef = useRef<MediaRecorder | null>(null);
@@ -173,7 +162,7 @@ export function DemoJourney() {
   const summary = deriveJourneyFinancialSummary(caseData);
 
   useEffect(() => {
-    if (view !== "ACT") {
+    if (view !== "REPORT_START") {
       document.querySelector<HTMLElement>("#journey-stage-heading")?.focus();
     }
   }, [view]);
@@ -199,42 +188,18 @@ export function DemoJourney() {
     authenticateDemo(DEMO_CASE_ACCESS.acknowledgementNumber, DEMO_CASE_ACCESS.registeredMobile);
   }
 
-  function restartJourney() {
-    if (recorderRef.current?.state === "recording") recorderRef.current.stop();
-    recorderRef.current?.stream.getTracks().forEach((track) => track.stop());
-    initialiseCase();
-    setView("ACT");
-    setReportingFor("SELF");
-    setDraft(null);
-    setNarrative("");
-    setScreenshots([]);
-    setTranscription(null);
-    setAudio(null);
-    setIsRecording(false);
-    setRecordingSeconds(0);
-    setFormError(null);
-    setMissingAnswers({});
-    setIsEditing(false);
-    setIsDemoIncident(false);
-  }
-
   function useDemoIncident() {
     initialiseCase();
-    setLoadingMessage("Reading the synthetic evidence…");
+    setLoadingMessage("Reading your information…");
     setView("ANALYSING");
     window.setTimeout(() => {
-      setLoadingMessage("Organising the complaint…");
+      setLoadingMessage("Organising your report…");
       window.setTimeout(() => {
         setDraft(structuredClone(DEMO_INCIDENT_DRAFT));
         setIsDemoIncident(true);
         setView("ANALYSIS_RESULT");
       }, 400);
     }, 450);
-  }
-
-  function chooseAffectedPerson(choice: ReportingFor) {
-    setReportingFor(choice);
-    setView("REPORT_INPUT");
   }
 
   async function startRecording() {
@@ -296,42 +261,48 @@ export function DemoJourney() {
     setScreenshots(await Promise.all(selected.map(compressScreenshot)));
   }
 
-  async function requestTranscription() {
-    if (!audio) return;
-    setFormError(null);
-    setLoadingMessage("Listening to your statement…");
-    setView("ANALYSING");
-    try {
-      const data = new FormData();
-      data.append("audio", audio, "statement.webm");
-      const response = await fetch("/api/transcribe", { method: "POST", body: data });
-      const result: unknown = await response.json();
-      if (!response.ok) throw new Error(typeof result === "object" && result && "error" in result ? String(result.error) : "Transcription failed.");
-      setTranscription(TranscriptionResultSchema.parse(result));
-      setView("REPORT_INPUT");
-    } catch (error) {
-      setFormError(error instanceof Error ? error.message : "We couldn't transcribe this recording.");
-      setView("REPORT_INPUT");
+  async function transcribeRecording(): Promise<TranscriptionResult> {
+    if (!audio) throw new Error("No recording is available.");
+    const data = new FormData();
+    data.append("audio", audio, "statement.webm");
+    const response = await fetch("/api/transcribe", { method: "POST", body: data });
+    const result: unknown = await response.json();
+    if (!response.ok) {
+      throw new Error(
+        typeof result === "object" && result && "error" in result
+          ? String(result.error)
+          : "We couldn't read this recording.",
+      );
     }
+    return TranscriptionResultSchema.parse(result);
   }
 
   async function buildComplaint() {
-    if (audio && !transcription) {
-      await requestTranscription();
-      return;
-    }
     if (!narrative.trim() && screenshots.length === 0 && !transcription) {
-      setFormError("Speak, add a test screenshot or type what happened before continuing.");
+      if (!audio) {
+        setFormError("Speak, add a test screenshot or type what happened before continuing.");
+        return;
+      }
+    }
+    if (!reportingFor) {
+      setFormError("Choose who you are reporting for before continuing.");
       return;
     }
 
     setFormError(null);
-    setLoadingMessage("Reading your evidence…");
+    setLoadingMessage(audio && !transcription ? "Reading your statement…" : "Reading your information…");
     setView("ANALYSING");
     try {
+      let preparedTranscription = transcription;
+      if (audio && !preparedTranscription) {
+        preparedTranscription = await transcribeRecording();
+        setTranscription(preparedTranscription);
+      }
+
+      setLoadingMessage("Organising your report…");
       const data = new FormData();
       data.append("narrative", narrative);
-      data.append("englishTranscript", transcription?.englishTranscript ?? "");
+      data.append("englishTranscript", preparedTranscription?.englishTranscript ?? "");
       data.append("reportingFor", reportingFor);
       screenshots.forEach((file) => data.append("screenshots", file, file.name));
       const response = await fetch("/api/analyze-incident", { method: "POST", body: data });
@@ -340,7 +311,8 @@ export function DemoJourney() {
       setDraft(IncidentDraftSchema.parse(result));
       setIsDemoIncident(false);
       setView("ANALYSIS_RESULT");
-    } catch {
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : null);
       setView("ANALYSIS_ERROR");
     }
   }
@@ -348,17 +320,21 @@ export function DemoJourney() {
   function acceptAnalysis() {
     if (!draft) return;
     const questions = deriveMissingQuestions(draft);
+    setMissingQuestionTotal(questions.length);
     setView(questions.length > 0 ? "MISSING_INFORMATION" : "REVIEW");
   }
 
-  function saveMissingAnswers(questions: MissingQuestion[]) {
+  function saveMissingAnswer(question: MissingQuestion, fallback?: string) {
     if (!draft) return;
-    let updated = draft;
-    for (const question of questions) {
-      updated = applyMissingAnswer(updated, question.field, missingAnswers[question.field] ?? "");
+    const answer = fallback ?? missingAnswers[question.field] ?? "";
+    if (!answer.trim()) {
+      setFormError("Enter the detail, or choose that you do not have it.");
+      return;
     }
+    const updated = applyMissingAnswer(draft, question.field, answer);
     setDraft(updated);
     setMissingAnswers({});
+    setFormError(null);
     setView(deriveMissingQuestions(updated).length > 0 ? "MISSING_INFORMATION" : "REVIEW");
   }
 
@@ -370,113 +346,121 @@ export function DemoJourney() {
   let content: ReactNode;
 
   switch (view) {
-    case "ACT":
+    case "REPORT_START":
       content = (
-        <StageLayout progress="ACT">
-          <p className="prototype-label">Independent hackathon prototype</p>
+        <StageLayout progress="REPORT">
           <h1>Report a financial cyber fraud</h1>
-          <p className="lede">Tell us what happened. Speak in your language, upload test evidence or type. We’ll organise the information for you to review.</p>
-          <div className="entry-actions">
-            <button className="primary-button" type="button" onClick={useDemoIncident}>Use demo incident</button>
-            <button className="secondary-button" type="button" onClick={() => setView("WHO_AFFECTED")}>Try with test evidence</button>
-          </div>
-          <p className="journey-note">The demo incident works without external services.</p>
-          <aside className="act-urgent">
-            <p><strong>Lost money recently?</strong><br />Call 1930 now while you continue preparing your report.</p>
-            <a href="tel:1930">Call 1930</a>
-          </aside>
-        </StageLayout>
-      );
-      break;
-
-    case "WHO_AFFECTED":
-      content = (
-        <StageLayout progress="ACT" onRestart={restartJourney}>
-          <h1 id="journey-stage-heading" tabIndex={-1}>Who was affected?</h1>
-          <div className="choice-list" role="group" aria-label="Who was affected">
-            <button className="choice-button" type="button" onClick={() => chooseAffectedPerson("SELF")}>
-              <strong>Me</strong><span>I’m preparing my own report.</span>
-            </button>
-            <button className="choice-button" type="button" onClick={() => chooseAffectedPerson("HELPING")}>
-              <strong>I’m helping someone</strong><span>The affected person reviews it before submission.</span>
-            </button>
-          </div>
-          <p>You can help organise the evidence and prepare the report. No delegated account access is created.</p>
+          <p className="lede">Tell us what happened. We’ll help organise the information needed for the report.</p>
+          <fieldset className="reporting-for-fieldset">
+            <legend>Who are you reporting for?</legend>
+            <div className="choice-list">
+              <label className={reportingFor === "SELF" ? "choice-option choice-option-selected" : "choice-option"}>
+                <input type="radio" name="reporting-for" value="SELF" checked={reportingFor === "SELF"} onChange={() => setReportingFor("SELF")} />
+                <span>Myself</span>
+              </label>
+              <label className={reportingFor === "HELPING" ? "choice-option choice-option-selected" : "choice-option"}>
+                <input type="radio" name="reporting-for" value="HELPING" checked={reportingFor === "HELPING"} onChange={() => setReportingFor("HELPING")} />
+                <span>Someone else</span>
+              </label>
+            </div>
+          </fieldset>
+          {reportingFor === "HELPING" ? (
+            <p className="form-hint">The affected person should review the information before submission.</p>
+          ) : null}
+          <UrgentMoneyGuidance />
+          <button className="primary-button" type="button" disabled={!reportingFor} onClick={() => setView("REPORT_INPUT")}>Continue</button>
         </StageLayout>
       );
       break;
 
     case "REPORT_INPUT":
       content = (
-        <StageLayout progress="REPORT" onRestart={restartJourney}>
+        <StageLayout progress="REPORT">
           <h1 id="journey-stage-heading" tabIndex={-1}>Tell us what happened</h1>
-          <p className="lede">Use one method or combine them. You do not need to choose a fraud or bank category.</p>
-          <UrgentMoneyGuidance />
-          <EvidenceSafetyNotice />
+          <p className="lede">Choose the easiest way to share the information.</p>
 
-          <div className="report-methods">
-            <section aria-labelledby="speak-heading">
-              <h2 id="speak-heading">Speak in any Indian language</h2>
-              {!audio ? (
-                <div className="recording-control">
-                  <button className={isRecording ? "secondary-button" : "primary-button"} type="button" onClick={isRecording ? stopRecording : startRecording}>
-                    {isRecording ? "Stop recording" : "Start recording"}
-                  </button>
-                  <span className="recording-time" aria-live="polite">00:{String(recordingSeconds).padStart(2, "0")}</span>
-                </div>
-              ) : (
-                <div>
-                  <p><strong>Recording ready</strong> · {recordingSeconds || 1} seconds</p>
-                  <button className="text-button" type="button" onClick={recordAgain}>Record again</button>
-                </div>
-              )}
-              {transcription ? (
-                <div className="transcript-result" aria-live="polite">
-                  <h3>You said</h3>
-                  <p lang={transcription.languageCode}>{transcription.originalTranscript}</p>
-                  <h3>English interpretation</h3>
-                  <p>{transcription.englishTranscript}</p>
-                </div>
-              ) : null}
-            </section>
-
-            <section aria-labelledby="upload-heading">
-              <h2 id="upload-heading">Upload test evidence</h2>
-              <label className="file-button" htmlFor="incident-screenshots">Add screenshots</label>
-              <input id="incident-screenshots" className="visually-hidden" type="file" accept="image/png,image/jpeg,image/webp" multiple onChange={handleScreenshots} />
-              <p className="form-hint">Maximum 2 images. PNG, JPEG or WebP.</p>
-              {screenshots.length > 0 ? (
-                <ul className="selected-files" aria-label="Selected screenshots">
-                  {screenshots.map((file) => <li key={`${file.name}-${file.size}`}>{file.name}</li>)}
-                </ul>
-              ) : null}
-            </section>
-
-            <section aria-labelledby="type-heading">
-              <h2 id="type-heading">Type</h2>
-              <label className="visually-hidden" htmlFor="incident-narrative">What happened?</label>
-              <textarea id="incident-narrative" rows={6} value={narrative} onChange={(event) => setNarrative(event.target.value)} placeholder="Describe what happened in your own words (optional)." maxLength={8000} />
-            </section>
+          <div className="report-tabs" role="group" aria-label="Ways to share what happened">
+            {([
+              ["SPEAK", "Speak"],
+              ["UPLOAD", "Upload evidence"],
+              ["TYPE", "Type"],
+            ] as const).map(([method, label]) => (
+              <button
+                key={method}
+                id={`report-tab-${method.toLowerCase()}`}
+                className="report-tab"
+                type="button"
+                aria-pressed={reportMethod === method}
+                onClick={() => setReportMethod(method)}
+              >
+                {label}
+              </button>
+            ))}
           </div>
+
+          {reportMethod === "SPEAK" ? (
+            <section id="report-panel-speak" className="report-method-panel" aria-labelledby="speak-heading">
+              <h2 id="speak-heading">Speak in your language</h2>
+              <p>You can describe what happened naturally. We’ll organise the important details for you.</p>
+              {!audio ? (
+                <>
+                  <div className="recording-control">
+                    <button className={isRecording ? "secondary-button" : "primary-button"} type="button" onClick={isRecording ? stopRecording : startRecording}>
+                      {isRecording ? "Stop recording" : "Start recording"}
+                    </button>
+                    <span className="recording-time" aria-live="polite">00:{String(recordingSeconds).padStart(2, "0")}</span>
+                  </div>
+                  <button className="text-button demo-incident-button" type="button" onClick={useDemoIncident}>Use demo incident</button>
+                </>
+              ) : (
+                <>
+                  <div className="input-added-state" role="status">
+                    <p><strong>Statement added ✓</strong></p>
+                    <p>{transcription?.languageCode === "hi-IN" ? "Hindi" : "Recording"} · {recordingSeconds || 1} seconds</p>
+                    <button className="text-button" type="button" onClick={recordAgain}>Record again</button>
+                  </div>
+                  <button className="text-button method-switch" type="button" onClick={() => setReportMethod("UPLOAD")}>Add evidence</button>
+                  <button className="primary-button" type="button" onClick={buildComplaint}>Continue</button>
+                </>
+              )}
+            </section>
+          ) : null}
+
+          {reportMethod === "UPLOAD" ? (
+            <section id="report-panel-upload" className="report-method-panel" aria-labelledby="report-tab-upload">
+              <h2>Add evidence</h2>
+              <p>Upload screenshots of transactions, chats or payment confirmations.</p>
+              <label className="file-button" htmlFor="incident-screenshots">Choose screenshots</label>
+              <input id="incident-screenshots" className="visually-hidden" type="file" accept="image/png,image/jpeg,image/webp" multiple onChange={handleScreenshots} />
+              <p className="form-hint">Maximum 2 synthetic or demo screenshots.</p>
+              <EvidenceSafetyNotice />
+              {screenshots.length > 0 ? (
+                <p className="input-added-state" role="status"><strong>{screenshots.length} {screenshots.length === 1 ? "screenshot" : "screenshots"} added ✓</strong></p>
+              ) : null}
+              <button className="primary-button" type="button" onClick={buildComplaint}>Continue</button>
+            </section>
+          ) : null}
+
+          {reportMethod === "TYPE" ? (
+            <section id="report-panel-type" className="report-method-panel" aria-labelledby="report-tab-type">
+              <h2>Describe what happened</h2>
+              <label className="visually-hidden" htmlFor="incident-narrative">What happened?</label>
+              <textarea id="incident-narrative" rows={7} value={narrative} onChange={(event) => setNarrative(event.target.value)} placeholder="I received a WhatsApp message about an investment opportunity…" maxLength={8000} />
+              <button className="primary-button" type="button" onClick={buildComplaint}>Continue</button>
+            </section>
+          ) : null}
 
           {formError ? <p className="form-error" role="alert">{formError}</p> : null}
-          <div className="entry-actions">
-            <button className="primary-button" type="button" onClick={buildComplaint}>
-              {audio && !transcription ? "Transcribe statement" : "Build complaint"}
-            </button>
-            <button className="text-button" type="button" onClick={useDemoIncident}>Use demo incident</button>
-          </div>
         </StageLayout>
       );
       break;
 
     case "ANALYSING":
       content = (
-        <StageLayout progress="REPORT">
+        <StageLayout progress="REVIEW">
           <div className="loading-state" role="status" aria-live="polite">
             <span className="loading-marker" aria-hidden="true" />
             <h1 id="journey-stage-heading" tabIndex={-1}>{loadingMessage}</h1>
-            <p>This may take a moment. Your uploaded files are not stored by this prototype.</p>
           </div>
         </StageLayout>
       );
@@ -484,9 +468,9 @@ export function DemoJourney() {
 
     case "ANALYSIS_ERROR":
       content = (
-        <StageLayout progress="REPORT" onRestart={restartJourney}>
+        <StageLayout progress="REVIEW">
           <h1 id="journey-stage-heading" tabIndex={-1}>We couldn’t analyse this evidence</h1>
-          <p>Try again, or continue with the precomputed synthetic incident so the journey is never blocked.</p>
+          <p>Try again, or continue with the synthetic demo incident.</p>
           <div className="entry-actions">
             <button className="primary-button" type="button" onClick={useDemoIncident}>Use demo incident</button>
             <button className="secondary-button" type="button" onClick={() => setView("REPORT_INPUT")}>Try again</button>
@@ -499,23 +483,18 @@ export function DemoJourney() {
       if (!draft) return null;
       const total = totalIncidentTransactionAmount(draft);
       content = (
-        <StageLayout progress="REPORT" onRestart={restartJourney}>
+        <StageLayout progress="REVIEW">
           <h1 id="journey-stage-heading" tabIndex={-1}>Here’s what we understood</h1>
-          {draft.incident.moneyLost ? <UrgentMoneyGuidance /> : null}
-          <dl className="understanding-summary">
-            <div><dt>What happened</dt><dd>{draft.citizenSummary.incidentLabel}</dd></div>
-            <div><dt>Money lost</dt><dd>{total > 0 ? formatCurrency(total) : "Not confirmed"}</dd></div>
-            <div><dt>Contact</dt><dd>{draft.incident.occurredOn ?? "Not confirmed"}</dd></div>
-            <div><dt>Date</dt><dd>{dateLabel(draft.incident.incidentDate)}</dd></div>
-            <div><dt>Transactions found</dt><dd>{draft.transactions.length}</dd></div>
-            <div><dt>Pieces of evidence</dt><dd>{draft.evidence.length}</dd></div>
-            <div><dt>Suspect contacts found</dt><dd>{draft.suspectIdentifiers.length}</dd></div>
-          </dl>
+          <div className="understanding-lead">
+            <h2>{draft.citizenSummary.incidentLabel}</h2>
+            <p className="understanding-amount">{total > 0 ? `${formatCurrency(total)} lost` : "Amount not confirmed"}</p>
+            <p>{dateLabel(draft.incident.incidentDate)}</p>
+            <p>{draft.transactions.length} transactions · {draft.evidence.length} evidence items</p>
+          </div>
 
           <section className="mapping-section" aria-labelledby="mapping-heading">
-            <h2 id="mapping-heading">Suggested official NCRP mapping</h2>
+            <h2 id="mapping-heading">Reporting category</h2>
             <p><strong>{draft.officialMapping.categoryLabel ?? "Category not confirmed"}</strong><br />{draft.officialMapping.subCategoryLabel ?? "Sub-category not confirmed"}</p>
-            <p className="form-hint">This is a suggested mapping for you to confirm. It is not a legal conclusion.</p>
           </section>
 
           {isEditing ? (
@@ -532,13 +511,28 @@ export function DemoJourney() {
                 <label htmlFor="edit-place">Where it happened</label>
                 <input id="edit-place" value={draft.incident.occurredOn ?? ""} onChange={(event) => setDraft({ ...draft, incident: { ...draft.incident, occurredOn: event.target.value || null } })} />
               </div>
-              <button className="secondary-button" type="button" onClick={() => setIsEditing(false)}>Save changes</button>
+              <button className="secondary-button" type="button" onClick={() => setIsEditing(false)}>Save</button>
             </div>
           ) : null}
 
+          <details className="detail-disclosure extracted-details">
+            <summary>View extracted details</summary>
+            <div className="detail-disclosure-content">
+              <dl className="understanding-summary">
+                <div><dt>Where it happened</dt><dd>{draft.incident.occurredOn ?? "Not confirmed"}</dd></div>
+                <div><dt>Suspect details found</dt><dd>{draft.suspectIdentifiers.length}</dd></div>
+              </dl>
+              {isDemoIncident ? (
+                <div className="evidence-preview-grid" aria-label="Synthetic evidence used in this demo">
+                  {DEMO_EVIDENCE.map((item) => <Image key={item.src} src={item.src} alt={item.alt} width={360} height={360} sizes="(max-width: 520px) 46vw, 240px" />)}
+                </div>
+              ) : null}
+            </div>
+          </details>
+
           <div className="entry-actions">
-            <button className="primary-button" type="button" onClick={acceptAnalysis}>Looks right</button>
-            <button className="text-button" type="button" onClick={() => setIsEditing((current) => !current)}>{isEditing ? "Close edit" : "Something wrong? Edit"}</button>
+            <button className="primary-button" type="button" onClick={acceptAnalysis}>Confirm details</button>
+            <button className="text-button" type="button" onClick={() => setIsEditing((current) => !current)}>{isEditing ? "Close" : "Edit"}</button>
           </div>
         </StageLayout>
       );
@@ -547,20 +541,23 @@ export function DemoJourney() {
 
     case "MISSING_INFORMATION": {
       if (!draft) return null;
-      const questions = deriveMissingQuestions(draft).slice(0, 3);
+      const questions = deriveMissingQuestions(draft);
+      const question = questions[0];
+      if (!question) return null;
+      const questionNumber = Math.max(1, missingQuestionTotal - questions.length + 1);
       content = (
-        <StageLayout progress="REPORT" onRestart={restartJourney}>
-          <h1 id="journey-stage-heading" tabIndex={-1}>A few details are still needed</h1>
-          <p>We’ll ask only for information that was not already captured.</p>
-          <div className="missing-questions">
-            {questions.map((question) => (
-              <div className="form-field" key={question.field}>
-                <label htmlFor={`missing-${question.field}`}>{question.question}</label>
-                <input id={`missing-${question.field}`} type={question.inputType} value={missingAnswers[question.field] ?? ""} onChange={(event) => setMissingAnswers((current) => ({ ...current, [question.field]: event.target.value }))} />
-              </div>
-            ))}
+        <StageLayout progress="REVIEW">
+          <p className="question-count">{questionNumber} of {missingQuestionTotal}</p>
+          <h1 id="journey-stage-heading" tabIndex={-1}>One detail is still needed</h1>
+          <div className="missing-questions form-field">
+            <label htmlFor={`missing-${question.field}`}>{question.question}</label>
+            <input id={`missing-${question.field}`} type={question.inputType} value={missingAnswers[question.field] ?? ""} onChange={(event) => setMissingAnswers({ [question.field]: event.target.value })} />
           </div>
-          <button className="primary-button" type="button" onClick={() => saveMissingAnswers(questions)}>Continue</button>
+          {formError ? <p className="form-error" role="alert">{formError}</p> : null}
+          <div className="entry-actions">
+            <button className="primary-button" type="button" onClick={() => saveMissingAnswer(question)}>Continue</button>
+            <button className="text-button" type="button" onClick={() => saveMissingAnswer(question, "I don't have this information")}>I don’t have this information</button>
+          </div>
         </StageLayout>
       );
       break;
@@ -571,19 +568,19 @@ export function DemoJourney() {
       const total = totalIncidentTransactionAmount(draft);
       const generatedFields = generateNcrpFields(draft);
       content = (
-        <StageLayout progress="REPORT" onRestart={restartJourney}>
+        <StageLayout progress="REVIEW">
           <h1 id="journey-stage-heading" tabIndex={-1}>Review your report</h1>
-          <div className="review-sections">
-            <section><h2>What happened</h2><p>{draft.incident.narrative ?? draft.citizenSummary.shortSummary}</p></section>
-            <section><h2>Money lost</h2><p><strong>{formatCurrency(total)}</strong><br />{draft.transactions.length} transactions</p></section>
-            <section><h2>Evidence</h2><p>{draft.evidence.length} items included{transcription ? " · Voice statement" : ""}</p></section>
-            <section><h2>Suspect information</h2><p>{draft.suspectIdentifiers.length > 0 ? draft.suspectIdentifiers.map((item) => `${item.type.toLowerCase()}: ${item.value}`).join(" · ") : "None supplied"}</p></section>
-            <section><h2>Reporting as</h2><p>{draft.officialMapping.categoryLabel ?? "Not confirmed"}<br />{draft.officialMapping.subCategoryLabel ?? "Not confirmed"}</p></section>
-            <section><h2>Your details</h2><p><strong>Asha Verma</strong><br />Karnataka<br />Registered mobile ••••••0024</p><p className="form-hint">In a live service, these details would come from the authenticated NCRP profile.</p></section>
+          <div className="review-summary">
+            <h2>{draft.citizenSummary.incidentLabel}</h2>
+            <p>{dateLabel(draft.incident.incidentDate)}</p>
+            <p><strong>{formatCurrency(total)} lost</strong><br />{draft.transactions.length} transactions</p>
+            <p><strong>Evidence</strong><br />{transcription ? "Voice statement · " : ""}{draft.evidence.length} evidence items</p>
+            <p><strong>Reporting as</strong><br />{draft.officialMapping.categoryLabel ?? "Not confirmed"}<br />{draft.officialMapping.subCategoryLabel ?? "Not confirmed"}</p>
+            <p><strong>Reporter</strong><br />Asha Verma · Karnataka</p>
           </div>
 
           <details className="detail-disclosure generated-fields">
-            <summary>View generated NCRP fields</summary>
+            <summary>View all report details</summary>
             <div className="detail-disclosure-content">
               <dl>
                 {generatedFields.map((field) => <div key={field.label}><dt>{field.label}</dt><dd>{field.value}</dd></div>)}
@@ -600,96 +597,58 @@ export function DemoJourney() {
 
     case "COMPLAINT_REGISTERED":
       content = (
-        <StageLayout progress="REPORT" onRestart={restartJourney}>
-          <p className="success-kicker">Synthetic submission complete</p>
+        <StageLayout progress="REVIEW">
           <h1 id="journey-stage-heading" tabIndex={-1}>Complaint registered</h1>
           <p className="journey-identifier">{caseData.complaint.acknowledgementId}</p>
-          <p>The structured complaint can now enter the synthetic financial-fraud response journey.</p>
-          <button className="primary-button" type="button" onClick={() => setView("POST_SUBMISSION")}>What happens now?</button>
-        </StageLayout>
-      );
-      break;
-
-    case "POST_SUBMISSION":
-      content = (
-        <StageLayout progress="REPORT" onRestart={restartJourney}>
-          <h1 id="journey-stage-heading" tabIndex={-1}>What happens now?</h1>
-          <dl className="next-steps">
-            <div><dt>Done</dt><dd>Complaint registered.</dd></div>
-            <div><dt>Now</dt><dd>The financial-fraud response process can begin.</dd></div>
-            <div><dt>Keep</dt><dd>Your original evidence and transaction details.</dd></div>
-            <div><dt>Next</dt><dd>We’ll show how different parts of the reported amount move through this synthetic case.</dd></div>
-          </dl>
-          <button className="primary-button" type="button" onClick={() => setView("FINANCIAL_TRAIL")}>See the financial trail</button>
+          <p>Your report has entered the financial-fraud response process.</p>
+          <p>Keep your original evidence and transaction details.</p>
+          <button className="primary-button" type="button" onClick={() => setView("FINANCIAL_TRAIL")}>Continue</button>
         </StageLayout>
       );
       break;
 
     case "FINANCIAL_TRAIL":
       content = (
-        <StageLayout progress="RESTORE" onRestart={restartJourney}>
-          <h1 id="journey-stage-heading" tabIndex={-1}>What happened to the reported ₹2,00,000?</h1>
-          <p className="lede">Different portions of one fraud can end up in different financial situations.</p>
+        <StageLayout progress="RESTORE">
+          <h1 id="journey-stage-heading" tabIndex={-1}>Some of your money has been identified</h1>
           <div className="journey-trail-list">
             {trail.map((item) => (
               <div key={item.id} className="journey-trail-item"><strong>{formatCurrency(item.amount)}</strong><span><TrailState item={item} /></span></div>
             ))}
           </div>
-          <dl className="journey-total"><div><dt>Total reported</dt><dd>{formatCurrency(summary.reportedAmount)}</dd></div></dl>
-          <p className="journey-held-note">₹1,15,000 is recorded as held or inside active financial processes. Held is not the same as received.</p>
-          <button className="primary-button" type="button" onClick={() => setView("MRM_REQUEST")}>Continue to Money Restoration</button>
+          <p className="journey-held-note"><strong>{formatCurrency(summary.activeAmount)}</strong> is currently within an active financial process.</p>
+          <button className="primary-button" type="button" onClick={() => setView("MRM_REQUEST")}>Continue</button>
         </StageLayout>
       );
       break;
 
     case "MRM_REQUEST":
       content = (
-        <StageLayout progress="RESTORE" onRestart={restartJourney}>
-          <p className="journey-stage-label">Existing Money Restoration stage · Simplified for this synthetic demo</p>
-          <h1 id="journey-stage-heading" tabIndex={-1}>Money Restoration request</h1>
-          <p>The information already reviewed above is reused. There is no duplicate data entry.</p>
+        <StageLayout progress="RESTORE">
+          <h1 id="journey-stage-heading" tabIndex={-1}>Request money restoration</h1>
           <dl className="journey-facts">
-            <div><dt>NCRP complaint</dt><dd>{caseData.complaint.acknowledgementId}</dd></div>
-            <div><dt>Reported loss</dt><dd>{formatCurrency(summary.reportedAmount)}</dd></div>
-            <div><dt>Held amounts entering restoration-related processing</dt><dd>{formatCurrency(summary.activeAmount)}</dd></div>
+            <div><dt>Eligible held amount</dt><dd>{formatCurrency(summary.activeAmount)}</dd></div>
             <div><dt>Refund account</dt><dd>{DEMO_REFUND_ACCOUNT}</dd></div>
-            <div><dt>Required documents</dt><dd>Ready</dd></div>
+            <div><dt>Required information</dt><dd>Ready</dd></div>
           </dl>
-          <button className="primary-button" type="button" onClick={() => setView("MRM_SUBMITTED")}>Submit synthetic Money Restoration request</button>
+          <button className="primary-button" type="button" onClick={() => setView("MRM_SUBMITTED")}>Submit synthetic restoration request</button>
         </StageLayout>
       );
       break;
 
     case "MRM_SUBMITTED":
       content = (
-        <StageLayout progress="RESTORE" onRestart={restartJourney}>
-          <p className="success-kicker">Synthetic submission complete</p>
-          <h1 id="journey-stage-heading" tabIndex={-1}>Money Restoration request submitted</h1>
-          <dl className="journey-facts"><div><dt>Request ID</dt><dd>{DEMO_RESTORATION_REQUEST_ID}</dd></div></dl>
-          <p>The request can now move through the recorded police, bank and procedural steps.</p>
-          <section className="journey-handoff" aria-labelledby="handoff-heading">
-            <h2 id="handoff-heading">Now understand what happens to each amount</h2>
-            <ul><li>Where is each amount now?</li><li>Who needs to act?</li><li>Do I need to do anything?</li></ul>
-          </section>
-          <button className="primary-button" type="button" onClick={() => router.push("/case")}>Continue to Financial Resolution</button>
+        <StageLayout progress="RESTORE">
+          <h1 id="journey-stage-heading" tabIndex={-1}>Restoration request submitted</h1>
+          <p className="journey-identifier">{DEMO_RESTORATION_REQUEST_ID}</p>
+          <p>Your request will now move through the relevant police, bank and legal steps.</p>
+          <button className="primary-button" type="button" onClick={() => router.push("/case")}>Track progress</button>
         </StageLayout>
       );
       break;
   }
 
   return (
-    <>
-      {content}
-      {view === "ANALYSIS_RESULT" && isDemoIncident ? (
-        <section className="demo-evidence-preview section-pad" aria-labelledby="demo-evidence-heading">
-          <div className="shell reading-shell">
-            <h2 id="demo-evidence-heading">Synthetic evidence used in this demo</h2>
-            <div className="evidence-preview-grid">
-              {DEMO_EVIDENCE.map((item) => <Image key={item.src} src={item.src} alt={item.alt} width={360} height={360} sizes="(max-width: 520px) 46vw, 240px" />)}
-            </div>
-          </div>
-        </section>
-      ) : null}
-    </>
+    content
   );
 }

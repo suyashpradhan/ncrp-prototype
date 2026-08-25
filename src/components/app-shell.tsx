@@ -25,13 +25,17 @@ export function AppShell({ children }: AppShellProps) {
               </span>
             </Link>
             <nav className="header-navigation" aria-label={UI_MESSAGES.navigation.label.defaultMessage}>
-              <a href="/#about">{UI_MESSAGES.footer.aboutLink.defaultMessage}</a>
-              <a href="/#how-it-works">{UI_MESSAGES.footer.howLink.defaultMessage}</a>
-              <a href="/#full-flow">{UI_MESSAGES.navigation.fullFlow.defaultMessage}</a>
+              <Link href="/how-it-works">{UI_MESSAGES.footer.howLink.defaultMessage}</Link>
+              <Link href="/about">{UI_MESSAGES.footer.aboutLink.defaultMessage}</Link>
             </nav>
           </div>
         </div>
       </header>
+      <div className="prototype-strip">
+        <div className="shell">
+          {UI_MESSAGES.prototype.fullDisclosure.defaultMessage}
+        </div>
+      </div>
       <main id="main-content" tabIndex={-1}>
         {children}
       </main>
@@ -40,13 +44,13 @@ export function AppShell({ children }: AppShellProps) {
           <div className="footer-disclosure">
             <p>{UI_MESSAGES.footer.guardrail.defaultMessage}</p>
             <nav className="footer-links" aria-label="Secondary navigation">
-              <Link className="footer-link" href="/#about">
+              <Link className="footer-link" href="/about">
                 {UI_MESSAGES.footer.aboutLink.defaultMessage}
               </Link>
-              <Link className="footer-link" href="/#how-it-works">
+              <Link className="footer-link" href="/how-it-works">
                 {UI_MESSAGES.footer.howLink.defaultMessage}
               </Link>
-              <Link className="footer-link" href="/#sources">
+              <Link className="footer-link" href="/about#sources">
                 {UI_MESSAGES.footer.sourcesLink.defaultMessage}
               </Link>
             </nav>

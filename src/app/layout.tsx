@@ -10,19 +10,19 @@ import "./globals.css";
 export const metadata: Metadata = {
   metadataBase: new URL("https://ncrp-recovery-prototype.vercel.app"),
   title: {
-    default: "NCRP Financial Resolution · Independent prototype",
-    template: "%s · NCRP Financial Resolution",
+    default: "NCRP Financial Fraud Support · Independent prototype",
+    template: "%s · NCRP Financial Fraud Support",
   },
   description:
-    "A synthetic citizen journey from plain-language fraud evidence to structured reporting, Money Restoration and Financial Resolution.",
+    "A synthetic citizen journey from reporting financial cyber fraud to understanding money restoration progress.",
   openGraph: {
-    title: "NCRP Financial Resolution",
+    title: "NCRP Financial Fraud Support",
     description: "From a citizen's story to structured reporting and clear financial resolution",
     images: [{ url: "/og.jpg", width: 1536, height: 1024 }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "NCRP Financial Resolution",
+    title: "NCRP Financial Fraud Support",
     description: "From a citizen's story to structured reporting and clear financial resolution",
     images: ["/og.jpg"],
   },

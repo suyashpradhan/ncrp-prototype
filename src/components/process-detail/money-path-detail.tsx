@@ -49,7 +49,7 @@ function primaryExplanation(path: MoneyPath): string {
   }
 
   if (stage === "BANK_INTERIM_CUSTODY") {
-    return "The bank has received the recorded direction.";
+    return "The required direction has already been received by the bank.";
   }
 
   return (
@@ -96,20 +96,13 @@ function OfficialProcessDetails({ path }: { path: MoneyPath }) {
 
 function CitizenAction({ path }: { path: MoneyPath }) {
   const action = deriveCitizenAction(path);
-  const stage = deriveCurrentStage(path);
-  const usesShortNoAction =
-    stage === "EXITED_FINANCIAL_SYSTEM" || stage === "NOT_CURRENTLY_HELD";
-  let actionCopy = action.instruction.defaultMessage;
-  if (action.code === "NONE") {
-    actionCopy = usesShortNoAction
-      ? CITIZEN_MESSAGES.detail.compactNoActionShort.defaultMessage
-      : CITIZEN_MESSAGES.detail.compactNoAction.defaultMessage;
-  }
+  const noAction = action.code === "NONE";
 
   return (
     <section className="compact-detail-section" aria-labelledby={`action-${path.id}`}>
-      <h2 id={`action-${path.id}`}>{CITIZEN_MESSAGES.detail.compactActionTitle.defaultMessage}</h2>
-      <p className="compact-answer">{actionCopy}</p>
+      <h2 id={`action-${path.id}`}>{CITIZEN_MESSAGES.detail.actionTitle.defaultMessage}</h2>
+      <p className="detail-yes-no">{noAction ? CITIZEN_MESSAGES.detail.no.defaultMessage : CITIZEN_MESSAGES.detail.yes.defaultMessage}</p>
+      <p>{noAction ? CITIZEN_MESSAGES.detail.noAction.defaultMessage : action.instruction.defaultMessage}</p>
     </section>
   );
 }
@@ -123,26 +116,38 @@ export function MoneyPathDetail({
   now: string;
   demoControl?: ReactNode;
 }) {
-  const stage = deriveCurrentStage(path);
   const policy = deriveDetailPresentationPolicy(path);
   const detailTitle = deriveCitizenDetailTitle(path);
   const bankName = institutionName(path);
 
   return (
     <div className="shell narrow-shell money-detail-page section-pad">
-      <JourneyProgress current="RESOLVE" />
+      <JourneyProgress current="TRACK" />
       <Link className="back-link" href="/case#money-status">
         ← {UI_MESSAGES.common.backToOverview.defaultMessage}
       </Link>
 
       <header className="citizen-detail-header">
         <h1>{formatCurrency(path.amount)}</h1>
-        <h2>{detailTitle.defaultMessage}</h2>
-        {bankName && stage !== "BANK_INTERIM_CUSTODY" && policy.kind === "ACTIVE_PROCESS" ? (
-          <p className="detail-institution">{bankName}</p>
+        {bankName ? <p className="detail-institution">{bankName}</p> : null}
+        {path.beneficiaryInstitution?.maskedAccount ? (
+          <p className="detail-account">Synthetic account {path.beneficiaryInstitution.maskedAccount}</p>
         ) : null}
-        <p className="detail-explanation">{primaryExplanation(path)}</p>
       </header>
+
+      {policy.kind === "ACTIVE_PROCESS" ? (
+        <section className="compact-detail-section" aria-labelledby={`waiting-${path.id}`}>
+          <h2 id={`waiting-${path.id}`}>{CITIZEN_MESSAGES.detail.whatsHappening.defaultMessage}</h2>
+          <p className="detail-status">{detailTitle.defaultMessage}</p>
+          <p>{primaryExplanation(path)}</p>
+        </section>
+      ) : policy.kind === "INTERIM_CUSTODY_CONFIRMED" ? (
+        <section className="compact-detail-section" aria-labelledby={`received-${path.id}`}>
+          <h2 id={`received-${path.id}`}>{CITIZEN_MESSAGES.detail.receivedQuestion.defaultMessage}</h2>
+          <p className="detail-status">{formatCurrency(path.amount)} received</p>
+          <p>{primaryExplanation(path)}</p>
+        </section>
+      ) : null}
 
       {policy.kind === "EXITED_FINANCIAL_SYSTEM" || policy.kind === "NOT_CURRENTLY_HELD" ? (
         <section className="compact-detail-section" aria-labelledby={`meaning-${path.id}`}>
@@ -159,7 +164,7 @@ export function MoneyPathDetail({
 
       {policy.showProcessClock ? (
         <section className="compact-detail-section" aria-labelledby={`clock-${path.id}`}>
-          <h2 id={`clock-${path.id}`}>{CITIZEN_MESSAGES.detail.compactClockTitle.defaultMessage}</h2>
+          <h2 id={`clock-${path.id}`}>{CITIZEN_MESSAGES.detail.clockTitle.defaultMessage}</h2>
           <SopClockView path={path} now={now} />
         </section>
       ) : null}

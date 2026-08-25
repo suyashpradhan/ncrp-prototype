@@ -14,13 +14,13 @@ export const UI_MESSAGES = {
     ),
     fullDisclosure: message(
       "prototype.fullDisclosure",
-      "Independent prototype using synthetic NCRP/CFCFRMS data. No live government, banking or police system is connected.",
+      "Independent prototype · Uses synthetic case data · No government system is connected",
     ),
     label: message("prototype.label", "Independent prototype · Synthetic data"),
   },
   brand: {
-    eyebrow: message("brand.eyebrow", "Financial cyber-fraud complaint and restoration journey"),
-    name: message("brand.name", "NCRP Financial Resolution"),
+    eyebrow: message("brand.eyebrow", "Independent prototype"),
+    name: message("brand.name", "NCRP Financial Fraud Support"),
   },
   navigation: {
     label: message("navigation.label", "Primary navigation"),
@@ -42,7 +42,7 @@ export const UI_MESSAGES = {
     acknowledgement: message("common.acknowledgement", "Synthetic acknowledgement"),
     fir: message("common.fir", "FIR status"),
     jurisdiction: message("common.jurisdiction", "Jurisdiction"),
-    reportedLoss: message("common.reportedLoss", "Reported loss"),
+    reportedLoss: message("common.reportedLoss", "Reported"),
     fraudType: message("common.fraudType", "Fraud type"),
     registered: message("common.registered", "Registered"),
     notRegistered: message("common.notRegistered", "Not registered"),
@@ -146,10 +146,10 @@ export const UI_MESSAGES = {
   },
   demo: {
     label: message("demo.label", "Demo mode"),
-    title: message("demo.title", "Prototype demo controls"),
+    title: message("demo.title", "Prototype demo control"),
     description: message(
       "demo.description",
-      "In a live system, these updates would come from government, police or bank systems. This prototype uses synthetic updates.",
+      "In a live service, these updates would come from NCRP/CFCFRMS, police or participating banks.",
     ),
     focus: message("demo.focus", "Demo focus"),
     caseDate: message("demo.caseDate", "Synthetic case date"),
@@ -166,7 +166,7 @@ export const UI_MESSAGES = {
   footer: {
     guardrail: message(
       "footer.guardrail",
-      "Independent prototype. Not affiliated with any official government service. All data shown is synthetic.",
+      "Independent hackathon prototype. Not affiliated with an official government service. All case information shown is synthetic.",
     ),
     aboutLink: message("footer.aboutLink", "About"),
     howLink: message("footer.howLink", "How this works"),
@@ -398,7 +398,7 @@ export const CITIZEN_MESSAGES = {
     ),
   },
   case: {
-    eyebrow: message("case.eyebrow", "Your complaint"),
+    eyebrow: message("case.eyebrow", "Your reported financial fraud"),
     reportedOn: message("case.reportedOn", "Reported"),
     context: message(
       "case.context",
@@ -412,30 +412,30 @@ export const CITIZEN_MESSAGES = {
       message("case.history.held", "Some money identified or held"),
       message("case.history.request", "Money Restoration request raised"),
     ],
-    actionQuestion: message("case.actionQuestion", "Your action"),
-    noAction: message("case.noAction", "Nothing required right now."),
+    actionQuestion: message("case.actionQuestion", "Do you need to do anything?"),
+    noAction: message("case.noAction", "No action required from you right now."),
     actionRequired: message("case.actionRequired", "An action is recorded for you."),
     nowTitle: message("case.nowTitle", "What is happening to your money?"),
     nowIntro: message(
       "case.nowIntro",
       "Different portions of the ₹2,00,000 you reported are currently in different situations.",
     ),
-    standingTitle: message("case.standingTitle", "Where your ₹2,00,000 stands"),
+    standingTitle: message("case.standingTitle", "What is happening to your money?"),
     needToDo: message("case.needToDo", "You need to do"),
     seeDetails: message("case.seeDetails", "View details"),
     whatMeans: message("case.whatMeans", "What does this mean?"),
-    reconciliationLabel: message("case.reconciliationLabel", "Amount summary"),
+    reconciliationLabel: message("case.reconciliationLabel", "Where your money stands"),
     proposedView: message("case.proposedView", "Proposed Financial Resolution view"),
     restorationRequest: message("case.restorationRequest", "Money Restoration request"),
-    active: message("case.active", "Active processes"),
+    active: message("case.active", "Currently in active processes"),
     received: message("case.received", "Received under interim custody"),
-    exited: message("case.exited", "Left banking system"),
+    exited: message("case.exited", "Exited financial system"),
     notHeld: message("case.notHeld", "Not currently secured"),
     signInPrompt: message("case.signInPrompt", "Start the synthetic complaint journey to open this case."),
     signInAction: message("case.signInAction", "Start demo journey"),
   },
   amount: {
-    ioTitle: message("amount.ioTitle", "Waiting on Investigating Officer"),
+    ioTitle: message("amount.ioTitle", "Waiting on the Investigating Officer"),
     ioExplanation: message(
       "amount.ioExplanation",
       "The next recorded police verification step is still pending.",
@@ -445,7 +445,7 @@ export const CITIZEN_MESSAGES = {
       "amount.bankExplanation",
       "The bank has received the recorded direction required to process this amount.",
     ),
-    exitedTitle: message("amount.exitedTitle", "Left the banking system"),
+    exitedTitle: message("amount.exitedTitle", "This money left the banking system"),
     exitedExplanation: message(
       "amount.exitedExplanation",
       "The synthetic case records a cash withdrawal.",
@@ -472,14 +472,14 @@ export const CITIZEN_MESSAGES = {
     actionTitle: message("citizenDetail.actionTitle", "Do I need to do anything?"),
     no: message("citizenDetail.no", "No."),
     yes: message("citizenDetail.yes", "Yes."),
-    noAction: message("citizenDetail.noAction", "There is currently no action recorded for you."),
+    noAction: message("citizenDetail.noAction", "No citizen action is currently recorded."),
     clockTitle: message("citizenDetail.clockTitle", "How long does this step have?"),
     noClock: message(
       "citizenDetail.noClock",
       "No procedural time window is recorded for this current step.",
     ),
     nextTitle: message("citizenDetail.nextTitle", "What happens next?"),
-    historyTitle: message("citizenDetail.historyTitle", "History"),
+    historyTitle: message("citizenDetail.historyTitle", "What has happened so far?"),
     amountHistoryTitle: message("citizenDetail.amountHistoryTitle", "What happened to this amount?"),
     compactActionTitle: message("citizenDetail.compactActionTitle", "Your action"),
     compactNoAction: message("citizenDetail.compactNoAction", "Nothing required right now."),
@@ -499,7 +499,7 @@ export const CITIZEN_MESSAGES = {
     recordedFacts: message("citizenDetail.recordedFacts", "Recorded case facts"),
     ioDetail: message(
       "citizenDetail.ioDetail",
-      "The recorded verification step still needs to be completed.",
+      "Before this amount can move forward, the recorded account-holder verification step needs to be completed.",
     ),
     ioNext: message(
       "citizenDetail.ioNext",
@@ -541,32 +541,32 @@ export const CITIZEN_MESSAGES = {
     title: message("how.title", "How this works"),
     intro: message(
       "how.intro",
-      "One journey helps a citizen act quickly, prepare a structured report and understand what happens to the money afterwards.",
+      "This prototype helps a citizen report financial cyber fraud, review the information and understand what happens to the money afterwards.",
     ),
     steps: [
       {
-        title: message("how.step1.title", "1. Act"),
-        body: message("how.step1.body", "Urgent 1930 guidance appears early, while the citizen speaks, types or adds synthetic evidence."),
+        title: message("how.step1.title", "1. Report fraud"),
+        body: message("how.step1.body", "Share what happened by speaking, uploading synthetic evidence or typing. Urgent 1930 guidance appears early."),
       },
       {
-        title: message("how.step2.title", "2. Report"),
+        title: message("how.step2.title", "2. Review details"),
         body: message(
           "how.step2.body",
-          "The prototype organises supported facts into complaint fields, asks only for missing information and keeps the citizen in control of review.",
+          "The prototype organises the information, asks only for missing details and gives the citizen a short report to review.",
         ),
       },
       {
-        title: message("how.step3.title", "3. Restore"),
+        title: message("how.step3.title", "3. Restore money"),
         body: message(
           "how.step3.body",
-          "The same synthetic case continues into a simplified Money Restoration request without duplicate entry.",
+          "The same synthetic case continues into a simplified Money Restoration request without asking for the same information again.",
         ),
       },
       {
-        title: message("how.step4.title", "4. Resolve"),
+        title: message("how.step4.title", "4. Track progress"),
         body: message(
           "how.step4.body",
-          "The existing Financial Resolution engine explains where each amount is, who needs to act and whether the citizen needs to do anything.",
+          "The service explains where each amount is, who needs to act and whether the citizen needs to do anything.",
         ),
       },
     ],

@@ -3,7 +3,7 @@ import { UI_MESSAGES } from "../../content/en";
 
 export const metadata: Metadata = {
   title: "About this prototype",
-  description: "What the NCRP Financial Resolution prototype represents and which stages are existing or proposed.",
+  description: "What the independent NCRP Financial Fraud Support prototype represents.",
 };
 
 export default function AboutPage() {
@@ -32,7 +32,7 @@ export default function AboutPage() {
             <p>{UI_MESSAGES.about.dataBody.defaultMessage}</p>
           </section>
 
-          <details id="provenance" className="detail-disclosure journey-sources">
+          <details id="sources" className="detail-disclosure journey-sources">
             <summary>{UI_MESSAGES.footer.sourcesLink.defaultMessage}</summary>
             <div className="detail-disclosure-content">
               <ul>

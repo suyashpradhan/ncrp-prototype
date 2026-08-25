@@ -134,6 +134,55 @@ export function deriveCitizenDetailTitle(path: MoneyPath): Message {
   return deriveCitizenAmountPresentation(path).title;
 }
 
+export type CitizenOverviewDetails = {
+  explanation: Message;
+  citizenAction: Message | null;
+  processWindow: Message | null;
+  cta: Message;
+};
+
+/**
+ * Converts selector output into short, complete citizen-facing sentences.
+ * No process state is chosen here; every value comes from the recorded path.
+ */
+export function deriveCitizenOverviewDetails(
+  path: MoneyPath,
+  now: string,
+): CitizenOverviewDetails {
+  const stage = deriveCurrentStage(path);
+  const presentation = deriveCitizenAmountPresentation(path);
+  const isUnsecuredState =
+    stage === "EXITED_FINANCIAL_SYSTEM" || stage === "NOT_CURRENTLY_HELD";
+  const action = deriveCitizenAction(path);
+  const overdue = deriveOverdueState(path, now);
+
+  let processWindow: Message | null = null;
+  if (overdue) {
+    const bankCopy = stage === "BANK_INTERIM_CUSTODY" ? "bank's " : "recorded ";
+    processWindow = {
+      key: `amount.overview.${stage}.window`,
+      defaultMessage: `Day ${overdue.elapsedDays} of the ${bankCopy}${overdue.durationDays}-day process window`,
+    };
+  }
+
+  return {
+    explanation: presentation.explanation,
+    citizenAction: isUnsecuredState
+      ? null
+      : {
+          key: `amount.overview.${stage}.action`,
+          defaultMessage:
+            action.code === "NONE"
+              ? "Nothing right now"
+              : action.instruction.defaultMessage,
+        },
+    processWindow,
+    cta: isUnsecuredState
+      ? CITIZEN_MESSAGES.case.whatMeans
+      : CITIZEN_MESSAGES.case.seeDetails,
+  };
+}
+
 export function deriveCitizenCurrentHistoryLabel(path: MoneyPath): Message {
   const stage = deriveCurrentStage(path);
 
@@ -220,7 +269,7 @@ export function deriveDetailPresentationPolicy(
       showNextStep: false,
       showHistory: true,
       showOfficialProcess: hasRecordedProcess,
-      showDemoControl: false,
+      showDemoControl: true,
       showOutcomes: true,
     };
   }
@@ -318,7 +367,7 @@ export function deriveCitizenCaseActionPresentation(
       key: "case.noActionExplanation",
       defaultMessage:
         responsibleActors.has("INVESTIGATING_OFFICER") && responsibleActors.has("BANK")
-          ? "Police and a bank currently have the next recorded steps."
+          ? "Two institutions currently need to act on different portions of your case."
           : `${numberWord(responsibleActors.size)} ${responsibleActors.size === 1 ? "institution currently has" : "institutions currently have"} the next recorded step${responsibleActors.size === 1 ? "" : "s"}.`,
     },
   };

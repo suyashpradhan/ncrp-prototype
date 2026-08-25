@@ -17,12 +17,15 @@ export function SopClockView({ path, now }: { path: MoneyPath; now: string }) {
       role="group"
       aria-labelledby={clockLabelId}
     >
-      <p id={clockLabelId} className="clock-primary">
-        Day {overdue.elapsedDays} of recorded {overdue.durationDays}-day{clock.stage === "BANK_INTERIM_CUSTODY" ? " bank" : ""} step
+      <p id={clockLabelId}>
+        {clock.stage === "BANK_INTERIM_CUSTODY"
+          ? `The recorded bank process requires action within ${overdue.durationDays} calendar days after receiving the direction.`
+          : <>Recorded process window: <strong>{overdue.durationDays} calendar days</strong></>}
       </p>
+      <p className="clock-primary">Current synthetic case: <strong>Day {overdue.elapsedDays}</strong></p>
       {overdue.isOverdue ? (
         <p className="clock-context">
-          {overdue.daysOverdue} {overdue.daysOverdue === 1 ? "day" : "days"} beyond the recorded window.
+          This step is currently {overdue.daysOverdue} {overdue.daysOverdue === 1 ? "day" : "days"} beyond its recorded process window.
         </p>
       ) : null}
     </div>

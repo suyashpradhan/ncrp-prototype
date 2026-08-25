@@ -78,6 +78,9 @@ describe("AI-assisted incident reporting boundary", () => {
     );
 
     expect(clientSource).toContain("Use demo incident");
+    expect(clientSource).toContain("Speak in your language");
+    expect(clientSource).toContain("One detail is still needed");
+    expect(clientSource).not.toContain("Suggested official NCRP mapping");
     expect(clientSource).not.toContain("OPENAI_API_KEY");
     expect(clientSource).not.toContain("SARVAM_API_KEY");
     expect(clientSource).not.toContain("process.env");

@@ -14,14 +14,15 @@ export function EventHistory({ path }: { path: MoneyPath }) {
     isNonProcessState ? true : event.type !== "MONEY_PATH_IDENTIFIED",
   );
   const current = deriveCitizenCurrentHistoryLabel(path);
-  const summary = isNonProcessState
+  const heading = isNonProcessState
     ? CITIZEN_MESSAGES.detail.amountHistoryTitle.defaultMessage
     : CITIZEN_MESSAGES.detail.historyTitle.defaultMessage;
+  const headingId = `history-${path.id}`;
 
   return (
-    <details className="detail-disclosure event-history-details">
-      <summary>{summary}</summary>
-      <div className="detail-disclosure-content">
+    <section className="event-history-section" aria-labelledby={headingId}>
+      <h2 id={headingId}>{heading}</h2>
+      <div>
         <ol className="event-list">
           {events.map((event) => (
             <li key={event.id}>
@@ -47,6 +48,6 @@ export function EventHistory({ path }: { path: MoneyPath }) {
           </div>
         ) : null}
       </div>
-    </details>
+    </section>
   );
 }
