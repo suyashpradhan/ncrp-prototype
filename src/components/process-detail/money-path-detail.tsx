@@ -41,11 +41,11 @@ function primaryExplanation(path: MoneyPath): string {
       (event) => event.type === "AMOUNT_EXITED_FINANCIAL_SYSTEM",
     );
     const date = exitEvent ? ` on ${formatIndiaDayMonth(exitEvent.occurredAt)}` : "";
-    return `The synthetic case records that this amount was withdrawn as cash${date}.`;
+    return `The synthetic case records a cash withdrawal${date}.`;
   }
 
   if (stage === "NOT_CURRENTLY_HELD") {
-    return "This portion of the reported loss is not currently recorded as held by a financial institution.";
+    return "This amount is not currently recorded as held by a financial institution.";
   }
 
   if (stage === "INTERIM_CUSTODY_CONFIRMED") {
@@ -96,15 +96,20 @@ function OfficialProcessDetails({ path }: { path: MoneyPath }) {
 
 function CitizenAction({ path }: { path: MoneyPath }) {
   const action = deriveCitizenAction(path);
+  const stage = deriveCurrentStage(path);
+  const usesShortNoAction =
+    stage === "EXITED_FINANCIAL_SYSTEM" || stage === "NOT_CURRENTLY_HELD";
+  let actionCopy = action.instruction.defaultMessage;
+  if (action.code === "NONE") {
+    actionCopy = usesShortNoAction
+      ? CITIZEN_MESSAGES.detail.compactNoActionShort.defaultMessage
+      : CITIZEN_MESSAGES.detail.compactNoAction.defaultMessage;
+  }
 
   return (
     <section className="compact-detail-section" aria-labelledby={`action-${path.id}`}>
       <h2 id={`action-${path.id}`}>{CITIZEN_MESSAGES.detail.compactActionTitle.defaultMessage}</h2>
-      <p className="compact-answer">
-        {action.code === "NONE"
-          ? CITIZEN_MESSAGES.detail.compactNoAction.defaultMessage
-          : action.instruction.defaultMessage}
-      </p>
+      <p className="compact-answer">{actionCopy}</p>
     </section>
   );
 }

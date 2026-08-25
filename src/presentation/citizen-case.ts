@@ -266,9 +266,13 @@ export function deriveCitizenOverviewMeta(path: MoneyPath, now: string): Message
     return { key: `amount.overview.${stage}`, defaultMessage: actionText };
   }
 
+  const clockText = overdue.isOverdue
+    ? `${overdue.daysOverdue} ${overdue.daysOverdue === 1 ? "day" : "days"} beyond recorded window`
+    : `Day ${overdue.elapsedDays} of ${overdue.durationDays}`;
+
   return {
     key: `amount.overview.${stage}.clock`,
-    defaultMessage: `${actionText} · Day ${overdue.elapsedDays} of ${overdue.durationDays}`,
+    defaultMessage: `${actionText} · ${clockText}`,
   };
 }
 

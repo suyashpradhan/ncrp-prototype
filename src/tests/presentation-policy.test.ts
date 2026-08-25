@@ -79,7 +79,7 @@ describe("citizen detail presentation policy", () => {
     expect(
       deriveCitizenOverviewMeta(demoPath("path-held-io-verification"), DEMO_NOW)
         ?.defaultMessage,
-    ).toBe("Nothing required · Day 9 of 7");
+    ).toBe("Nothing required · 2 days beyond recorded window");
     expect(
       deriveCitizenOverviewMeta(demoPath("path-bank-interim-custody"), DEMO_NOW)
         ?.defaultMessage,

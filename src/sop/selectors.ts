@@ -28,7 +28,7 @@ const EVENT_STAGE: Partial<Record<ProcessEvent["type"], ProcessStage>> = {
 const STAGE_MESSAGES = {
   MONEY_PATH_IDENTIFIED: {
     key: "stage.moneyPathIdentified",
-    defaultMessage: "Money path identified; next process step is being recorded.",
+    defaultMessage: "Amount identified; the next recorded step is being added.",
   },
   ACCOUNT_HOLDER_NOTICE: {
     key: "stage.accountHolderNotice",
