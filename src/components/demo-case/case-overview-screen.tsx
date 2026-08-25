@@ -16,7 +16,7 @@ export function CaseOverviewScreen() {
       <section className="access-prompt section-pad">
         <div className="shell narrow-shell">
           <h1>{CITIZEN_MESSAGES.case.signInPrompt.defaultMessage}</h1>
-          <Link className="button-link" href="/#check-case">
+          <Link className="button-link" href="/">
             {CITIZEN_MESSAGES.case.signInAction.defaultMessage}
           </Link>
         </div>

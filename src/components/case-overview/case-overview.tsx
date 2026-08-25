@@ -5,6 +5,8 @@ import { reconcileCaseAmounts } from "../../domain/reconciliation";
 import { deriveCitizenCaseActionPresentation } from "../../presentation/citizen-case";
 import { formatCurrency, formatIndiaShortDateWithYear } from "../../presentation/format";
 import { rankMoneyPathsForOverview } from "../../presentation/money-paths";
+import { DEMO_RESTORATION_REQUEST_ID } from "../../presentation/demo-journey";
+import { JourneyProgress } from "../demo-journey/journey-progress";
 import { MoneyPathCard } from "./money-path-card";
 
 export function CaseOverview({
@@ -28,6 +30,8 @@ export function CaseOverview({
       <section className="case-intro section-pad">
         <div className="shell reading-shell">
           <div className="case-lead">
+            <JourneyProgress current="RESOLVE" />
+            <p className="journey-stage-label">{CITIZEN_MESSAGES.case.proposedView.defaultMessage}</p>
             <h1>{CITIZEN_MESSAGES.case.eyebrow.defaultMessage}</h1>
             <p className="case-summary-line">
               <strong>{formatCurrency(caseData.complaint.reportedAmount)}</strong>
@@ -38,6 +42,9 @@ export function CaseOverview({
               {CITIZEN_MESSAGES.case.reportedOn.defaultMessage} {formatIndiaShortDateWithYear(caseData.complaint.reportedAt)}
             </p>
             <p className="case-acknowledgement">{caseData.complaint.acknowledgementId}</p>
+            <p className="case-acknowledgement">
+              {CITIZEN_MESSAGES.case.restorationRequest.defaultMessage} · {DEMO_RESTORATION_REQUEST_ID}
+            </p>
             <p className="case-context">{CITIZEN_MESSAGES.case.context.defaultMessage}</p>
           </div>
 

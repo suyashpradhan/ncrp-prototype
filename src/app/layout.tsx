@@ -8,12 +8,24 @@ import { DEMO_NOW, syntheticCase } from "../data/synthetic-case";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://ncrp-recovery-prototype.vercel.app"),
   title: {
-    default: "NCRP Recovery · Independent hackathon prototype",
-    template: "%s · NCRP Recovery",
+    default: "NCRP Financial Resolution · Independent prototype",
+    template: "%s · NCRP Financial Resolution",
   },
   description:
-    "A synthetic citizen view of what is happening to money after a financial cyber fraud is reported.",
+    "A synthetic citizen journey from plain-language fraud evidence to structured reporting, Money Restoration and Financial Resolution.",
+  openGraph: {
+    title: "NCRP Financial Resolution",
+    description: "From a citizen's story to structured reporting and clear financial resolution",
+    images: [{ url: "/og.jpg", width: 1536, height: 1024 }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "NCRP Financial Resolution",
+    description: "From a citizen's story to structured reporting and clear financial resolution",
+    images: ["/og.jpg"],
+  },
 };
 
 export const viewport: Viewport = {

@@ -21,12 +21,12 @@ import {
 } from "../../presentation/citizen-case";
 import {
   formatCurrency,
-  formatIndiaDayMonth,
   formatProcessRoute,
 } from "../../presentation/format";
 import { SopClockView } from "../sop-clock/sop-clock";
 import { EventHistory } from "../event-history/event-history";
 import { ProvenanceView } from "../provenance/provenance";
+import { JourneyProgress } from "../demo-journey/journey-progress";
 
 function institutionName(path: MoneyPath): string | null {
   return path.beneficiaryInstitution?.name.replace(" (synthetic)", "") ?? null;
@@ -37,11 +37,7 @@ function primaryExplanation(path: MoneyPath): string {
   const presentation = deriveCitizenAmountPresentation(path);
 
   if (stage === "EXITED_FINANCIAL_SYSTEM") {
-    const exitEvent = path.events.find(
-      (event) => event.type === "AMOUNT_EXITED_FINANCIAL_SYSTEM",
-    );
-    const date = exitEvent ? ` on ${formatIndiaDayMonth(exitEvent.occurredAt)}` : "";
-    return `The synthetic case records a cash withdrawal${date}.`;
+    return "A cash withdrawal is recorded.";
   }
 
   if (stage === "NOT_CURRENTLY_HELD") {
@@ -50,6 +46,10 @@ function primaryExplanation(path: MoneyPath): string {
 
   if (stage === "INTERIM_CUSTODY_CONFIRMED") {
     return "The amount has been credited under the recorded process.";
+  }
+
+  if (stage === "BANK_INTERIM_CUSTODY") {
+    return "The bank has received the recorded direction.";
   }
 
   return (
@@ -130,6 +130,7 @@ export function MoneyPathDetail({
 
   return (
     <div className="shell narrow-shell money-detail-page section-pad">
+      <JourneyProgress current="RESOLVE" />
       <Link className="back-link" href="/case#money-status">
         ← {UI_MESSAGES.common.backToOverview.defaultMessage}
       </Link>

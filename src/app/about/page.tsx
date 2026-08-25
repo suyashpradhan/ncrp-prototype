@@ -3,7 +3,7 @@ import { UI_MESSAGES } from "../../content/en";
 
 export const metadata: Metadata = {
   title: "About this prototype",
-  description: "What NCRP Recovery represents, what is synthetic, and how process provenance is shown.",
+  description: "What the NCRP Financial Resolution prototype represents and which stages are existing or proposed.",
 };
 
 export default function AboutPage() {
@@ -18,48 +18,28 @@ export default function AboutPage() {
 
         <div className="secondary-sections">
           <section>
-            <h2>{UI_MESSAGES.about.modeledTitle.defaultMessage}</h2>
-            <ul>
-              {UI_MESSAGES.about.modeledItems.slice(0, 3).map((item) => (
-                <li key={item.key}>{item.defaultMessage}</li>
-              ))}
-            </ul>
+            <h2>{UI_MESSAGES.about.existingStagesTitle.defaultMessage}</h2>
+            <p>{UI_MESSAGES.about.existingStagesBody.defaultMessage}</p>
           </section>
 
           <section>
-            <h2>{UI_MESSAGES.about.syntheticTitle.defaultMessage}</h2>
-            <p>{UI_MESSAGES.about.syntheticIntro.defaultMessage}</p>
-            <ul>
-              {UI_MESSAGES.about.syntheticItems.map((item) => (
-                <li key={item.key}>{item.defaultMessage}</li>
-              ))}
-            </ul>
+            <h2>{UI_MESSAGES.about.proposedTitle.defaultMessage}</h2>
+            <p>{UI_MESSAGES.about.proposedBody.defaultMessage}</p>
           </section>
 
-          <details className="detail-disclosure">
-            <summary>{UI_MESSAGES.about.boundariesTitle.defaultMessage}</summary>
+          <section>
+            <h2>{UI_MESSAGES.about.dataTitle.defaultMessage}</h2>
+            <p>{UI_MESSAGES.about.dataBody.defaultMessage}</p>
+          </section>
+
+          <details id="provenance" className="detail-disclosure journey-sources">
+            <summary>{UI_MESSAGES.footer.sourcesLink.defaultMessage}</summary>
             <div className="detail-disclosure-content">
-              <p>{UI_MESSAGES.about.boundariesIntro.defaultMessage}</p>
               <ul>
-                {UI_MESSAGES.about.boundaryItems.map((item) => (
-                  <li key={item.key}>{item.defaultMessage}</li>
-                ))}
+                <li><a href="https://www.cybercrime.gov.in/" rel="noreferrer">National Cyber Crime Reporting Portal (NCRP)</a></li>
+                <li><a href="https://mrm-ncrp.mha.gov.in/assets/images/MRM_USER_MANUAL.pdf" rel="noreferrer">Money Restoration Module citizen manual</a></li>
+                <li><a href="https://www.mha.gov.in/MHA1/Par2017/pdfs/par2026-pdfs/RS04022026/553.pdf" rel="noreferrer">Ministry of Home Affairs material on CFCFRMS and the January 2026 SOP</a></li>
               </ul>
-            </div>
-          </details>
-
-          <details id="provenance" className="detail-disclosure">
-            <summary>{UI_MESSAGES.about.provenanceSummary.defaultMessage}</summary>
-            <div className="detail-disclosure-content">
-              <p>{UI_MESSAGES.about.provenanceBody.defaultMessage}</p>
-              <p className="source-note">Source represented in the prototype: January 2026 NCRP-CFCFRMS SOP.</p>
-            </div>
-          </details>
-
-          <details className="detail-disclosure">
-            <summary>{UI_MESSAGES.about.principleSummary.defaultMessage}</summary>
-            <div className="detail-disclosure-content">
-              <p>{UI_MESSAGES.about.principle.defaultMessage}</p>
             </div>
           </details>
         </div>
