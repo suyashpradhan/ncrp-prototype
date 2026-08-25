@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
+import { Analytics } from "@vercel/analytics/next";
 import { AppShell } from "../components/app-shell";
 import { DemoCaseProvider } from "../components/demo-case/demo-case-provider";
 import { DEMO_NOW, syntheticCase } from "../data/synthetic-case";
@@ -34,6 +35,7 @@ export default function RootLayout({
             {children}
           </DemoCaseProvider>
         </AppShell>
+        <Analytics />
       </body>
     </html>
   );
