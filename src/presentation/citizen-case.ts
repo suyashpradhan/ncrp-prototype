@@ -2,7 +2,14 @@ import { CITIZEN_MESSAGES } from "../content/en";
 import type { MoneyPath } from "../domain/case";
 import type { Message } from "../domain/messages";
 import type { ProcessStage } from "../sop/processes";
-import { deriveCitizenAction, deriveCurrentOwner, deriveCurrentStage } from "../sop/selectors";
+import { getNextSyntheticMilestoneEventType } from "../domain/money-path";
+import {
+  deriveApplicableSopClock,
+  deriveCitizenAction,
+  deriveCurrentOwner,
+  deriveCurrentStage,
+  deriveOverdueState,
+} from "../sop/selectors";
 
 export type CitizenAmountPresentation = {
   title: Message;
@@ -147,6 +154,124 @@ export function deriveCitizenCurrentHistoryLabel(path: MoneyPath): Message {
   return deriveCitizenDetailTitle(path);
 }
 
+export type CitizenDetailKind =
+  | "ACTIVE_PROCESS"
+  | "EXITED_FINANCIAL_SYSTEM"
+  | "NOT_CURRENTLY_HELD"
+  | "INTERIM_CUSTODY_CONFIRMED";
+
+export type DetailPresentationPolicy = {
+  kind: CitizenDetailKind;
+  showCurrentActor: boolean;
+  showCitizenAction: boolean;
+  showProcessClock: boolean;
+  showNextStep: boolean;
+  showHistory: boolean;
+  showOfficialProcess: boolean;
+  showDemoControl: boolean;
+  showOutcomes: boolean;
+};
+
+/**
+ * Decides which citizen questions are useful for the current semantic state.
+ * This affects presentation only; process state continues to come from selectors.
+ */
+export function deriveDetailPresentationPolicy(
+  path: MoneyPath,
+): DetailPresentationPolicy {
+  const stage = deriveCurrentStage(path);
+  const hasRecordedProcess = path.selectedProcess !== null || path.provenance.length > 0;
+  const hasNextDemoUpdate = getNextSyntheticMilestoneEventType(path) !== null;
+
+  if (stage === "EXITED_FINANCIAL_SYSTEM") {
+    return {
+      kind: "EXITED_FINANCIAL_SYSTEM",
+      showCurrentActor: false,
+      showCitizenAction: true,
+      showProcessClock: false,
+      showNextStep: false,
+      showHistory: true,
+      showOfficialProcess: false,
+      showDemoControl: false,
+      showOutcomes: false,
+    };
+  }
+
+  if (stage === "NOT_CURRENTLY_HELD") {
+    return {
+      kind: "NOT_CURRENTLY_HELD",
+      showCurrentActor: false,
+      showCitizenAction: true,
+      showProcessClock: false,
+      showNextStep: false,
+      showHistory: true,
+      showOfficialProcess: false,
+      showDemoControl: false,
+      showOutcomes: false,
+    };
+  }
+
+  if (stage === "INTERIM_CUSTODY_CONFIRMED") {
+    return {
+      kind: "INTERIM_CUSTODY_CONFIRMED",
+      showCurrentActor: false,
+      showCitizenAction: true,
+      showProcessClock: false,
+      showNextStep: false,
+      showHistory: true,
+      showOfficialProcess: hasRecordedProcess,
+      showDemoControl: false,
+      showOutcomes: true,
+    };
+  }
+
+  return {
+    kind: "ACTIVE_PROCESS",
+    showCurrentActor: false,
+    showCitizenAction: true,
+    showProcessClock: deriveApplicableSopClock(path) !== null,
+    showNextStep: true,
+    showHistory: true,
+    showOfficialProcess: hasRecordedProcess,
+    showDemoControl: hasNextDemoUpdate,
+    showOutcomes: false,
+  };
+}
+
+export function deriveCitizenOverviewMeta(path: MoneyPath, now: string): Message | null {
+  const stage = deriveCurrentStage(path);
+
+  if (stage === "EXITED_FINANCIAL_SYSTEM") {
+    return {
+      key: "amount.overview.exited",
+      defaultMessage: "Cash withdrawal recorded",
+    };
+  }
+
+  if (stage === "NOT_CURRENTLY_HELD") return null;
+
+  if (stage === "INTERIM_CUSTODY_CONFIRMED") {
+    return {
+      key: "amount.overview.received",
+      defaultMessage: "No action required",
+    };
+  }
+
+  const action = deriveCitizenAction(path);
+  const overdue = deriveOverdueState(path, now);
+  const actionText =
+    action.code === "NONE" ? "Nothing required" : action.instruction.defaultMessage;
+
+  if (!overdue) {
+    return { key: `amount.overview.${stage}`, defaultMessage: actionText };
+  }
+
+  return {
+    key: `amount.overview.${stage}.clock`,
+    defaultMessage: `${actionText} · Day ${overdue.elapsedDays} of ${overdue.durationDays}`,
+  };
+}
+
 export type CitizenCaseActionPresentation = {
   actionRequired: boolean;
   heading: Message;
@@ -166,6 +291,7 @@ export function deriveCitizenCaseActionPresentation(
   const actionPaths = paths.filter((path) => deriveCitizenAction(path).code !== "NONE");
   const responsibleActors = new Set(
     paths
+      .filter((path) => path.selectedProcess !== null)
       .map(deriveCurrentOwner)
       .filter((owner) => owner !== "NONE" && owner !== "CITIZEN" && owner !== "SYSTEM"),
   );
@@ -186,7 +312,10 @@ export function deriveCitizenCaseActionPresentation(
     heading: CITIZEN_MESSAGES.case.noAction,
     explanation: {
       key: "case.noActionExplanation",
-      defaultMessage: `${numberWord(responsibleActors.size)} institutions currently need to act on different parts of your case.`,
+      defaultMessage:
+        responsibleActors.has("INVESTIGATING_OFFICER") && responsibleActors.has("BANK")
+          ? "Police and a bank currently have the next recorded steps."
+          : `${numberWord(responsibleActors.size)} ${responsibleActors.size === 1 ? "institution currently has" : "institutions currently have"} the next recorded step${responsibleActors.size === 1 ? "" : "s"}.`,
     },
   };
 }

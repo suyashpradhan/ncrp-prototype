@@ -12,20 +12,18 @@ export default function AboutPage() {
       <div className="shell reading-shell">
         <header className="secondary-page-intro">
           <h1>{UI_MESSAGES.about.title.defaultMessage}</h1>
-          <p className="lede">{UI_MESSAGES.about.intro.defaultMessage}</p>
-          <p className="service-disclosure">No live NCRP, police or banking system is connected.</p>
+          <p>{UI_MESSAGES.about.conciseIntro.defaultMessage}</p>
+          <p className="service-disclosure">{UI_MESSAGES.about.noLiveSystem.defaultMessage}</p>
         </header>
 
         <div className="secondary-sections">
-          <section id="provenance">
+          <section>
             <h2>{UI_MESSAGES.about.modeledTitle.defaultMessage}</h2>
-            <p>{UI_MESSAGES.about.modeledIntro.defaultMessage}</p>
             <ul>
-              {UI_MESSAGES.about.modeledItems.map((item) => (
+              {UI_MESSAGES.about.modeledItems.slice(0, 3).map((item) => (
                 <li key={item.key}>{item.defaultMessage}</li>
               ))}
             </ul>
-            <p className="source-note">Source represented in the prototype: January 2026 NCRP-CFCFRMS SOP.</p>
           </section>
 
           <section>
@@ -37,6 +35,33 @@ export default function AboutPage() {
               ))}
             </ul>
           </section>
+
+          <details className="detail-disclosure">
+            <summary>{UI_MESSAGES.about.boundariesTitle.defaultMessage}</summary>
+            <div className="detail-disclosure-content">
+              <p>{UI_MESSAGES.about.boundariesIntro.defaultMessage}</p>
+              <ul>
+                {UI_MESSAGES.about.boundaryItems.map((item) => (
+                  <li key={item.key}>{item.defaultMessage}</li>
+                ))}
+              </ul>
+            </div>
+          </details>
+
+          <details id="provenance" className="detail-disclosure">
+            <summary>{UI_MESSAGES.about.provenanceSummary.defaultMessage}</summary>
+            <div className="detail-disclosure-content">
+              <p>{UI_MESSAGES.about.provenanceBody.defaultMessage}</p>
+              <p className="source-note">Source represented in the prototype: January 2026 NCRP-CFCFRMS SOP.</p>
+            </div>
+          </details>
+
+          <details className="detail-disclosure">
+            <summary>{UI_MESSAGES.about.principleSummary.defaultMessage}</summary>
+            <div className="detail-disclosure-content">
+              <p>{UI_MESSAGES.about.principle.defaultMessage}</p>
+            </div>
+          </details>
         </div>
       </div>
     </section>

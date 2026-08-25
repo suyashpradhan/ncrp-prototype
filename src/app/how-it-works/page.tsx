@@ -10,7 +10,6 @@ export default function HowItWorksPage() {
     <section className="secondary-page section-pad">
       <div className="shell reading-shell">
         <h1>{CITIZEN_MESSAGES.how.title.defaultMessage}</h1>
-        <p className="lede">{CITIZEN_MESSAGES.how.intro.defaultMessage}</p>
         <ol className="how-steps">
           {CITIZEN_MESSAGES.how.steps.map((step) => (
             <li key={step.title.key}>

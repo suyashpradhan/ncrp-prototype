@@ -3,7 +3,7 @@ import type { Case } from "../../domain/case";
 import { CITIZEN_MESSAGES, FRAUD_TYPE_MESSAGES, UI_MESSAGES } from "../../content/en";
 import { reconcileCaseAmounts } from "../../domain/reconciliation";
 import { deriveCitizenCaseActionPresentation } from "../../presentation/citizen-case";
-import { formatCurrency, formatIndiaDate } from "../../presentation/format";
+import { formatCurrency, formatIndiaShortDateWithYear } from "../../presentation/format";
 import { rankMoneyPathsForOverview } from "../../presentation/money-paths";
 import { MoneyPathCard } from "./money-path-card";
 
@@ -29,22 +29,16 @@ export function CaseOverview({
         <div className="shell reading-shell">
           <div className="case-lead">
             <h1>{CITIZEN_MESSAGES.case.eyebrow.defaultMessage}</h1>
-            <p className="case-total">{formatCurrency(caseData.complaint.reportedAmount)}</p>
-            <p className="case-person"><strong>{FRAUD_TYPE_MESSAGES[caseData.fraudType].defaultMessage}</strong></p>
-            <p className="case-reported-date">
-              {CITIZEN_MESSAGES.case.reportedOn.defaultMessage} {formatIndiaDate(caseData.complaint.reportedAt)}
+            <p className="case-summary-line">
+              <strong>{formatCurrency(caseData.complaint.reportedAmount)}</strong>
+              <span aria-hidden="true"> · </span>
+              {FRAUD_TYPE_MESSAGES[caseData.fraudType].defaultMessage}
             </p>
-            <p className="synthetic-person">Synthetic case for {caseData.syntheticCitizen.displayName}</p>
+            <p className="case-reported-date">
+              {CITIZEN_MESSAGES.case.reportedOn.defaultMessage} {formatIndiaShortDateWithYear(caseData.complaint.reportedAt)}
+            </p>
+            <p className="case-acknowledgement">{caseData.complaint.acknowledgementId}</p>
             <p className="case-context">{CITIZEN_MESSAGES.case.context.defaultMessage}</p>
-          </div>
-
-          <div className="history-context" aria-labelledby="case-history-heading">
-            <h2 id="case-history-heading">{CITIZEN_MESSAGES.case.historyTitle.defaultMessage}</h2>
-            <ul>
-              {CITIZEN_MESSAGES.case.historyItems.map((item) => (
-                <li key={item.key}><span aria-hidden="true">✓</span>{item.defaultMessage}</li>
-              ))}
-            </ul>
           </div>
 
           <section
@@ -62,7 +56,6 @@ export function CaseOverview({
         <div className="shell reading-shell">
           <div className="citizen-section-heading">
             <h2 id="current-status-heading">{CITIZEN_MESSAGES.case.standingTitle.defaultMessage}</h2>
-            <p className="lede">{CITIZEN_MESSAGES.case.nowIntro.defaultMessage}</p>
           </div>
           <div className="citizen-amount-list">
             {rankedPaths.map((path) => <MoneyPathCard key={path.id} path={path} now={now} />)}
@@ -80,6 +73,18 @@ export function CaseOverview({
             <div><dt>{CITIZEN_MESSAGES.case.exited.defaultMessage}</dt><dd>{formatCurrency(reconciliation.byFinancialState.EXITED_FINANCIAL_SYSTEM)}</dd></div>
             <div><dt>{CITIZEN_MESSAGES.case.notHeld.defaultMessage}</dt><dd>{formatCurrency(reconciliation.byFinancialState.NOT_CURRENTLY_HELD)}</dd></div>
           </dl>
+
+          <details className="detail-disclosure case-history-details">
+            <summary>{CITIZEN_MESSAGES.case.historyDisclosure.defaultMessage}</summary>
+            <div className="detail-disclosure-content history-context">
+              <h3>{CITIZEN_MESSAGES.case.historyTitle.defaultMessage}</h3>
+              <ul>
+                {CITIZEN_MESSAGES.case.historyItems.map((item) => (
+                  <li key={item.key}><span aria-hidden="true">✓</span>{item.defaultMessage}</li>
+                ))}
+              </ul>
+            </div>
+          </details>
 
           {demoControl}
         </div>

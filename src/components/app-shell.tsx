@@ -25,9 +25,6 @@ export function AppShell({ children }: AppShellProps) {
               </span>
             </Link>
           </div>
-          <p className="prototype-notice" role="note">
-            {UI_MESSAGES.prototype.shortDisclosure.defaultMessage}
-          </p>
         </div>
       </header>
       <main id="main-content" tabIndex={-1}>
@@ -36,7 +33,7 @@ export function AppShell({ children }: AppShellProps) {
       <footer className="site-footer">
         <div className="shell footer-inner">
           <div className="footer-disclosure">
-            <p>{UI_MESSAGES.prototype.fullDisclosure.defaultMessage}</p>
+            <p>{UI_MESSAGES.prototype.shortDisclosure.defaultMessage}</p>
             <nav className="footer-links" aria-label="Secondary navigation">
               <Link className="footer-link" href="/how-it-works">
                 {UI_MESSAGES.footer.howLink.defaultMessage}
