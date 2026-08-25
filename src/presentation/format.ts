@@ -13,7 +13,7 @@ const INR_FORMATTER = new Intl.NumberFormat("en-IN", {
 const INDIA_DATE_FORMATTER = new Intl.DateTimeFormat("en-IN", {
   timeZone: "Asia/Kolkata",
   day: "numeric",
-  month: "short",
+  month: "long",
   year: "numeric",
 });
 

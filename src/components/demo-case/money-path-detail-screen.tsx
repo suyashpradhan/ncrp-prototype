@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { CITIZEN_MESSAGES } from "../../content/en";
 import { MoneyPathDetail } from "../process-detail/money-path-detail";
-import { DemoCasePlayer } from "./demo-case-player";
+import { PrototypeDemoControl } from "./prototype-demo-control";
 import { useDemoCase } from "./demo-case-provider";
 
 export function MoneyPathDetailScreen({ moneyPathId }: { moneyPathId: string }) {
@@ -29,7 +29,7 @@ export function MoneyPathDetailScreen({ moneyPathId }: { moneyPathId: string }) 
     <MoneyPathDetail
       path={path}
       now={now}
-      demoControl={<DemoCasePlayer moneyPathId={moneyPathId} />}
+      demoControl={<PrototypeDemoControl moneyPathId={moneyPathId} />}
     />
   );
 }

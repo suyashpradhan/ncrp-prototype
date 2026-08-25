@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { CITIZEN_MESSAGES } from "../../content/en";
 import { CaseOverview } from "../case-overview/case-overview";
-import { DemoCasePlayer } from "./demo-case-player";
+import { PrototypeDemoControl } from "./prototype-demo-control";
 import { useDemoCase } from "./demo-case-provider";
 
 const PRIMARY_DEMO_PATH_ID = "path-held-io-verification";
@@ -28,7 +28,7 @@ export function CaseOverviewScreen() {
     <CaseOverview
       caseData={caseData}
       now={now}
-      demoControl={<DemoCasePlayer moneyPathId={PRIMARY_DEMO_PATH_ID} />}
+      demoControl={<PrototypeDemoControl moneyPathId={PRIMARY_DEMO_PATH_ID} />}
     />
   );
 }

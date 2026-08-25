@@ -133,7 +133,7 @@ export function deriveCitizenCurrentHistoryLabel(path: MoneyPath): Message {
   if (stage === "ACCOUNT_HOLDER_NOTICE") {
     return {
       key: "history.current.accountHolderVerification",
-      defaultMessage: "Account-holder verification step",
+      defaultMessage: "Recorded verification step pending",
     };
   }
 

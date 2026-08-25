@@ -52,8 +52,7 @@ export function MoneyPathDetail({
           </h1>
           {path.beneficiaryInstitution ? (
             <p className="detail-institution">
-              {path.beneficiaryInstitution.name}
-              {path.beneficiaryInstitution.maskedAccount ? ` · ${path.beneficiaryInstitution.maskedAccount}` : ""}
+              {path.beneficiaryInstitution.name.replace(" (synthetic)", "")} — synthetic
             </p>
           ) : null}
         </div>

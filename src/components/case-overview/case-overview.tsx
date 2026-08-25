@@ -32,7 +32,7 @@ export function CaseOverview({
             <p className="case-total">{formatCurrency(caseData.complaint.reportedAmount)}</p>
             <p className="case-person"><strong>{FRAUD_TYPE_MESSAGES[caseData.fraudType].defaultMessage}</strong></p>
             <p className="case-reported-date">
-              {CITIZEN_MESSAGES.case.reportedOn.defaultMessage}: {formatIndiaDate(caseData.complaint.reportedAt)}
+              {CITIZEN_MESSAGES.case.reportedOn.defaultMessage} {formatIndiaDate(caseData.complaint.reportedAt)}
             </p>
             <p className="synthetic-person">Synthetic case for {caseData.syntheticCitizen.displayName}</p>
             <p className="case-context">{CITIZEN_MESSAGES.case.context.defaultMessage}</p>
@@ -48,7 +48,7 @@ export function CaseOverview({
           </div>
 
           <section
-            className={`case-action-summary ${caseAction.actionRequired ? "action-required" : "no-action"}`}
+            className="case-action-summary"
             aria-labelledby="case-action-heading"
           >
             <h2 id="case-action-heading">{CITIZEN_MESSAGES.case.actionQuestion.defaultMessage}</h2>
@@ -68,6 +68,9 @@ export function CaseOverview({
             {rankedPaths.map((path) => <MoneyPathCard key={path.id} path={path} now={now} />)}
           </div>
 
+          <h3 className="reconciliation-heading">
+            {CITIZEN_MESSAGES.case.reconciliationLabel.defaultMessage}
+          </h3>
           <dl className="citizen-reconciliation" aria-label={CITIZEN_MESSAGES.case.reconciliationLabel.defaultMessage}>
             <div><dt>{UI_MESSAGES.common.reportedLoss.defaultMessage}</dt><dd>{formatCurrency(reconciliation.reportedAmount)}</dd></div>
             <div><dt>{CITIZEN_MESSAGES.case.active.defaultMessage}</dt><dd>{formatCurrency(activeAmount)}</dd></div>

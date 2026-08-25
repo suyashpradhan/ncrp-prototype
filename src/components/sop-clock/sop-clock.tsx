@@ -20,7 +20,7 @@ export function SopClockView({ path, now, compact = false }: { path: MoneyPath; 
     if (clock.stage === "BANK_INTERIM_CUSTODY") {
       return (
         <p className="citizen-clock-summary">
-          Day {overdue.elapsedDays} of the bank&apos;s 15-calendar-day process window.
+          Day {overdue.elapsedDays} of the bank&apos;s recorded 15-day process window.
         </p>
       );
     }
@@ -51,7 +51,7 @@ export function SopClockView({ path, now, compact = false }: { path: MoneyPath; 
       </div>
       {overdue.isOverdue ? (
         <p className="clock-context">
-          This step is currently {overdue.daysOverdue} {overdue.daysOverdue === 1 ? "day" : "days"} beyond its recorded process window.
+          This is currently {overdue.daysOverdue} {overdue.daysOverdue === 1 ? "day" : "days"} beyond that recorded process window.
         </p>
       ) : null}
     </div>

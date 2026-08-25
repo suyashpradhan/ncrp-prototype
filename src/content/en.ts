@@ -10,7 +10,7 @@ export const UI_MESSAGES = {
   prototype: {
     shortDisclosure: message(
       "prototype.shortDisclosure",
-      "Synthetic demo data · No live NCRP, police or banking system is connected.",
+      "Independent prototype — Uses synthetic NCRP/CFCFRMS case data. No live government system is connected.",
     ),
     fullDisclosure: message(
       "prototype.fullDisclosure",
@@ -60,7 +60,7 @@ export const UI_MESSAGES = {
       "No procedural clock is encoded for the current stage.",
     ),
     basedOnSop: message("common.basedOnSop", "Based on the January 2026 NCRP-CFCFRMS SOP."),
-    backToOverview: message("common.backToOverview", "Back to my case"),
+    backToOverview: message("common.backToOverview", "Back"),
   },
   overview: {
     eyebrow: message("overview.eyebrow", "Complaint financial resolution"),
@@ -145,7 +145,7 @@ export const UI_MESSAGES = {
   },
   demo: {
     label: message("demo.label", "Demo mode"),
-    title: message("demo.title", "Demo mode"),
+    title: message("demo.title", "Prototype demo control"),
     description: message(
       "demo.description",
       "In a live service, updates would come from NCRP/CFCFRMS, police or banks. This prototype uses synthetic updates.",
@@ -258,7 +258,7 @@ export const CITIZEN_MESSAGES = {
     ),
     intro: message(
       "landing.intro",
-      "If you have already reported a financial cyber fraud through NCRP or 1930, you can use this prototype to understand what is happening to different portions of your reported money.",
+      "If you have already reported a financial cyber fraud through NCRP or 1930, enter your case details below.",
     ),
     acknowledgement: message("landing.acknowledgement", "NCRP acknowledgement number"),
     registeredMobile: message("landing.registeredMobile", "Registered mobile number"),
@@ -279,9 +279,9 @@ export const CITIZEN_MESSAGES = {
     reportedOn: message("case.reportedOn", "Reported on"),
     context: message(
       "case.context",
-      "You have already reported this fraud and raised a Money Restoration request. Different portions of the reported ₹2,00,000 are now in different situations.",
+      "You have already reported this fraud and raised a Money Restoration request. Different portions of the reported money are now in different situations.",
     ),
-    historyTitle: message("case.historyTitle", "What has happened so far?"),
+    historyTitle: message("case.historyTitle", "What has happened so far"),
     historyItems: [
       message("case.history.reported", "Fraud reported"),
       message("case.history.trail", "Financial trail started"),
@@ -291,12 +291,12 @@ export const CITIZEN_MESSAGES = {
     actionQuestion: message("case.actionQuestion", "Do you need to do anything right now?"),
     noAction: message("case.noAction", "No action required from you right now."),
     actionRequired: message("case.actionRequired", "An action is recorded for you."),
-    nowTitle: message("case.nowTitle", "What is happening to your money now?"),
+    nowTitle: message("case.nowTitle", "What is happening to your money?"),
     nowIntro: message(
       "case.nowIntro",
-      "Different portions of your ₹2,00,000 are currently at different stages.",
+      "Different portions of the ₹2,00,000 you reported are currently in different situations.",
     ),
-    standingTitle: message("case.standingTitle", "What is happening to your money now?"),
+    standingTitle: message("case.standingTitle", "What is happening to your money?"),
     needToDo: message("case.needToDo", "You need to do"),
     seeDetails: message("case.seeDetails", "View details"),
     whatMeans: message("case.whatMeans", "What does this mean?"),
@@ -312,27 +312,27 @@ export const CITIZEN_MESSAGES = {
     ioTitle: message("amount.ioTitle", "Waiting on the Investigating Officer"),
     ioExplanation: message(
       "amount.ioExplanation",
-      "The next police verification step has not yet been completed.",
+      "The next recorded police verification step is still pending.",
     ),
     bankTitle: message("amount.bankTitle", "Waiting on the bank"),
     bankExplanation: message(
       "amount.bankExplanation",
-      "The bank has received the direction required to process this amount.",
+      "The bank has received the recorded direction required to process this amount.",
     ),
     exitedTitle: message("amount.exitedTitle", "This money left the banking system"),
     exitedExplanation: message(
       "amount.exitedExplanation",
-      "The synthetic case records that this amount was withdrawn as cash.",
+      "The synthetic case records a cash withdrawal.",
     ),
     notHeldTitle: message("amount.notHeldTitle", "Not currently secured"),
     notHeldExplanation: message(
       "amount.notHeldExplanation",
-      "This portion of the reported loss is not currently recorded as held by a financial institution.",
+      "This portion is not currently recorded as held.",
     ),
     receivedTitle: message("amount.receivedTitle", "Amount received"),
     receivedExplanation: message(
       "amount.receivedExplanation",
-      "This amount has been credited to the victim under the recorded interim-custody process.",
+      "This amount has been credited under the recorded interim-custody process.",
     ),
     genericTitle: message("amount.genericTitle", "An official step is in progress"),
     genericExplanation: message(
@@ -363,7 +363,7 @@ export const CITIZEN_MESSAGES = {
     ),
     ioNext: message(
       "citizenDetail.ioNext",
-      "Once this verification is completed, the case can move to the next recorded police approval step before a direction is sent to the bank.",
+      "Once the recorded verification step is completed, the case can move to the next police step and later toward bank action.",
     ),
     bankNext: message(
       "citizenDetail.bankNext",
@@ -388,7 +388,7 @@ export const CITIZEN_MESSAGES = {
     ),
   },
   clock: {
-    sopWindow: message("citizenClock.sopWindow", "The applicable process records a 7-calendar-day window."),
+    sopWindow: message("citizenClock.sopWindow", "The recorded process contains a 7-calendar-day window for this step."),
     currentCase: message("citizenClock.currentCase", "Synthetic case"),
     beyond: message("citizenClock.beyond", "This process step is beyond that recorded window."),
     bankWindow: message(

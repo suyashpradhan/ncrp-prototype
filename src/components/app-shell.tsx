@@ -9,29 +9,25 @@ type AppShellProps = {
 export function AppShell({ children }: AppShellProps) {
   return (
     <>
-      <div className="prototype-banner" role="note">
-        <span className="prototype-dot" aria-hidden="true" />
-        {UI_MESSAGES.prototype.shortDisclosure.defaultMessage}
-      </div>
       <header className="site-header">
-        <div className="shell header-inner">
-          <Link
-            className="brand"
-            href="/"
-            aria-label={UI_MESSAGES.brand.name.defaultMessage}
-          >
-            <span>
+        <div className="shell">
+          <div className="header-inner">
+            <Link
+              className="brand"
+              href="/"
+              aria-label={UI_MESSAGES.brand.name.defaultMessage}
+            >
               <span className="brand-name">
                 {UI_MESSAGES.brand.name.defaultMessage}
               </span>
-              <span className="brand-service">
-                {UI_MESSAGES.brand.eyebrow.defaultMessage}
+              <span className="prototype-label">
+                {UI_MESSAGES.prototype.label.defaultMessage}
               </span>
-            </span>
-          </Link>
-          <span className="prototype-label">
-            {UI_MESSAGES.prototype.label.defaultMessage}
-          </span>
+            </Link>
+          </div>
+          <p className="prototype-notice" role="note">
+            {UI_MESSAGES.prototype.shortDisclosure.defaultMessage}
+          </p>
         </div>
       </header>
       <main id="main-content" tabIndex={-1}>

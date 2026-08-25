@@ -16,22 +16,21 @@ export function EventHistory({ path }: { path: MoneyPath }) {
       <ol className="event-list">
         {events.map((event) => (
           <li key={event.id}>
-            <span className="event-marker" aria-hidden="true" />
-            <div className="event-content">
-              <time className="event-date" dateTime={event.occurredAt}>
-                {formatIndiaShortDate(event.occurredAt)}
-              </time>
-              <p className="event-title">
-                {event.type === "AMOUNT_HELD"
-                  ? `${formatCurrency(path.amount)} put on hold`
-                  : EVENT_MESSAGES[event.type].defaultMessage}
-              </p>
-            </div>
+            <time className="event-date" dateTime={event.occurredAt}>
+              {formatIndiaShortDate(event.occurredAt)}
+            </time>
+            <span aria-hidden="true">—</span>
+            <span className="event-title">
+              {event.type === "AMOUNT_HELD"
+                ? `${formatCurrency(path.amount)} put on hold`
+                : EVENT_MESSAGES[event.type].defaultMessage}
+            </span>
           </li>
         ))}
       </ol>
       <div className="current-history-item">
         <span>{UI_MESSAGES.common.current.defaultMessage}</span>
+        <span aria-hidden="true">—</span>
         <strong>{current.defaultMessage}</strong>
       </div>
     </section>
