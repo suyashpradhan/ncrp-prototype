@@ -13,8 +13,18 @@ const PROCESS_1_PROVENANCE: Provenance = {
 
 export const syntheticCase: Case = {
   id: "case-synthetic-investment-001",
+  caseOrigin: "DEMO_INCIDENT",
   syntheticCitizen: { displayName: "Asha Verma" },
   fraudType: "INVESTMENT_SCAM",
+  reportedIncident: {
+    citizenLabel: "Investment scam",
+    description:
+      "Asha received WhatsApp messages offering an investment opportunity and made two payments before the contact stopped responding.",
+    officialCategoryLabel: "Online Financial Fraud",
+    officialSubCategoryLabel: "UPI Related Frauds",
+    incidentDate: "2026-08-12",
+    approximateTime: "09:30",
+  },
   complaint: {
     id: "complaint-synthetic-001",
     acknowledgementId: "NCRP-DEMO-2026-00124",

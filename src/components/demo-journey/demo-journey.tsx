@@ -10,6 +10,10 @@ import {
 } from "react";
 import { DEMO_INCIDENT_DRAFT } from "../../incident/demo-incident";
 import {
+  buildSyntheticCaseFromComplaint,
+  resolveReportedAmount,
+} from "../../incident/complaint-case";
+import {
   applyMissingAnswer,
   deriveMissingQuestions,
   type MissingQuestion,
@@ -20,6 +24,7 @@ import {
   type IncidentDraft,
   type TranscriptionResult,
 } from "../../incident/schema";
+import { normalizeIncidentDraft } from "../../incident/normalization";
 import { CITIZEN_MESSAGES } from "../../content/en";
 import {
   DEMO_REFUND_ACCOUNT,
@@ -43,28 +48,30 @@ type JourneyView =
   | "MISSING_INFORMATION"
   | "REVIEW"
   | "COMPLAINT_REGISTERED"
-  | "POST_REPORT_HANDOFF"
   | "MRM_REQUEST"
   | "MRM_SUBMITTED"
-  | "POST_MRM_HANDOFF"
   | "ANALYSIS_ERROR";
 
 type ReportingFor = "SELF" | "HELPING";
 
 function StageLayout({
   progress,
+  completeCurrent = false,
   children,
 }: {
   progress: JourneyProgressStep;
+  completeCurrent?: boolean;
   children: ReactNode;
 }) {
   return (
     <section
       id={progress === "REPORT" ? "report-fraud" : undefined}
       className="journey-stage section-pad"
+      data-journey-focus
+      tabIndex={-1}
     >
       <div className="shell reading-shell">
-        <JourneyProgress current={progress} />
+        <JourneyProgress current={progress} completeCurrent={completeCurrent} />
         {children}
       </div>
     </section>
@@ -105,7 +112,7 @@ function UrgentMoneyGuidance() {
 
 export function DemoJourney() {
   const router = useRouter();
-  const { caseData, authenticateDemo, resetDemo } = useDemoCase();
+  const { caseData, hydrateComplaintCase, resetDemo } = useDemoCase();
   const [view, setView] = useState<JourneyView>("REPORT_START");
   const [reportingFor, setReportingFor] = useState<ReportingFor | null>(null);
   const [reportMethod, setReportMethod] = useState<ReportMethod>("SPEAK");
@@ -125,20 +132,24 @@ export function DemoJourney() {
     {},
   );
   const [isDemoIncident, setIsDemoIncident] = useState(false);
+  const [selectedReportedAmount, setSelectedReportedAmount] = useState<number | null>(null);
+  const [isTranscriptionError, setIsTranscriptionError] = useState(false);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const recorderChunksRef = useRef<Blob[]>([]);
+  const recordingStartedAtRef = useRef<number | null>(null);
   const summary = deriveJourneyFinancialSummary(caseData);
+  const amountResolution = draft
+    ? resolveReportedAmount(draft, selectedReportedAmount)
+    : null;
 
   useEffect(() => {
     if (
       view === "REPORT_INPUT" ||
       view === "COMPLAINT_REGISTERED" ||
-      view === "POST_REPORT_HANDOFF" ||
       view === "MRM_REQUEST" ||
-      view === "MRM_SUBMITTED" ||
-      view === "POST_MRM_HANDOFF"
+      view === "MRM_SUBMITTED"
     ) {
-      document.querySelector<HTMLElement>("#journey-stage-heading")?.focus();
+      document.querySelector<HTMLElement>("[data-journey-focus]")?.focus();
     }
   }, [view]);
 
@@ -147,29 +158,22 @@ export function DemoJourney() {
     const timer = window.setInterval(() => {
       setRecordingSeconds((current) => {
         const next = current + 1;
-        if (next >= 30 && recorderRef.current?.state === "recording") {
+        if (next >= 120 && recorderRef.current?.state === "recording") {
           recorderRef.current.stop();
           recorderRef.current.stream
             .getTracks()
             .forEach((track) => track.stop());
           setIsRecording(false);
         }
-        return Math.min(next, 30);
+        return Math.min(next, 120);
       });
     }, 1000);
     return () => window.clearInterval(timer);
   }, [isRecording]);
 
-  function initialiseCase() {
-    resetDemo();
-    authenticateDemo(
-      DEMO_CASE_ACCESS.acknowledgementNumber,
-      DEMO_CASE_ACCESS.registeredMobile,
-    );
-  }
-
   function useDemoIncident() {
-    initialiseCase();
+    resetDemo();
+    setDraft(null);
     setNarrative(
       DEMO_INCIDENT_DRAFT.incident.narrative ??
         DEMO_INCIDENT_DRAFT.citizenSummary.shortSummary,
@@ -177,7 +181,11 @@ export function DemoJourney() {
     setScreenshots([]);
     setAudio(null);
     setTranscription(null);
+    setRecordingSeconds(0);
     setFormError(null);
+    setIsTranscriptionError(false);
+    setSelectedReportedAmount(null);
+    setMissingAnswers({});
     setIsDemoIncident(true);
     setLoadingMessage("Organising your report…");
     setView("ANALYSING");
@@ -205,13 +213,21 @@ export function DemoJourney() {
         const recording = new Blob(recorderChunksRef.current, {
           type: recorder.mimeType,
         });
+        const startedAt = recordingStartedAtRef.current ?? Date.now();
+        const duration = Math.min(
+          120,
+          Math.max(1, Math.round((Date.now() - startedAt) / 1000)),
+        );
+        recordingStartedAtRef.current = null;
+        setRecordingSeconds(duration);
         setAudio(recording);
-        void buildComplaint(recording);
+        void buildComplaint(recording, undefined, duration);
       };
       recorderRef.current = recorder;
       setAudio(null);
       setTranscription(null);
       setRecordingSeconds(0);
+      recordingStartedAtRef.current = Date.now();
       setIsRecording(true);
       recorder.start();
     } catch {
@@ -231,6 +247,8 @@ export function DemoJourney() {
     setAudio(null);
     setTranscription(null);
     setRecordingSeconds(0);
+    setIsTranscriptionError(false);
+    setFormError(null);
   }
 
   async function handleScreenshots(event: ChangeEvent<HTMLInputElement>) {
@@ -265,10 +283,51 @@ export function DemoJourney() {
 
   async function transcribeRecording(
     recording: Blob | null,
+    durationSeconds: number,
   ): Promise<TranscriptionResult> {
     if (!recording) throw new Error("No recording is available.");
     const data = new FormData();
     data.append("audio", recording, "statement.webm");
+    data.append("durationSeconds", String(durationSeconds));
+
+    if (durationSeconds > 30) {
+      setLoadingMessage("Transcribing your statement… This may take a little longer for longer recordings.");
+      const startResponse = await fetch("/api/transcribe-long/start", {
+        method: "POST",
+        body: data,
+      });
+      const startResult: unknown = await startResponse.json().catch(() => null);
+      if (!startResponse.ok || !startResult || typeof startResult !== "object" || !("jobId" in startResult)) {
+        throw new Error("We couldn't transcribe this recording.");
+      }
+
+      const jobId = String(startResult.jobId);
+      for (let attempt = 0; attempt < 120; attempt += 1) {
+        await new Promise((resolve) => window.setTimeout(resolve, 5_000));
+        const statusResponse = await fetch(
+          `/api/transcribe-long/status?jobId=${encodeURIComponent(jobId)}`,
+          { cache: "no-store" },
+        );
+        const statusResult: unknown = await statusResponse.json().catch(() => null);
+        if (!statusResponse.ok || !statusResult || typeof statusResult !== "object") {
+          throw new Error("We couldn't transcribe this recording.");
+        }
+        const status = "status" in statusResult ? String(statusResult.status) : "FAILED";
+        if (status === "FAILED") throw new Error("We couldn't transcribe this recording.");
+        if (status === "COMPLETED") {
+          const resultResponse = await fetch("/api/transcribe-long/result", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ jobId }),
+          });
+          const result: unknown = await resultResponse.json().catch(() => null);
+          if (!resultResponse.ok) throw new Error("We couldn't transcribe this recording.");
+          return TranscriptionResultSchema.parse(result);
+        }
+      }
+      throw new Error("We couldn't transcribe this recording.");
+    }
+
     const response = await fetch("/api/transcribe", {
       method: "POST",
       body: data,
@@ -287,6 +346,7 @@ export function DemoJourney() {
   async function buildComplaint(
     recordingOverride?: Blob,
     screenshotOverride?: File[],
+    durationOverride?: number,
   ) {
     const recording = recordingOverride ?? audio;
     const evidence = screenshotOverride ?? screenshots;
@@ -304,6 +364,7 @@ export function DemoJourney() {
     }
 
     setFormError(null);
+    setIsTranscriptionError(false);
     setIsDemoIncident(false);
     setLoadingMessage(
       recording && !transcription
@@ -314,7 +375,10 @@ export function DemoJourney() {
     try {
       let preparedTranscription = transcription;
       if (recording && !preparedTranscription) {
-        preparedTranscription = await transcribeRecording(recording);
+        preparedTranscription = await transcribeRecording(
+          recording,
+          durationOverride ?? recordingSeconds,
+        );
         setTranscription(preparedTranscription);
       }
 
@@ -345,11 +409,14 @@ export function DemoJourney() {
             "We couldn’t organise the information. Your input is still here.",
         );
       }
-      setDraft(IncidentDraftSchema.parse(result));
+      const preparedDraft = normalizeIncidentDraft(IncidentDraftSchema.parse(result));
+      setDraft(preparedDraft);
+      setSelectedReportedAmount(null);
       setIsDemoIncident(false);
       setView("ANALYSIS_RESULT");
     } catch (error) {
       setFormError(error instanceof Error ? error.message : null);
+      setIsTranscriptionError(Boolean(recording && !transcription));
       setView("ANALYSIS_ERROR");
     }
   }
@@ -369,14 +436,36 @@ export function DemoJourney() {
   }
 
   function reviewReport() {
-    if (!draft || deriveMissingQuestions(draft).length > 0) return;
+    if (
+      !draft ||
+      deriveMissingQuestions(draft).length > 0 ||
+      (amountResolution?.hasConflict && !amountResolution.selectedAmount)
+    ) return;
     setFormError(null);
     setView("REVIEW");
   }
 
   function submitComplaint() {
-    initialiseCase();
-    setView("COMPLAINT_REGISTERED");
+    if (!draft) return;
+    try {
+      const submittedAt = isDemoIncident
+        ? "2026-08-12T09:30:00.000Z"
+        : new Date().toISOString();
+      const built = buildSyntheticCaseFromComplaint({
+        incidentDraft: draft,
+        syntheticCitizen: { displayName: "Asha Verma" },
+        acknowledgementId: DEMO_CASE_ACCESS.acknowledgementNumber,
+        submittedAt,
+        caseOrigin: isDemoIncident ? "DEMO_INCIDENT" : "LIVE_TEST",
+        selectedReportedAmount,
+      });
+      hydrateComplaintCase(built.caseData, built.now);
+      setFormError(null);
+      setView("COMPLAINT_REGISTERED");
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : "Check the report amount before submitting.");
+      setView("ANALYSIS_RESULT");
+    }
   }
 
   let content: ReactNode;
@@ -472,10 +561,12 @@ export function DemoJourney() {
           isRecording={isRecording}
           recordingSeconds={recordingSeconds}
           isDemoIncident={isDemoIncident}
+          isTranscriptionError={isTranscriptionError}
           draft={draft}
           loadingMessage={loadingMessage}
           formError={formError}
           missingAnswers={missingAnswers}
+          amountResolution={amountResolution}
           onReportMethodChange={setReportMethod}
           onNarrativeChange={setNarrative}
           onStartRecording={() => void startRecording()}
@@ -489,6 +580,7 @@ export function DemoJourney() {
           }
           onSaveMissingAnswer={saveMissingAnswer}
           onDraftChange={setDraft}
+          onReportedAmountSelect={setSelectedReportedAmount}
           onReview={reviewReport}
           onBackToEdit={() => setView("ANALYSIS_RESULT")}
           onSubmit={submitComplaint}
@@ -499,7 +591,7 @@ export function DemoJourney() {
 
     case "COMPLAINT_REGISTERED":
       content = (
-        <StageLayout progress="RESTORE">
+        <StageLayout progress="REPORT" completeCurrent>
           <p className="service-stage-label">
             {CITIZEN_MESSAGES.journey.existingNcrp.defaultMessage}
           </p>
@@ -510,27 +602,9 @@ export function DemoJourney() {
             {caseData.complaint.acknowledgementId}
           </p>
           <p>{CITIZEN_MESSAGES.journey.complaintResponse.defaultMessage}</p>
-          <p>Keep your original evidence and transaction information.</p>
-          <button
-            className="primary-button"
-            type="button"
-            onClick={() => setView("POST_REPORT_HANDOFF")}
-          >
-            Continue
-          </button>
-        </StageLayout>
-      );
-      break;
-
-    case "POST_REPORT_HANDOFF":
-      content = (
-        <StageLayout progress="RESTORE">
-          <h1 id="journey-stage-heading" tabIndex={-1}>
-            {CITIZEN_MESSAGES.journey.afterReportingTitle.defaultMessage}
-          </h1>
-          <p>{CITIZEN_MESSAGES.journey.afterReportingResponse.defaultMessage}</p>
-          <p>{CITIZEN_MESSAGES.journey.afterReportingRestoration.defaultMessage}</p>
-          <p>{CITIZEN_MESSAGES.journey.afterReportingDemo.defaultMessage}</p>
+          <h2>What happens next?</h2>
+          <p>Banks and law-enforcement agencies may act on the financial trail connected to the complaint.</p>
+          <p>For this demo, we’ll move to a later stage where part of your reported amount is recorded as held and can enter the Money Restoration journey.</p>
           <button
             className="primary-button"
             type="button"
@@ -560,7 +634,11 @@ export function DemoJourney() {
               <dd>{caseData.complaint.acknowledgementId}</dd>
             </div>
             <div>
-              <dt>{CITIZEN_MESSAGES.journey.heldEntering.defaultMessage}</dt>
+              <dt>Reported amount</dt>
+              <dd>{formatCurrency(summary.reportedAmount)}</dd>
+            </div>
+            <div>
+              <dt>Amounts currently recorded as held</dt>
               <dd>{formatCurrency(summary.activeAmount)}</dd>
             </div>
             <div>
@@ -591,32 +669,14 @@ export function DemoJourney() {
           </h1>
           <p className="journey-identifier">{DEMO_RESTORATION_REQUEST_ID}</p>
           <p>{CITIZEN_MESSAGES.journey.requestResponse.defaultMessage}</p>
-          <button
-            className="primary-button"
-            type="button"
-            onClick={() => setView("POST_MRM_HANDOFF")}
-          >
-            {CITIZEN_MESSAGES.journey.seeWhatHappens.defaultMessage}
-          </button>
-        </StageLayout>
-      );
-      break;
-
-    case "POST_MRM_HANDOFF":
-      content = (
-        <StageLayout progress="RESOLUTION">
-          <p className="service-stage-label">
-            {CITIZEN_MESSAGES.journey.proposedView.defaultMessage}
-          </p>
-          <h1 id="journey-stage-heading" tabIndex={-1}>
-            {CITIZEN_MESSAGES.journey.afterRestoration.defaultMessage}
-          </h1>
-          <p>{CITIZEN_MESSAGES.journey.handoffIntro.defaultMessage}</p>
+          <p>Different portions of the reported amount can now be in different recorded states across banks and police processes.</p>
+          <p>This prototype explores a clearer way to answer:</p>
           <ul className="journey-handoff-questions">
             <li>{CITIZEN_MESSAGES.journey.handoffWhere.defaultMessage}</li>
             <li>{CITIZEN_MESSAGES.journey.handoffWho.defaultMessage}</li>
             <li>{CITIZEN_MESSAGES.journey.handoffAction.defaultMessage}</li>
           </ul>
+          <p className="service-stage-label">Proposed Financial Resolution experience</p>
           <button
             className="primary-button"
             type="button"

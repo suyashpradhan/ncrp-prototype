@@ -81,8 +81,10 @@ describe("continuous synthetic citizen journey", () => {
       "utf8",
     );
 
-    expect(journeySource).toContain('setView("POST_REPORT_HANDOFF")');
-    expect(journeySource).toContain('setView("POST_MRM_HANDOFF")');
+    expect(journeySource).not.toContain('"POST_REPORT_HANDOFF"');
+    expect(journeySource).not.toContain('"POST_MRM_HANDOFF"');
+    expect(journeySource).toContain("buildSyntheticCaseFromComplaint");
+    expect(journeySource).toContain("Amounts currently recorded as held");
     expect(journeySource).not.toContain("FINANCIAL_TRAIL");
     expect(journeySource).not.toContain("Track progress");
     expect(caseSource).toContain('current="RESOLUTION"');

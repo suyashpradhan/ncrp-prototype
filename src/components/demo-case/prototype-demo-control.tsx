@@ -1,10 +1,12 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { EVENT_MESSAGES, UI_MESSAGES } from "../../content/en";
 import { getNextSyntheticMilestoneEventType } from "../../domain/money-path";
 import { useDemoCase } from "./demo-case-provider";
 
 export function PrototypeDemoControl({ moneyPathId }: { moneyPathId: string }) {
+  const router = useRouter();
   const { caseData, lastUpdate, simulateNextUpdate, resetDemo } = useDemoCase();
   const path = caseData.moneyPaths.find((item) => item.id === moneyPathId);
   if (!path) return null;
@@ -32,7 +34,7 @@ export function PrototypeDemoControl({ moneyPathId }: { moneyPathId: string }) {
               {UI_MESSAGES.demo.simulate.defaultMessage}
             </button>
           ) : null}
-          <button className="secondary-button" type="button" onClick={resetDemo}>
+          <button className="secondary-button" type="button" onClick={() => { resetDemo(); router.push("/"); }}>
             {UI_MESSAGES.demo.reset.defaultMessage}
           </button>
         </div>

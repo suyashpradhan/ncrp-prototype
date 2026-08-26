@@ -1,5 +1,5 @@
 import type { Case } from "../../domain/case";
-import { FRAUD_TYPE_MESSAGES, UI_MESSAGES } from "../../content/en";
+import { UI_MESSAGES } from "../../content/en";
 import { formatCurrency } from "../../presentation/format";
 
 export function CaseSummary({ caseData }: { caseData: Case }) {
@@ -11,7 +11,7 @@ export function CaseSummary({ caseData }: { caseData: Case }) {
       </div>
       <div>
         <dt>{UI_MESSAGES.common.fraudType.defaultMessage}</dt>
-        <dd>{FRAUD_TYPE_MESSAGES[caseData.fraudType].defaultMessage}</dd>
+        <dd>{caseData.reportedIncident.citizenLabel}</dd>
       </div>
       <div>
         <dt>{UI_MESSAGES.common.acknowledgement.defaultMessage}</dt>

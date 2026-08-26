@@ -5,6 +5,8 @@ import { DEMO_INCIDENT_DRAFT, createUnknownIncidentDraft } from "../incident/dem
 import { applyMissingAnswer, deriveMissingQuestions } from "../incident/missing-information";
 import { generateNcrpFields, totalIncidentTransactionAmount } from "../incident/ncrp-mapping";
 import { IncidentDraftSchema } from "../incident/schema";
+import { CITIZEN_DOES_NOT_HAVE } from "../presentation/report-details";
+import { normalizeIncidentChannel } from "../incident/normalization";
 import { deriveReportCompletion, deriveReportGroups } from "../presentation/report-details";
 
 describe("AI-assisted incident reporting boundary", () => {
@@ -70,10 +72,66 @@ describe("AI-assisted incident reporting boundary", () => {
     ]);
 
     const completion = deriveReportCompletion(DEMO_INCIDENT_DRAFT);
-    expect(completion).toEqual({ ready: 4, total: 5, missing: 1 });
+    expect(completion).toEqual({ ready: 3, total: 4, missing: 1 });
 
     const completed = applyMissingAnswer(DEMO_INCIDENT_DRAFT, "incidentApproximateTime", "09:10");
-    expect(deriveReportCompletion(completed)).toEqual({ ready: 5, total: 5, missing: 0 });
+    expect(deriveReportCompletion(completed)).toEqual({ ready: 4, total: 4, missing: 0 });
+  });
+
+  it("keeps a day and month unresolved until the citizen confirms the year", () => {
+    const partial = IncidentDraftSchema.parse({
+      ...DEMO_INCIDENT_DRAFT,
+      incident: {
+        ...DEMO_INCIDENT_DRAFT.incident,
+        incidentDate: null,
+        incidentDateWithoutYear: "08-22",
+        approximateTime: "07:00",
+      },
+    });
+
+    expect(deriveMissingQuestions(partial).map((question) => question.field)).toContain(
+      "incidentDateYear",
+    );
+    const confirmed = applyMissingAnswer(partial, "incidentDateYear", "2026");
+    expect(confirmed.incident.incidentDate).toBe("2026-08-22");
+    expect(confirmed.incident.incidentDateWithoutYear).toBeNull();
+  });
+
+  it("treats a citizen's unavailable transaction reference as resolved", () => {
+    const missing = IncidentDraftSchema.parse({
+      ...DEMO_INCIDENT_DRAFT,
+      transactions: [
+        { ...DEMO_INCIDENT_DRAFT.transactions[0], transactionIdOrUtr: null },
+      ],
+    });
+    const resolved = applyMissingAnswer(
+      missing,
+      "transactionIdOrUtr",
+      CITIZEN_DOES_NOT_HAVE,
+    );
+
+    expect(deriveMissingQuestions(resolved)).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "transactionIdOrUtr" })]),
+    );
+    const transactionGroup = deriveReportGroups(resolved).find(
+      (group) => group.id === "TRANSACTIONS",
+    );
+    expect(transactionGroup?.sections.flatMap((section) => section.fields)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: "transaction-0-utr", value: "Not available" }),
+      ]),
+    );
+  });
+
+  it("normalizes the structured incident channel without copying long evidence text", () => {
+    const draft = IncidentDraftSchema.parse({
+      ...DEMO_INCIDENT_DRAFT,
+      incident: {
+        ...DEMO_INCIDENT_DRAFT.incident,
+        occurredOn: "Text message, download link, and an app identified in the transcript",
+      },
+    });
+    expect(normalizeIncidentChannel(draft)).toBe("SMS / text message");
   });
 
   it("presents the structured incident, transactions, evidence and profile from one draft", () => {

@@ -9,7 +9,11 @@ export type ReportGroupId =
   | "EVIDENCE_SUSPECT"
   | "REPORTER";
 
-export type ReportFieldState = "READY" | "MISSING_REQUIRED" | "OPTIONAL_UNKNOWN";
+export type ReportFieldState =
+  | "READY"
+  | "MISSING_REQUIRED"
+  | "CITIZEN_UNAVAILABLE"
+  | "OPTIONAL_UNKNOWN";
 
 export type ReportFieldView = {
   id: string;
@@ -50,11 +54,14 @@ const GROUP_LABELS: Record<ReportGroupId, string> = {
 
 const MISSING_GROUP: Record<MissingQuestion["field"], ReportGroupId> = {
   incidentDate: "INCIDENT",
+  incidentDateYear: "INCIDENT",
   incidentApproximateTime: "INCIDENT",
   occurredOn: "INCIDENT",
   institution: "TRANSACTIONS",
   transactionIdOrUtr: "TRANSACTIONS",
 };
+
+export const CITIZEN_DOES_NOT_HAVE = "__CITIZEN_DOES_NOT_HAVE__";
 
 function formatDate(value: string | null): string {
   if (!value) return "Not provided";
@@ -71,6 +78,7 @@ function formatDate(value: string | null): string {
 }
 
 function display(value: string | null | undefined): string {
+  if (value === CITIZEN_DOES_NOT_HAVE) return "Not available";
   return value?.trim() || "Not provided";
 }
 
@@ -90,7 +98,9 @@ function field(
     id,
     label,
     value: displayed,
-    state: options.missingQuestion
+    state: value === CITIZEN_DOES_NOT_HAVE
+      ? "CITIZEN_UNAVAILABLE"
+      : options.missingQuestion
       ? "MISSING_REQUIRED"
       : displayed === "Not provided"
         ? "OPTIONAL_UNKNOWN"
@@ -121,9 +131,21 @@ function identifierLabel(type: IncidentDraft["suspectIdentifiers"][number]["type
 }
 
 export function deriveReportCompletion(draft: IncidentDraft): ReportCompletion {
-  const total = Object.keys(MISSING_GROUP).length;
+  const total = 4;
   const missing = deriveMissingQuestions(draft).length;
   return { ready: total - missing, total, missing };
+}
+
+function formatPartialDate(value: string | null): string {
+  if (!value) return "Not provided";
+  const [month, day] = value.split("-").map(Number);
+  const parsed = new Date(Date.UTC(2020, month - 1, day, 12));
+  if (Number.isNaN(parsed.getTime())) return value;
+  return new Intl.DateTimeFormat("en-IN", {
+    day: "numeric",
+    month: "long",
+    timeZone: "Asia/Kolkata",
+  }).format(parsed);
 }
 
 export function deriveReportGroups(draft: IncidentDraft): ReportGroupView[] {
@@ -146,8 +168,15 @@ export function deriveReportGroups(draft: IncidentDraft): ReportGroupView[] {
       "Money lost?",
       draft.incident.moneyLost === null ? null : draft.incident.moneyLost ? "Yes" : "No",
     ),
-    field("incident-date", "Incident date", formatDate(draft.incident.incidentDate), {
-      missingQuestion: missingByField.get("incidentDate"),
+    field(
+      "incident-date",
+      "Incident date",
+      draft.incident.incidentDate
+        ? formatDate(draft.incident.incidentDate)
+        : formatPartialDate(draft.incident.incidentDateWithoutYear),
+      {
+      missingQuestion:
+        missingByField.get("incidentDateYear") ?? missingByField.get("incidentDate"),
     }),
     field("incident-time", "Approximate time", draft.incident.approximateTime, {
       missingQuestion: missingByField.get("incidentApproximateTime"),
@@ -185,7 +214,11 @@ export function deriveReportGroups(draft: IncidentDraft): ReportGroupView[] {
           }),
           field(`transaction-${index}-account`, "Account, wallet or UPI ID", transaction.accountOrUpiId),
           field(`transaction-${index}-utr`, "Transaction reference", transaction.transactionIdOrUtr, {
-            source: transaction.transactionIdOrUtr ? "From what you shared" : undefined,
+            source:
+              transaction.transactionIdOrUtr &&
+              transaction.transactionIdOrUtr !== CITIZEN_DOES_NOT_HAVE
+                ? "From what you shared"
+                : undefined,
             helpText: "Also called UTR on many bank receipts.",
             missingQuestion: index === 0 ? missingByField.get("transactionIdOrUtr") : undefined,
           }),
@@ -203,6 +236,9 @@ export function deriveReportGroups(draft: IncidentDraft): ReportGroupView[] {
     (total, transaction) => total + (transaction.amount ?? 0),
     0,
   );
+  const displayedReportedAmount = transactionTotal > 0
+    ? transactionTotal
+    : draft.incident.reportedAmount;
 
   const evidenceFields = draft.evidence.length > 0
     ? draft.evidence.map((item, index) => field(
@@ -239,7 +275,7 @@ export function deriveReportGroups(draft: IncidentDraft): ReportGroupView[] {
           fields: [field(
             "transaction-total",
             "Total money reported lost",
-            transactionTotal > 0 ? formatCurrency(transactionTotal) : null,
+            displayedReportedAmount ? formatCurrency(displayedReportedAmount) : null,
           )],
         },
         ...transactionSections,

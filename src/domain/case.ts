@@ -38,12 +38,25 @@ export type MoneyPath = {
   provenance: Provenance[];
 };
 
+export type CaseOrigin = "LIVE_TEST" | "DEMO_INCIDENT";
+
+export type ReportedIncidentContext = {
+  citizenLabel: string;
+  description: string | null;
+  officialCategoryLabel: string | null;
+  officialSubCategoryLabel: string | null;
+  incidentDate: string | null;
+  approximateTime: string | null;
+};
+
 export type Case = {
   id: string;
+  caseOrigin: CaseOrigin;
   syntheticCitizen: {
     displayName: string;
   };
   fraudType: FraudType;
+  reportedIncident: ReportedIncidentContext;
   complaint: Complaint;
   moneyPaths: MoneyPath[];
 };

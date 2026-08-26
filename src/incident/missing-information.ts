@@ -3,6 +3,7 @@ import type { IncidentDraft } from "./schema";
 export type MissingQuestion = {
   field:
     | "incidentDate"
+    | "incidentDateYear"
     | "incidentApproximateTime"
     | "institution"
     | "transactionIdOrUtr"
@@ -16,6 +17,11 @@ const QUESTIONS: Record<MissingQuestion["field"], MissingQuestion> = {
     field: "incidentDate",
     question: "When did this happen?",
     inputType: "date",
+  },
+  incidentDateYear: {
+    field: "incidentDateYear",
+    question: "Confirm the year for this incident date",
+    inputType: "text",
   },
   incidentApproximateTime: {
     field: "incidentApproximateTime",
@@ -43,10 +49,13 @@ export function deriveMissingQuestions(draft: IncidentDraft): MissingQuestion[] 
   const missing: MissingQuestion[] = [];
   const primaryTransaction = draft.transactions[0];
 
-  if (!draft.incident.incidentDate) missing.push(QUESTIONS.incidentDate);
+  if (!draft.incident.incidentDate && draft.incident.incidentDateWithoutYear) {
+    missing.push(QUESTIONS.incidentDateYear);
+  } else if (!draft.incident.incidentDate) {
+    missing.push(QUESTIONS.incidentDate);
+  }
   if (!draft.incident.approximateTime) missing.push(QUESTIONS.incidentApproximateTime);
   if (!draft.incident.occurredOn) missing.push(QUESTIONS.occurredOn);
-  if (primaryTransaction && !primaryTransaction.institution) missing.push(QUESTIONS.institution);
   if (primaryTransaction && !primaryTransaction.transactionIdOrUtr) {
     missing.push(QUESTIONS.transactionIdOrUtr);
   }
@@ -67,6 +76,26 @@ export function applyMissingAnswer(
       ...draft,
       incident: { ...draft.incident, [field]: answer },
       missingRequiredFields: draft.missingRequiredFields.filter((item) => item !== field),
+    };
+  }
+
+  if (field === "incidentDateYear") {
+    const partialDate = draft.incident.incidentDateWithoutYear;
+    const year = Number(answer);
+    if (!partialDate || !Number.isInteger(year) || year < 2000 || year > 2100) {
+      return draft;
+    }
+
+    return {
+      ...draft,
+      incident: {
+        ...draft.incident,
+        incidentDate: `${year}-${partialDate}`,
+        incidentDateWithoutYear: null,
+      },
+      missingRequiredFields: draft.missingRequiredFields.filter(
+        (item) => item !== "incidentDate" && item !== "incidentDateYear",
+      ),
     };
   }
 

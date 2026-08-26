@@ -1,16 +1,19 @@
 "use client";
 
 import Image from "next/image";
-import { useState, type ChangeEvent } from "react";
-import type { MissingQuestion } from "../../incident/missing-information";
+import { useEffect, useState, type ChangeEvent } from "react";
+import { deriveMissingQuestions, type MissingQuestion } from "../../incident/missing-information";
 import type { IncidentDraft, TranscriptionResult } from "../../incident/schema";
+import type { ReportedAmountResolution } from "../../incident/complaint-case";
 import {
+  CITIZEN_DOES_NOT_HAVE,
   deriveReportCompletion,
   deriveReportGroups,
   type ReportFieldView,
   type ReportGroupId,
   type ReportGroupView,
 } from "../../presentation/report-details";
+import { formatCurrency } from "../../presentation/format";
 import { JourneyProgress } from "./journey-progress";
 
 export type ReportWorkspaceMode = "INPUT" | "PROCESSING" | "READY" | "ERROR" | "REVIEW";
@@ -39,10 +42,12 @@ type ReportWorkspaceProps = {
   isRecording: boolean;
   recordingSeconds: number;
   isDemoIncident: boolean;
+  isTranscriptionError: boolean;
   draft: IncidentDraft | null;
   loadingMessage: string;
   formError: string | null;
   missingAnswers: Record<string, string>;
+  amountResolution: ReportedAmountResolution | null;
   onReportMethodChange: (method: ReportMethod) => void;
   onNarrativeChange: (value: string) => void;
   onStartRecording: () => void;
@@ -54,6 +59,7 @@ type ReportWorkspaceProps = {
   onMissingAnswerChange: (field: MissingQuestion["field"], value: string) => void;
   onSaveMissingAnswer: (question: MissingQuestion, fallback?: string) => void;
   onDraftChange: (draft: IncidentDraft) => void;
+  onReportedAmountSelect: (amount: number) => void;
   onReview: () => void;
   onBackToEdit: () => void;
   onSubmit: () => void;
@@ -75,31 +81,47 @@ function languageLabel(languageCode: string): string {
 function EvidenceRows({
   screenshots,
   isDemoIncident,
+  compact = false,
 }: {
   screenshots: File[];
   isDemoIncident: boolean;
+  compact?: boolean;
 }) {
   if (!isDemoIncident && screenshots.length === 0) return null;
+
+  const evidenceCount = isDemoIncident ? DEMO_EVIDENCE.length : screenshots.length;
+  const rows = (
+    <ul className="report-source-files">
+      {isDemoIncident
+        ? DEMO_EVIDENCE.map((item) => (
+            <li className="report-source-file-preview" key={item.src}>
+              <details>
+                <summary><span>{item.label}</span><strong>Added</strong></summary>
+                <Image src={item.src} alt={item.alt} width={320} height={320} sizes="280px" />
+              </details>
+            </li>
+          ))
+        : screenshots.map((file) => (
+            <li className="report-source-file-row" key={`${file.name}-${file.lastModified}`}>
+              <span>{file.name}</span><strong>Added</strong>
+            </li>
+          ))}
+    </ul>
+  );
+
+  if (compact) {
+    return (
+      <details className="report-source-block compact-source-disclosure">
+        <summary><span>Evidence</span><strong>{evidenceCount} screenshots</strong></summary>
+        {rows}
+      </details>
+    );
+  }
 
   return (
     <div className="report-source-block">
       <h3>Evidence added</h3>
-      <ul className="report-source-files">
-        {isDemoIncident
-          ? DEMO_EVIDENCE.map((item) => (
-              <li className="report-source-file-preview" key={item.src}>
-                <details>
-                  <summary><span>{item.label}</span><strong>Added</strong></summary>
-                  <Image src={item.src} alt={item.alt} width={320} height={320} sizes="280px" />
-                </details>
-              </li>
-            ))
-          : screenshots.map((file) => (
-              <li className="report-source-file-row" key={`${file.name}-${file.lastModified}`}>
-                <span>{file.name}</span><strong>Added</strong>
-              </li>
-            ))}
-      </ul>
+      {rows}
     </div>
   );
 }
@@ -110,38 +132,65 @@ function SourceSummary({
   screenshots,
   isDemoIncident,
   recordingSeconds,
+  compact = false,
 }: Pick<
   ReportWorkspaceProps,
   "narrative" | "transcription" | "screenshots" | "isDemoIncident" | "recordingSeconds"
->) {
+> & { compact?: boolean }) {
   const showWrittenStatement = narrative.trim() && (isDemoIncident || !transcription);
 
   return (
     <div className="report-sources" aria-label="Information you shared">
       {transcription ? (
-        <div className="report-source-block transcript-result">
-          <h3>Your statement</h3>
-          <p className="source-transcript">{transcription.originalTranscript}</p>
-          <p className="source-meta">
-            {languageLabel(transcription.languageCode)} · {recordingSeconds || 1} seconds
-          </p>
-          {transcription.englishTranscript !== transcription.originalTranscript ? (
-            <details className="translation-disclosure">
-              <summary>View English translation</summary>
-              <p>{transcription.englishTranscript}</p>
-            </details>
-          ) : null}
-        </div>
+        compact ? (
+          <details className="report-source-block compact-source-disclosure transcript-result">
+            <summary>
+              <span>{languageLabel(transcription.languageCode)} voice statement</span>
+              <strong>{recordingSeconds || 1} seconds</strong>
+            </summary>
+            <p className="source-transcript">{transcription.originalTranscript}</p>
+            {transcription.englishTranscript !== transcription.originalTranscript ? (
+              <details className="translation-disclosure">
+                <summary>View English translation</summary>
+                <p>{transcription.englishTranscript}</p>
+              </details>
+            ) : null}
+          </details>
+        ) : (
+          <div className="report-source-block transcript-result">
+            <h3>Your statement</h3>
+            <p className="source-transcript">{transcription.originalTranscript}</p>
+            <p className="source-meta">
+              {languageLabel(transcription.languageCode)} · {recordingSeconds || 1} seconds
+            </p>
+            {transcription.englishTranscript !== transcription.originalTranscript ? (
+              <details className="translation-disclosure">
+                <summary>View English translation</summary>
+                <p>{transcription.englishTranscript}</p>
+              </details>
+            ) : null}
+          </div>
+        )
       ) : null}
 
       {showWrittenStatement ? (
-        <div className="report-source-block">
-          <h3>{isDemoIncident ? "Synthetic citizen statement" : "Your written statement"}</h3>
-          <p className="source-transcript">{narrative}</p>
-        </div>
+        compact ? (
+          <details className="report-source-block compact-source-disclosure">
+            <summary>
+              <span>{isDemoIncident ? "Synthetic citizen statement" : "Your written statement"}</span>
+              <strong>View statement</strong>
+            </summary>
+            <p className="source-transcript">{narrative}</p>
+          </details>
+        ) : (
+          <div className="report-source-block">
+            <h3>{isDemoIncident ? "Synthetic citizen statement" : "Your written statement"}</h3>
+            <p className="source-transcript">{narrative}</p>
+          </div>
+        )
       ) : null}
 
-      <EvidenceRows screenshots={screenshots} isDemoIncident={isDemoIncident} />
+      <EvidenceRows screenshots={screenshots} isDemoIncident={isDemoIncident} compact={compact} />
     </div>
   );
 }
@@ -197,8 +246,11 @@ function ReportInputPane(props: ReportWorkspaceProps) {
                     {props.isRecording ? "Stop recording" : "Start recording"}
                   </button>
                   <span className="recording-time" aria-live="polite">
-                    00:{String(props.recordingSeconds).padStart(2, "0")}
+                    {Math.floor(props.recordingSeconds / 60)}:{String(props.recordingSeconds % 60).padStart(2, "0")} / 2:00
                   </span>
+                  {props.isRecording && props.recordingSeconds >= 105 ? (
+                    <span className="recording-remaining">{120 - props.recordingSeconds} seconds remaining</span>
+                  ) : null}
                 </div>
               ) : (
                 <div className="source-actions">
@@ -265,6 +317,7 @@ function ReportInputPane(props: ReportWorkspaceProps) {
         screenshots={props.screenshots}
         isDemoIncident={props.isDemoIncident}
         recordingSeconds={props.recordingSeconds}
+        compact={props.mode === "REVIEW"}
       />
 
       {props.formError && props.mode !== "ERROR" ? (
@@ -286,10 +339,40 @@ function MissingFieldEditor({
   onSave: (fallback?: string) => void;
 }) {
   const question = field.missingQuestion;
+  const [chooseAnotherYear, setChooseAnotherYear] = useState(false);
   if (!question) return null;
 
+  if (question.field === "incidentDateYear") {
+    const suggestedYear = new Date().getFullYear();
+    return (
+      <div className="report-missing-editor" data-missing-field={question.field}>
+        <p className="partial-date-value">{field.value}</p>
+        <p className="report-field-state">Needs confirmation</p>
+        <p>Was this {field.value} {suggestedYear}?</p>
+        <div className="inline-field-actions">
+          <button className="secondary-button" type="button" onClick={() => onSave(String(suggestedYear))}>Yes</button>
+          <button className="text-button" type="button" onClick={() => setChooseAnotherYear(true)}>Choose another year</button>
+        </div>
+        {chooseAnotherYear ? (
+          <div className="year-confirmation-input">
+            <label htmlFor="missing-incidentDateYear">Year</label>
+            <input
+              id="missing-incidentDateYear"
+              type="number"
+              min="2000"
+              max="2100"
+              value={value}
+              onChange={(event) => onChange(event.target.value)}
+            />
+            <button className="secondary-button" type="button" onClick={() => onSave()}>Save year</button>
+          </div>
+        ) : null}
+      </div>
+    );
+  }
+
   return (
-    <div className="report-missing-editor">
+    <div className="report-missing-editor" data-missing-field={question.field}>
       <label htmlFor={`missing-${question.field}`}>{question.question}</label>
       {field.helpText ? <p className="report-field-help">{field.helpText}</p> : null}
       <input
@@ -301,7 +384,7 @@ function MissingFieldEditor({
       <div className="inline-field-actions">
         <button className="secondary-button" type="button" onClick={() => onSave()}>Save</button>
         {question.field === "transactionIdOrUtr" ? (
-          <button className="text-button" type="button" onClick={() => onSave("I don't have this information")}>I don’t have this</button>
+          <button className="text-button" type="button" onClick={() => onSave(CITIZEN_DOES_NOT_HAVE)}>I don’t have this</button>
         ) : null}
       </div>
     </div>
@@ -328,10 +411,11 @@ function ReportFieldRow({
   onNarrativeEdit: () => void;
 }) {
   if (field.missingQuestion) {
+    const isPartialDate = field.missingQuestion.field === "incidentDateYear";
     return (
       <div className="report-field report-field-missing">
         <p className="report-field-label">{field.label}</p>
-        <p className="report-field-state">Needs your input</p>
+        {!isPartialDate ? <p className="report-field-state">Needs your input</p> : null}
         <MissingFieldEditor
           field={field}
           value={missingValue}
@@ -520,7 +604,57 @@ function ReportDetailsPane(props: ReportWorkspaceProps) {
   const [activeGroup, setActiveGroup] = useState<ReportGroupId>("INCIDENT");
   const groups = props.draft ? deriveReportGroups(props.draft) : [];
   const completion = props.draft ? deriveReportCompletion(props.draft) : null;
+  const amountConflictMissing = Boolean(
+    props.amountResolution?.hasConflict && !props.amountResolution.selectedAmount,
+  );
+  const requiredMissing = (completion?.missing ?? 0) + (amountConflictMissing ? 1 : 0);
   const currentGroup = groups.find((group) => group.id === activeGroup) ?? groups[0];
+  const firstMissingQuestion = props.draft ? deriveMissingQuestions(props.draft)[0] : null;
+  const missingLabels: Record<MissingQuestion["field"], string> = {
+    incidentDate: "Incident date",
+    incidentDateYear: "Incident date year",
+    incidentApproximateTime: "Approximate incident time",
+    occurredOn: "Where the incident happened",
+    institution: "Bank or payment app",
+    transactionIdOrUtr: "Transaction reference",
+  };
+  const firstMissingLabel = amountConflictMissing
+    ? "Reported amount choice"
+    : firstMissingQuestion
+      ? missingLabels[firstMissingQuestion.field]
+      : null;
+  const missingActionLabel = amountConflictMissing
+    ? "Choose report amount"
+    : firstMissingQuestion?.field === "incidentDateYear"
+      ? "Confirm incident date"
+      : firstMissingLabel
+        ? `Add ${firstMissingLabel.toLowerCase()}`
+        : "Go to missing detail";
+
+  function goToMissingDetail() {
+    if (amountConflictMissing) {
+      document.querySelector<HTMLElement>("[data-amount-conflict] button")?.focus();
+      document.querySelector<HTMLElement>("[data-amount-conflict]")?.scrollIntoView({ block: "center" });
+      return;
+    }
+    if (!firstMissingQuestion) return;
+    const groupByField: Record<MissingQuestion["field"], ReportGroupId> = {
+      incidentDate: "INCIDENT",
+      incidentDateYear: "INCIDENT",
+      incidentApproximateTime: "INCIDENT",
+      occurredOn: "INCIDENT",
+      institution: "TRANSACTIONS",
+      transactionIdOrUtr: "TRANSACTIONS",
+    };
+    setActiveGroup(groupByField[firstMissingQuestion.field]);
+    window.requestAnimationFrame(() => {
+      const editor = document.querySelector<HTMLElement>(
+        `[data-missing-field="${firstMissingQuestion.field}"]`,
+      );
+      editor?.scrollIntoView({ block: "center" });
+      editor?.querySelector<HTMLElement>("input, button")?.focus();
+    });
+  }
 
   if (props.mode === "REVIEW") {
     return (
@@ -560,7 +694,13 @@ function ReportDetailsPane(props: ReportWorkspaceProps) {
           <p>{props.formError ?? "Your statement and evidence are still available on the left."}</p>
           <div className="entry-actions">
             <button className="primary-button" type="button" onClick={props.onOrganizeReport}>Try again</button>
-            <button className="secondary-button" type="button" onClick={props.onUseDemoIncident}>Use sample incident</button>
+            {props.isTranscriptionError ? (
+              <>
+                <button className="secondary-button" type="button" onClick={() => { props.onRecordAgain(); props.onReportMethodChange("SPEAK"); }}>Record a shorter statement</button>
+                <button className="secondary-button" type="button" onClick={() => props.onReportMethodChange("TYPE")}>Type instead</button>
+              </>
+            ) : null}
+            <button className="secondary-button" type="button" onClick={props.onUseDemoIncident}>Use demo incident</button>
           </div>
         </div>
       ) : null}
@@ -568,8 +708,15 @@ function ReportDetailsPane(props: ReportWorkspaceProps) {
       {props.mode === "READY" && props.draft && completion && currentGroup ? (
         <>
           <div className="report-completion" role="status" aria-live="polite">
-            <p><strong>{completion.ready} of {completion.total} details ready</strong></p>
-            <p>{completion.missing === 0 ? "No required details are missing." : `${completion.missing} ${completion.missing === 1 ? "needs" : "need"} your input`}</p>
+            <p><strong>{requiredMissing === 0 ? "Report information ready" : `${requiredMissing} required ${requiredMissing === 1 ? "detail" : "details"} still needed`}</strong></p>
+            {requiredMissing > 0 ? (
+              <>
+                {firstMissingLabel ? <p>{firstMissingLabel}</p> : null}
+                <button className="text-button missing-detail-link" type="button" onClick={goToMissingDetail}>
+                  {missingActionLabel} →
+                </button>
+              </>
+            ) : null}
           </div>
 
           <div className="report-detail-tabs" role="group" aria-label="NCRP report sections">
@@ -581,7 +728,7 @@ function ReportDetailsPane(props: ReportWorkspaceProps) {
                 onClick={() => setActiveGroup(group.id)}
               >
                 <span>{group.label}</span>
-                <small>{group.missingCount > 0 ? `${group.missingCount} needed` : "Complete"}</small>
+                <small>{group.id === "REPORTER" ? "From profile" : group.missingCount > 0 ? `${group.missingCount} ${group.missingCount === 1 ? "action" : "actions"} needed` : "Complete"}</small>
               </button>
             ))}
           </div>
@@ -595,9 +742,40 @@ function ReportDetailsPane(props: ReportWorkspaceProps) {
             onDraftChange={props.onDraftChange}
           />
 
+          {props.amountResolution?.hasConflict ? (
+            <section className="amount-conflict" data-amount-conflict aria-labelledby="amount-conflict-heading">
+              <h3 id="amount-conflict-heading">We found two different amounts</h3>
+              <dl>
+                <div><dt>From your statement</dt><dd>{formatCurrency(props.amountResolution.statementAmount ?? 0)}</dd></div>
+                <div><dt>From your transactions</dt><dd>{formatCurrency(props.amountResolution.transactionAmount ?? 0)}</dd></div>
+              </dl>
+              <p>Which amount should be used for this report?</p>
+              <div className="inline-field-actions">
+                {[props.amountResolution.statementAmount, props.amountResolution.transactionAmount]
+                  .filter((amount): amount is number => amount !== null)
+                  .map((amount) => (
+                    <button
+                      className="secondary-button"
+                      type="button"
+                      key={amount}
+                      aria-pressed={props.amountResolution?.selectedAmount === amount}
+                      onClick={() => props.onReportedAmountSelect(amount)}
+                    >
+                      Use {formatCurrency(amount)}
+                    </button>
+                  ))}
+              </div>
+            </section>
+          ) : null}
+
           <div className="report-primary-actions">
-            <button className="primary-button" type="button" disabled={completion.missing > 0} onClick={props.onReview}>Review &amp; continue</button>
-            {completion.missing > 0 ? <p>Complete the required detail above before reviewing.</p> : null}
+            <button className="primary-button" type="button" disabled={requiredMissing > 0} onClick={props.onReview}>Review &amp; continue</button>
+            {requiredMissing > 0 ? (
+              <div className="missing-review-message">
+                <p>{requiredMissing} required {requiredMissing === 1 ? "detail is" : "details are"} still needed{firstMissingLabel ? `: ${firstMissingLabel}` : ""}.</p>
+                <button className="text-button" type="button" onClick={goToMissingDetail}>{missingActionLabel}</button>
+              </div>
+            ) : null}
           </div>
         </>
       ) : null}
@@ -606,12 +784,32 @@ function ReportDetailsPane(props: ReportWorkspaceProps) {
 }
 
 export function ReportWorkspace(props: ReportWorkspaceProps) {
+  const [mobilePane, setMobilePane] = useState<"SHARED" | "DETAILS">("SHARED");
+  const [showSavedMessage, setShowSavedMessage] = useState(false);
+
+  useEffect(() => {
+    if (props.draft && props.mode === "READY") {
+      setMobilePane("DETAILS");
+      setShowSavedMessage(true);
+    } else if (props.mode === "PROCESSING" || props.mode === "ERROR" || props.mode === "REVIEW") {
+      setMobilePane("DETAILS");
+      setShowSavedMessage(false);
+    }
+  }, [props.draft, props.mode]);
+
   return (
-    <section className="report-workspace-stage section-pad">
+    <section className="report-workspace-stage section-pad" data-journey-focus tabIndex={-1}>
       <div className="report-workspace-shell">
         <JourneyProgress current="REPORT" />
         <p className="service-stage-label">Existing NCRP service · redesigned citizen interaction</p>
-        <div className="report-workspace">
+        <div className="mobile-report-switch" role="group" aria-label="Reporting workspace view">
+          <button type="button" aria-pressed={mobilePane === "SHARED"} onClick={() => { setMobilePane("SHARED"); setShowSavedMessage(false); }}>What you shared</button>
+          <button type="button" aria-pressed={mobilePane === "DETAILS"} onClick={() => setMobilePane("DETAILS")}>Report details</button>
+        </div>
+        {showSavedMessage && mobilePane === "DETAILS" ? (
+          <p className="mobile-saved-message" role="status">Your statement has been saved.</p>
+        ) : null}
+        <div className={`report-workspace mobile-pane-${mobilePane.toLowerCase()}`}>
           <ReportInputPane {...props} />
           <ReportDetailsPane {...props} />
         </div>

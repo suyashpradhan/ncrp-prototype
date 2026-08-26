@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 import { zodTextFormat } from "openai/helpers/zod";
 import { IncidentDraftSchema } from "../../../incident/schema";
+import { normalizeIncidentDraft } from "../../../incident/normalization";
 
 export const runtime = "nodejs";
 
@@ -20,7 +21,10 @@ Rules:
 7. Keep the citizen's description separate from the suggested official category and sub-category.
 8. Never extract OTPs, CVVs, UPI PINs or passwords as complaint data. Add a warning if such credentials are visible.
 9. List only genuinely missing required information in missingRequiredFields.
-10. Keep citizen-facing summaries plain, concise and neutral.`;
+10. Keep citizen-facing summaries plain, concise and neutral.
+11. Put the total amount the citizen says was lost in incident.reportedAmount, even when a transaction reference is unknown. Keep individual known payments in transactions.
+12. Never infer a year. If the citizen says a day and month without a year, set incidentDate to null and incidentDateWithoutYear to MM-DD. Set incidentDateWithoutYear to null when a complete YYYY-MM-DD date is supported.
+13. incident.occurredOn must be one concise supported channel: SMS / text message, WhatsApp, Telegram, Website, Mobile app, Email, Other, or null. Put contextual wording in the narrative, not this field.`;
 
 type InputContent =
   | { type: "input_text"; text: string }
@@ -89,7 +93,8 @@ export async function POST(request: Request) {
     });
 
     if (!response.output_parsed) throw new Error("No structured incident draft returned.");
-    return Response.json(response.output_parsed, { headers: { "Cache-Control": "no-store" } });
+    const normalizedDraft = normalizeIncidentDraft(response.output_parsed);
+    return Response.json(normalizedDraft, { headers: { "Cache-Control": "no-store" } });
   } catch {
     return Response.json(
       { error: "We couldn't analyse this evidence. Try again or use the demo incident." },

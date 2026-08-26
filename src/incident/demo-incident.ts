@@ -14,7 +14,9 @@ export const DEMO_INCIDENT_DRAFT = {
   },
   incident: {
     moneyLost: true,
+    reportedAmount: 200_000,
     incidentDate: "2026-08-12",
+    incidentDateWithoutYear: null,
     approximateTime: null,
     delayInReporting: false,
     delayReason: null,
@@ -78,7 +80,9 @@ export function createUnknownIncidentDraft(): IncidentDraft {
     },
     incident: {
       moneyLost: null,
+      reportedAmount: null,
       incidentDate: null,
+      incidentDateWithoutYear: null,
       approximateTime: null,
       delayInReporting: null,
       delayReason: null,

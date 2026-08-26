@@ -23,7 +23,6 @@ export function MoneyPathCard({ path, now }: { path: MoneyPath; now: string }) {
           <strong>{details.citizenAction.defaultMessage}</strong>
         </p>
       ) : null}
-      {details.processWindow ? <p className="citizen-amount-meta">{details.processWindow.defaultMessage}</p> : null}
       <Link
         className="citizen-card-link"
         href={`/money-path/${path.id}`}

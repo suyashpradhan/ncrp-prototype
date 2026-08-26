@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { MoneyPathDetailScreen } from "../../../components/demo-case/money-path-detail-screen";
 import { syntheticCase } from "../../../data/synthetic-case";
-import { formatCurrency } from "../../../presentation/format";
 
 type MoneyPathPageProps = {
   params: Promise<{ pathId: string }>;
@@ -16,11 +15,7 @@ export function generateStaticParams() {
   return syntheticCase.moneyPaths.map((path) => ({ pathId: path.id }));
 }
 
-export async function generateMetadata({ params }: MoneyPathPageProps): Promise<Metadata> {
-  const { pathId } = await params;
-  const path = getMoneyPath(pathId);
-  return { title: path ? `${formatCurrency(path.amount)} details` : "Amount not found" };
-}
+export const metadata: Metadata = { title: "Amount details" };
 
 export default async function MoneyPathPage({ params }: MoneyPathPageProps) {
   const { pathId } = await params;

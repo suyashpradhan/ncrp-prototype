@@ -1,9 +1,9 @@
 import type { ReactNode } from "react";
 import type { Case } from "../../domain/case";
-import { CITIZEN_MESSAGES, FRAUD_TYPE_MESSAGES, UI_MESSAGES } from "../../content/en";
+import { CITIZEN_MESSAGES, UI_MESSAGES } from "../../content/en";
 import { reconcileCaseAmounts } from "../../domain/reconciliation";
 import { deriveCitizenCaseActionPresentation } from "../../presentation/citizen-case";
-import { formatCurrency, formatIndiaShortDateWithYear } from "../../presentation/format";
+import { formatCurrency } from "../../presentation/format";
 import { rankMoneyPathsForOverview } from "../../presentation/money-paths";
 import { DEMO_RESTORATION_REQUEST_ID } from "../../presentation/demo-journey";
 import { JourneyProgress } from "../demo-journey/journey-progress";
@@ -50,12 +50,7 @@ export function CaseOverview({
 
             <div className="case-reference-context">
               <p className="case-summary-line">
-                <strong>{formatCurrency(caseData.complaint.reportedAmount)}</strong>
-                <span aria-hidden="true"> · </span>
-                {FRAUD_TYPE_MESSAGES[caseData.fraudType].defaultMessage}
-              </p>
-              <p className="case-reported-date">
-                {CITIZEN_MESSAGES.case.reportedOn.defaultMessage} {formatIndiaShortDateWithYear(caseData.complaint.reportedAt)}
+                <strong>{caseData.reportedIncident.citizenLabel}</strong>
               </p>
               <p className="case-acknowledgement">{caseData.complaint.acknowledgementId}</p>
               <p className="case-acknowledgement">
@@ -77,17 +72,24 @@ export function CaseOverview({
             {rankedPaths.map((path) => <MoneyPathCard key={path.id} path={path} now={now} />)}
           </div>
 
-          <h3 className="reconciliation-heading">{CITIZEN_MESSAGES.case.reconciliationLabel.defaultMessage}</h3>
-          <dl className="citizen-reconciliation" aria-label={CITIZEN_MESSAGES.case.reconciliationLabel.defaultMessage}>
-            <div><dt>{UI_MESSAGES.common.reportedLoss.defaultMessage}</dt><dd>{formatCurrency(reconciliation.reportedAmount)}</dd></div>
-            <div><dt>{CITIZEN_MESSAGES.case.active.defaultMessage}</dt><dd>{formatCurrency(activeAmount)}</dd></div>
-            {reconciliation.byFinancialState.INTERIM_CUSTODY > 0 ? (
-              <div><dt>{CITIZEN_MESSAGES.case.received.defaultMessage}</dt><dd>{formatCurrency(reconciliation.byFinancialState.INTERIM_CUSTODY)}</dd></div>
-            ) : null}
-            <div><dt>{CITIZEN_MESSAGES.case.exited.defaultMessage}</dt><dd>{formatCurrency(reconciliation.byFinancialState.EXITED_FINANCIAL_SYSTEM)}</dd></div>
-            <div><dt>{CITIZEN_MESSAGES.case.notHeld.defaultMessage}</dt><dd>{formatCurrency(reconciliation.byFinancialState.NOT_CURRENTLY_HELD)}</dd></div>
-            <div className="citizen-reconciliation-total"><dt>{CITIZEN_MESSAGES.case.total.defaultMessage}</dt><dd>{formatCurrency(reconciliation.allocatedAmount)}</dd></div>
-          </dl>
+          <section className="amount-summary" aria-labelledby="amount-summary-heading">
+            <h3 id="amount-summary-heading">Amount summary</h3>
+            <details className="detail-disclosure">
+              <summary>View summary</summary>
+              <div className="detail-disclosure-content">
+                <dl className="citizen-reconciliation" aria-label={CITIZEN_MESSAGES.case.reconciliationLabel.defaultMessage}>
+                  <div><dt>Reported</dt><dd>{formatCurrency(reconciliation.reportedAmount)}</dd></div>
+                  <div><dt>Currently recorded in active held/restoration processes</dt><dd>{formatCurrency(activeAmount)}</dd></div>
+                  {reconciliation.byFinancialState.INTERIM_CUSTODY > 0 ? (
+                    <div><dt>{CITIZEN_MESSAGES.case.received.defaultMessage}</dt><dd>{formatCurrency(reconciliation.byFinancialState.INTERIM_CUSTODY)}</dd></div>
+                  ) : null}
+                  <div><dt>Cash withdrawal recorded</dt><dd>{formatCurrency(reconciliation.byFinancialState.EXITED_FINANCIAL_SYSTEM)}</dd></div>
+                  <div><dt>Not currently secured</dt><dd>{formatCurrency(reconciliation.byFinancialState.NOT_CURRENTLY_HELD)}</dd></div>
+                  <div className="citizen-reconciliation-total"><dt>{CITIZEN_MESSAGES.case.total.defaultMessage}</dt><dd>{formatCurrency(reconciliation.allocatedAmount)}</dd></div>
+                </dl>
+              </div>
+            </details>
+          </section>
 
           <details className="detail-disclosure case-history-details">
             <summary>{CITIZEN_MESSAGES.case.historyDisclosure.defaultMessage}</summary>

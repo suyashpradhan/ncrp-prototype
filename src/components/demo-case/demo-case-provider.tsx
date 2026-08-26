@@ -34,6 +34,7 @@ type DemoCaseContextValue = {
   lastUpdate: LastSimulatedUpdate | null;
   isDemoAuthenticated: boolean;
   authenticateDemo: (acknowledgementNumber: string, registeredMobile: string) => boolean;
+  hydrateComplaintCase: (caseData: Case, now: string) => void;
   simulateNextUpdate: (moneyPathId: string) => void;
   resetDemo: () => void;
 };
@@ -110,18 +111,33 @@ export function DemoCaseProvider({ children, initialCase, initialNow }: DemoCase
     });
   }, []);
 
+  const hydrateComplaintCase = useCallback((caseData: Case, now: string) => {
+    setState({
+      caseData,
+      now,
+      lastUpdate: null,
+      isDemoAuthenticated: true,
+    });
+  }, []);
+
   const resetDemo = useCallback(() => {
-    setState((current) => ({
+    setState({
       caseData: initialCase,
       now: initialNow,
       lastUpdate: null,
-      isDemoAuthenticated: current.isDemoAuthenticated,
-    }));
+      isDemoAuthenticated: false,
+    });
   }, [initialCase, initialNow]);
 
   const value = useMemo(
-    () => ({ ...state, authenticateDemo, simulateNextUpdate, resetDemo }),
-    [state, authenticateDemo, simulateNextUpdate, resetDemo],
+    () => ({
+      ...state,
+      authenticateDemo,
+      hydrateComplaintCase,
+      simulateNextUpdate,
+      resetDemo,
+    }),
+    [state, authenticateDemo, hydrateComplaintCase, simulateNextUpdate, resetDemo],
   );
 
   return <DemoCaseContext value={value}>{children}</DemoCaseContext>;

@@ -17,7 +17,9 @@ export const IncidentDraftSchema = z.object({
   }),
   incident: z.object({
     moneyLost: z.boolean().nullable(),
+    reportedAmount: z.number().positive().nullable(),
     incidentDate: z.string().nullable(),
+    incidentDateWithoutYear: z.string().regex(/^\d{2}-\d{2}$/).nullable(),
     approximateTime: z.string().nullable(),
     delayInReporting: z.boolean().nullable(),
     delayReason: z.string().nullable(),

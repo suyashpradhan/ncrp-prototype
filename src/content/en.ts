@@ -464,7 +464,7 @@ export const CITIZEN_MESSAGES = {
     ),
     trailTitle: message(
       "journey.trail.title",
-      "What happened to the reported ₹2,00,000?",
+      "What happened to the reported money?",
     ),
     trailIntro: message(
       "journey.trail.intro",
@@ -484,7 +484,7 @@ export const CITIZEN_MESSAGES = {
     totalReported: message("journey.trail.total", "Total reported"),
     heldClarification: message(
       "journey.trail.heldClarification",
-      "₹1,15,000 is recorded as held or inside active financial processes in this synthetic case. Held is not the same as received.",
+      "Some money is recorded as held or inside active financial processes in this synthetic case. Held is not the same as received.",
     ),
     continueRestoration: message(
       "journey.trail.continue",
@@ -584,7 +584,7 @@ export const CITIZEN_MESSAGES = {
     nowTitle: message("case.nowTitle", "What is happening to your money?"),
     nowIntro: message(
       "case.nowIntro",
-      "Different portions of the ₹2,00,000 you reported are currently in different situations.",
+      "Different portions of your reported amount are currently in different situations.",
     ),
     standingTitle: message(
       "case.standingTitle",
