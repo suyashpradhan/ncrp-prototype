@@ -15,16 +15,16 @@ export const metadata: Metadata = {
     template: "%s · Financial Cyber Fraud Reporting",
   },
   description:
-    "A synthetic citizen journey from plain-language NCRP reporting through the existing restoration stage to a proposed Financial Resolution experience.",
+    "A synthetic citizen journey that prepares complete NCRP-compatible financial cyber-fraud reporting information from voice, evidence and focused follow-up questions.",
   openGraph: {
     title: "Financial Cyber Fraud Reporting",
-    description: "From a citizen's story to structured reporting and clear financial resolution",
+    description: "From a citizen's story to complete structured financial cyber-fraud reporting information",
     images: [{ url: "/og.jpg", width: 1536, height: 1024 }],
   },
   twitter: {
     card: "summary_large_image",
     title: "Financial Cyber Fraud Reporting",
-    description: "From a citizen's story to structured reporting and clear financial resolution",
+    description: "From a citizen's story to complete structured financial cyber-fraud reporting information",
     images: ["/og.jpg"],
   },
 };

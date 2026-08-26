@@ -14,9 +14,11 @@ export type ReportGroupId =
 
 export type ReportFieldState =
   | "READY"
-  | "MISSING_REQUIRED"
-  | "CITIZEN_UNAVAILABLE"
-  | "OPTIONAL_UNKNOWN";
+  | "NEEDS_INPUT"
+  | "NOT_PROVIDED_OPTIONAL"
+  | "CITIZEN_DOES_NOT_HAVE"
+  | "NEEDS_CONFIRMATION"
+  | "CONFIRMED";
 
 export type ReportFieldView = {
   id: string;
@@ -104,11 +106,13 @@ function field(
     label,
     value: displayed,
     state: value === CITIZEN_DOES_NOT_HAVE
-      ? "CITIZEN_UNAVAILABLE"
+      ? "CITIZEN_DOES_NOT_HAVE"
       : options.missingQuestion
-      ? "MISSING_REQUIRED"
+      ? options.missingQuestion.field === "incidentDateYear"
+        ? "NEEDS_CONFIRMATION"
+        : "NEEDS_INPUT"
       : displayed === textForLocale(locale, "field.notProvided")
-        ? "OPTIONAL_UNKNOWN"
+        ? "NOT_PROVIDED_OPTIONAL"
         : "READY",
     ...options,
   };
@@ -135,6 +139,20 @@ function identifierLabel(type: IncidentDraft["suspectIdentifiers"][number]["type
   }
 }
 
+function localizedEvidenceFact(value: string, locale: UiLocale): string {
+  if (locale !== "hi") return value;
+  const translations: Record<string, string> = {
+    "Synthetic KYC message": "काल्पनिक केवाईसी संदेश",
+    "SBI KYC update was claimed": "एसबीआई केवाईसी अपडेट करने का दावा",
+    "Sender shown as 98XX XX1234": "भेजने वाले का नंबर 98XX XX1234 दिखा",
+    "Safe non-resolving link kyc-demo.invalid": "सुरक्षित, न खुलने वाला लिंक kyc-demo.invalid",
+    "One synthetic transaction of ₹40,000": "₹40,000 का एक काल्पनिक लेन-देन",
+    "Transaction dated 22 August 2026 at about 7:05 AM": "लेन-देन 22 अगस्त 2026 को सुबह लगभग 7:05 बजे हुआ",
+    "Synthetic transaction reference is visible": "काल्पनिक लेन-देन संदर्भ दिखाई दिया",
+  };
+  return translations[value] ?? value;
+}
+
 export function deriveReportCompletion(draft: IncidentDraft): ReportCompletion {
   const total = 4;
   const missing = deriveMissingQuestions(draft).length;
@@ -155,12 +173,23 @@ function formatPartialDate(value: string | null, locale: UiLocale): string {
 
 export function deriveReportGroups(
   draft: IncidentDraft,
-  options: { locale?: UiLocale; profile?: ReporterProfile } = {},
+  options: {
+    locale?: UiLocale;
+    profile?: ReporterProfile;
+    identityDocumentProvided?: boolean;
+  } = {},
 ): ReportGroupView[] {
   const locale = options.locale ?? "en";
   const profile = options.profile ?? SYNTHETIC_NCRP_PROFILE;
+  const identityDocumentProvided = options.identityDocumentProvided ?? true;
   const copy = (key: string, values?: Record<string, string | number>) =>
-    textForLocale(locale, key, values);
+    textForLocale(
+      locale,
+      key === "field.fromProfile" && profile.source === "TEST_INPUT"
+        ? "profile.fromTest"
+        : key,
+      values,
+    );
   const makeField = (
     id: string,
     label: string,
@@ -210,7 +239,7 @@ export function deriveReportGroups(
       ? [makeField("delay-reason", copy("field.delayReason"), draft.incident.delayReason)]
       : []),
     makeField("occurred-on", copy("field.occurredOn"), locale === "hi" && draft.incident.occurredOn === "SMS / chat message" ? "एसएमएस / चैट संदेश" : draft.incident.occurredOn, {
-      source: copy("field.fromShared"),
+      source: draft.evidence.length > 0 ? copy("field.fromEvidence") : copy("field.fromShared"),
       missingQuestion: missingByField.get("occurredOn"),
     }),
     makeField(
@@ -269,19 +298,33 @@ export function deriveReportGroups(
     ? draft.evidence.map((item, index) => makeField(
         `evidence-${index}`,
         evidenceLabel(item.type, locale),
-        copy("field.provided"),
-        { source: copy("field.fromEvidence") },
+        copy("field.attached"),
+        { source: draft.evidence.length > 0 ? copy("field.fromEvidence") : copy("field.fromShared") },
       ))
     : [makeField("evidence-empty", copy("workspace.evidence"), null)];
 
-  const suspectFields = draft.suspectIdentifiers.length > 0
-    ? draft.suspectIdentifiers.map((item, index) => makeField(
+  const suspectFields = draft.suspectIdentifiers.map((item, index) => makeField(
         `suspect-${index}`,
         identifierLabel(item.type, locale),
         item.value,
-        { source: copy("field.fromShared") },
-      ))
-    : [makeField("suspect-empty", copy("field.suspectFound"), null)];
+        { source: draft.evidence.length > 0 ? copy("field.fromEvidence") : copy("field.fromShared") },
+      ));
+  for (const [id, label] of [
+    ["suspect-name", copy("field.name")],
+    ["suspect-email", copy("field.email")],
+  ] as const) {
+    if (!suspectFields.some((item) => item.label === label)) {
+      suspectFields.push(makeField(id, label, null));
+    }
+  }
+  const evidenceFactFields = draft.evidence.flatMap((item, evidenceIndex) =>
+    item.extractedFacts.map((fact, factIndex) => makeField(
+      `evidence-fact-${evidenceIndex}-${factIndex}`,
+      copy("field.extractedFact"),
+      localizedEvidenceFact(fact, locale),
+      { source: copy("field.fromEvidence") },
+    )),
+  );
 
   return [
     {
@@ -312,6 +355,7 @@ export function deriveReportGroups(
       missingCount: 0,
       sections: [
         { id: "evidence", title: copy("field.evidenceSupplied"), fields: evidenceFields },
+        { id: "evidence-facts", title: copy("field.factsExtracted"), fields: evidenceFactFields },
         { id: "suspect", title: copy("field.suspectFound"), fields: suspectFields },
       ],
     },
@@ -319,14 +363,53 @@ export function deriveReportGroups(
       id: "REPORTER",
       label: copy("field.reporter"),
       missingCount: 0,
-      sections: [{
-        id: "reporter",
-        fields: [
-          makeField("reporter-name", copy("field.name"), locale === "hi" && profile.displayName === "Asha Verma" ? "आशा वर्मा" : profile.displayName, { source: copy("field.fromProfile") }),
-          makeField("reporter-state", copy("field.state"), locale === "hi" && profile.state === "Karnataka" ? "कर्नाटक" : profile.state, { source: copy("field.fromProfile") }),
-          makeField("reporter-mobile", copy("field.registeredMobile"), profile.registeredMobile, { source: copy("field.fromProfile") }),
-        ],
-      }],
+      sections: [
+        {
+          id: "personal-details",
+          title: copy("field.personalDetails"),
+          fields: [
+            makeField("reporter-name", copy("field.name"), locale === "hi" && profile.displayName === "Asha Verma" ? "आशा वर्मा" : profile.displayName, { source: copy("field.fromProfile") }),
+            makeField("reporter-mobile", copy("field.registeredMobile"), profile.registeredMobile, { source: copy("field.fromProfile") }),
+            makeField("reporter-gender", copy("field.gender"), locale === "hi" && profile.gender === "Female" ? "महिला" : profile.gender, { source: copy("field.fromProfile") }),
+            makeField("reporter-dob", copy("field.dateOfBirth"), formatDate(profile.dateOfBirth, locale), { source: copy("field.fromProfile") }),
+            makeField("reporter-victim-relationship", copy("field.relationshipWithVictim"), locale === "hi" && profile.relationshipWithVictim === "Self" ? "स्वयं" : profile.relationshipWithVictim, { source: copy("field.fromProfile") }),
+            makeField("reporter-parent", copy("field.parentOrSpouse"), profile.parentOrSpouseName, { source: copy("field.fromProfile") }),
+            makeField("reporter-email", copy("field.email"), profile.email, { source: copy("field.fromProfile") }),
+          ],
+        },
+        {
+          id: "address",
+          title: copy("field.address"),
+          fields: [
+            makeField("reporter-state", copy("field.state"), locale === "hi" && profile.state === "Karnataka" ? "कर्नाटक" : profile.state, { source: copy("field.fromProfile") }),
+            makeField("reporter-district", copy("field.district"), profile.district, { source: copy("field.fromProfile") }),
+            makeField("reporter-city", copy("field.city"), profile.city, { source: copy("field.fromProfile") }),
+            makeField("reporter-pin", copy("field.pinCode"), profile.pinCode, { source: copy("field.fromProfile") }),
+          ],
+        },
+        {
+          id: "secondary-address",
+          title: copy("field.otherAddressDetails"),
+          fields: [
+            makeField("reporter-house", copy("field.houseNumber"), profile.houseNumber, { source: copy("field.fromProfile") }),
+            makeField("reporter-street", copy("field.street"), profile.street, { source: copy("field.fromProfile") }),
+            makeField("reporter-colony", copy("field.colony"), profile.colony, { source: copy("field.fromProfile") }),
+            makeField("reporter-country", copy("field.country"), profile.country, { source: copy("field.fromProfile") }),
+            makeField("reporter-tehsil", copy("field.tehsil"), profile.tehsil, { source: copy("field.fromProfile") }),
+            makeField("reporter-police", copy("field.policeStation"), profile.policeStation, { source: copy("field.fromProfile") }),
+          ],
+        },
+        {
+          id: "identity-document",
+          title: copy("field.identity"),
+          fields: [makeField(
+            "reporter-identity-document",
+            copy("field.identityDocument"),
+            identityDocumentProvided ? copy("field.syntheticIdentity") : null,
+            { source: identityDocumentProvided ? copy("field.fromProfile") : undefined },
+          )],
+        },
+      ],
     },
   ];
 }

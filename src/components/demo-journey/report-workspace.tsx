@@ -12,6 +12,13 @@ import {
   type DemoNarrationLanguage,
 } from "../../incident/demo-incident";
 import type { ReportedAmountResolution } from "../../incident/complaint-case";
+import {
+  NCRP_FIELD_DEFINITIONS,
+  buildNcrpCompatibleComplaint,
+  complaintFieldIsRequired,
+  complaintRequiredFieldStatus,
+  type NcrpCompatibleComplaint,
+} from "../../incident/ncrp-compatible-complaint";
 import type { ExperienceMode, ReporterProfile } from "../../experience/profile";
 import { useI18n } from "../../i18n/i18n-provider";
 import {
@@ -58,6 +65,7 @@ type ReportWorkspaceProps = {
   isDemoIncident: boolean;
   experienceMode: ExperienceMode | null;
   reporterProfile: ReporterProfile;
+  identityDocumentProvided: boolean;
   demoNarrationLanguage: DemoNarrationLanguage;
   isTranscriptionError: boolean;
   draft: IncidentDraft | null;
@@ -83,7 +91,7 @@ type ReportWorkspaceProps = {
   onDemoNarrationLanguageChange: (language: DemoNarrationLanguage) => void;
   onReview: () => void;
   onBackToEdit: () => void;
-  onSubmit: () => void;
+  onSubmit: (complaint: NcrpCompatibleComplaint) => void;
 };
 
 function languageLabel(languageCode: string): string {
@@ -529,6 +537,22 @@ function ReportInputPane(props: ReportWorkspaceProps) {
         onDemoNarrationLanguageChange={props.onDemoNarrationLanguageChange}
         compact={props.mode === "REVIEW"}
       />
+      {props.mode === "REVIEW" && props.identityDocumentProvided ? (
+        <details className="report-source-block compact-source-disclosure identity-document-disclosure">
+          <summary>
+            <span>{t("field.identityDocument")}</span>
+            <strong>✓ {t("field.syntheticIdentity")}</strong>
+          </summary>
+          <Image
+            src="/demo/profile/synthetic-national-id.png"
+            alt={t("field.syntheticIdentity")}
+            width={480}
+            height={480}
+            sizes="(max-width: 800px) calc(100vw - 72px), 380px"
+          />
+          <p className="form-hint">{t("field.fromProfile")}</p>
+        </details>
+      ) : null}
 
       {props.formError && props.mode !== "ERROR" ? (
         <p className="form-error" role="alert">
@@ -871,10 +895,8 @@ function ReportGroup({
         />
       ) : null}
 
-      {group.sections.map((section) => (
-        <section key={section.id} className="report-field-section">
-          {section.title ? <h3>{section.title}</h3> : null}
-          {section.fields.map((item) => (
+      {group.sections.map((section) => {
+        const fields = section.fields.map((item) => (
             <ReportFieldRow
               key={item.id}
               field={item}
@@ -896,22 +918,56 @@ function ReportGroup({
               narrativeEditing={narrativeEditing}
               onNarrativeEdit={() => setNarrativeEditing(true)}
             />
-          ))}
-        </section>
-      ))}
+          ));
+        if (section.id === "secondary-address") {
+          return (
+            <details key={section.id} className="report-field-section report-address-disclosure">
+              <summary>{section.title}</summary>
+              {fields}
+            </details>
+          );
+        }
+        return (
+          <section key={section.id} className="report-field-section">
+            {section.title ? <h3>{section.title}</h3> : null}
+            {fields}
+          </section>
+        );
+      })}
     </div>
   );
 }
 
-function ReportReview({
-  draft,
-  reporterProfile,
-  onBackToEdit,
-  onSubmit,
-}: Pick<ReportWorkspaceProps, "draft" | "reporterProfile" | "onBackToEdit" | "onSubmit">) {
+function ReportReview(props: ReportWorkspaceProps) {
   const { locale, t } = useI18n();
-  if (!draft) return null;
-  const groups = deriveReportGroups(draft, { locale, profile: reporterProfile });
+  const [declarationAccepted, setDeclarationAccepted] = useState(false);
+  if (!props.draft) return null;
+  const groups = deriveReportGroups(props.draft, {
+    locale,
+    profile: props.reporterProfile,
+    identityDocumentProvided: props.identityDocumentProvided,
+  });
+  const complaint = buildNcrpCompatibleComplaint({
+    draft: props.draft,
+    profile: props.reporterProfile,
+    transcription: props.transcription,
+    typedNarrative: props.narrative,
+    isDemoIncident: props.isDemoIncident,
+    screenshotNames: props.isDemoIncident
+      ? ["Synthetic KYC message screenshot", "Synthetic bank transaction screenshot"]
+      : props.screenshots.map((file) => file.name),
+    identityDocumentProvided: props.identityDocumentProvided,
+    declarationAccepted,
+  });
+  const sourceLabel = (sources: string[]) => {
+    if (sources.length === 0) return "—";
+    if (sources.includes("SIMULATED_PROFILE")) return t("field.fromProfile");
+    if (sources.includes("USER_INPUT")) return t("profile.fromTest");
+    if (sources.includes("USER_CONFIRMED")) return t("field.fromConfirmation");
+    if (sources.includes("EVIDENCE")) return t("field.fromEvidence");
+    if (sources.includes("VOICE") || sources.includes("TYPED")) return t("field.fromStatement");
+    return t("field.fromShared");
+  };
 
   return (
     <>
@@ -924,6 +980,7 @@ function ReportReview({
           <section key={group.id} className="report-review-group">
             <h3>{group.label}</h3>
             {group.sections
+              .filter((section) => section.id !== "secondary-address" && section.id !== "evidence-facts")
               .flatMap((section) => section.fields)
               .map((item) => (
                 <div key={item.id} className="review-field-row">
@@ -934,14 +991,72 @@ function ReportReview({
           </section>
         ))}
       </div>
+      <details className="field-coverage-disclosure">
+        <summary>{t("workspace.coverage")}</summary>
+        <div className="field-coverage-content">
+          <h3>{t("workspace.coverageHeading")}</h3>
+          <p>{t("workspace.coverageIntro")}</p>
+          <div className="field-coverage-table" role="table" aria-label={t("workspace.coverageHeading")}>
+            <div className="field-coverage-header" role="row">
+              <strong role="columnheader">{t("workspace.coverageInformation")}</strong>
+              <strong role="columnheader">{t("workspace.coverageStatus")}</strong>
+              <strong role="columnheader">{t("workspace.coverageSource")}</strong>
+            </div>
+            {NCRP_FIELD_DEFINITIONS
+              .filter((definition) => definition.supportedInPrototype && definition.id !== "declaration.accepted")
+              .filter((definition) => {
+                const status = complaintRequiredFieldStatus(complaint, definition);
+                return complaintFieldIsRequired(complaint, definition) || status !== "NOT_PROVIDED_OPTIONAL";
+              })
+              .map((definition) => {
+                const status = complaintRequiredFieldStatus(complaint, definition);
+                const path = definition.id.split(".");
+                let current: unknown = complaint.groups;
+                for (const part of path) {
+                  if (current && typeof current === "object") {
+                    current = (current as Record<string, unknown>)[part];
+                  }
+                }
+                const sources = current && typeof current === "object" && "sources" in current
+                  ? (current as { sources: string[] }).sources
+                  : ["EVIDENCE"];
+                return (
+                  <div className="field-coverage-row" role="row" key={definition.id}>
+                    <span role="cell">{t(definition.labelKey)}</span>
+                    <span className={status === "NOT_PROVIDED_OPTIONAL" ? "coverage-optional" : undefined} role="cell">{
+                      status === "READY" || status === "CONFIRMED"
+                        ? t("field.ready")
+                        : status === "NOT_PROVIDED_OPTIONAL"
+                          ? t("field.notProvided")
+                          : status === "CITIZEN_DOES_NOT_HAVE"
+                            ? t("field.notAvailable")
+                            : t("field.needsInput")
+                    }</span>
+                    <span role="cell">{sourceLabel(sources)}</span>
+                  </div>
+                );
+              })}
+          </div>
+          <p className="source-note">{t("workspace.structureLabel")} · {complaint.schemaVersion}</p>
+        </div>
+      </details>
+      <label className="report-declaration">
+        <input
+          type="checkbox"
+          checked={declarationAccepted}
+          onChange={(event) => setDeclarationAccepted(event.target.checked)}
+        />
+        <span>{t("workspace.declaration")}</span>
+      </label>
       <div className="report-primary-actions">
-        <button className="primary-button" type="button" onClick={onSubmit}>
+        <button className="primary-button" type="button" disabled={!declarationAccepted} onClick={() => props.onSubmit(complaint)}>
           {t("workspace.submitSynthetic")}
         </button>
-        <button className="text-button" type="button" onClick={onBackToEdit}>
+        <button className="text-button" type="button" onClick={props.onBackToEdit}>
           {t("workspace.backEdit")}
         </button>
       </div>
+      {!declarationAccepted ? <p className="form-hint">{t("workspace.declarationRequired")}</p> : null}
       <p className="journey-note">
         {t("workspace.noSubmit")}
       </p>
@@ -953,15 +1068,35 @@ function ReportDetailsPane(props: ReportWorkspaceProps) {
   const { locale, t } = useI18n();
   const [activeGroup, setActiveGroup] = useState<ReportGroupId>("INCIDENT");
   const groups = props.draft
-    ? deriveReportGroups(props.draft, { locale, profile: props.reporterProfile })
+    ? deriveReportGroups(props.draft, {
+        locale,
+        profile: props.reporterProfile,
+        identityDocumentProvided: props.identityDocumentProvided,
+      })
     : [];
   const completion = props.draft ? deriveReportCompletion(props.draft) : null;
+  const complaint = props.draft ? buildNcrpCompatibleComplaint({
+    draft: props.draft,
+    profile: props.reporterProfile,
+    transcription: props.transcription,
+    typedNarrative: props.narrative,
+    isDemoIncident: props.isDemoIncident,
+    screenshotNames: props.isDemoIncident
+      ? ["Synthetic KYC message screenshot", "Synthetic bank transaction screenshot"]
+      : props.screenshots.map((file) => file.name),
+    identityDocumentProvided: props.identityDocumentProvided,
+  }) : null;
+  const contractMissing = complaint ? NCRP_FIELD_DEFINITIONS
+    .filter((definition) => complaintFieldIsRequired(complaint, definition) && definition.id !== "declaration.accepted")
+    .filter((definition) => {
+      const status = complaintRequiredFieldStatus(complaint, definition);
+      return status !== "READY" && status !== "CONFIRMED" && status !== "CITIZEN_DOES_NOT_HAVE";
+    }) : [];
   const amountConflictMissing = Boolean(
     props.amountResolution?.hasConflict &&
     !props.amountResolution.selectedAmount,
   );
-  const requiredMissing =
-    (completion?.missing ?? 0) + (amountConflictMissing ? 1 : 0);
+  const requiredMissing = contractMissing.length + (amountConflictMissing ? 1 : 0);
   const currentGroup =
     groups.find((group) => group.id === activeGroup) ?? groups[0];
   const firstMissingQuestion = props.draft
@@ -975,10 +1110,13 @@ function ReportDetailsPane(props: ReportWorkspaceProps) {
     institution: t("field.institution"),
     transactionIdOrUtr: t("field.transactionReference"),
   };
+  const evidenceMissing = contractMissing.some((definition) => definition.id === "evidence.supportingEvidence");
   const firstMissingLabel = amountConflictMissing
     ? (locale === "hi" ? "रिपोर्ट की राशि चुनें" : "Reported amount choice")
     : firstMissingQuestion
       ? missingLabels[firstMissingQuestion.field]
+      : evidenceMissing
+        ? t("field.evidenceSupplied")
       : null;
   const missingActionLabel = amountConflictMissing
     ? (locale === "hi" ? "रिपोर्ट की राशि चुनें" : "Choose report amount")
@@ -996,6 +1134,11 @@ function ReportDetailsPane(props: ReportWorkspaceProps) {
       document
         .querySelector<HTMLElement>("[data-amount-conflict]")
         ?.scrollIntoView({ block: "center" });
+      return;
+    }
+    if (evidenceMissing && !firstMissingQuestion) {
+      props.onReportMethodChange("UPLOAD");
+      document.querySelector<HTMLElement>("#report-tab-upload")?.focus();
       return;
     }
     if (!firstMissingQuestion) return;
@@ -1023,12 +1166,7 @@ function ReportDetailsPane(props: ReportWorkspaceProps) {
         className="report-details-pane"
         aria-label={t("workspace.reviewSubmit")}
       >
-        <ReportReview
-          draft={props.draft}
-          reporterProfile={props.reporterProfile}
-          onBackToEdit={props.onBackToEdit}
-          onSubmit={props.onSubmit}
-        />
+        <ReportReview {...props} />
       </section>
     );
   }

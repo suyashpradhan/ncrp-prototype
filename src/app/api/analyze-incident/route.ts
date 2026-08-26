@@ -24,7 +24,10 @@ Rules:
 10. Keep citizen-facing summaries plain, concise and neutral.
 11. Put the total amount the citizen says was lost in incident.reportedAmount, even when a transaction reference is unknown. Keep individual known payments in transactions.
 12. Never infer a year. If the citizen says a day and month without a year, set incidentDate to null and incidentDateWithoutYear to MM-DD. Set incidentDateWithoutYear to null when a complete YYYY-MM-DD date is supported.
-13. incident.occurredOn must be one concise supported channel: SMS / text message, WhatsApp, Telegram, Website, Mobile app, Email, Other, or null. Put contextual wording in the narrative, not this field.`;
+13. incident.occurredOn must be one concise supported channel: SMS / text message, WhatsApp, Telegram, Website, Mobile app, Email, Other, or null. Put contextual wording in the narrative, not this field.
+14. Keep evidence files and facts extracted from evidence distinct: evidence.type identifies the supplied item; evidence.extractedFacts contains only concise supported facts.
+15. When visibly supported, preserve safe suspect identifiers such as masked phone numbers, email addresses, URLs, UPI IDs, names or social handles in suspectIdentifiers. Do not unmask or complete partial identifiers.
+16. Identity documents are outside this incident-understanding feature. Never extract, reproduce or expose Aadhaar, PAN, passport, driving-licence, voter-ID or other government identity numbers.`;
 
 type InputContent =
   | { type: "input_text"; text: string }

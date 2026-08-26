@@ -2730,6 +2730,98 @@ h3 {
   padding: 0 14px;
   background: var(--blue-050);
 }
+.synthetic-identity-choice {
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+.synthetic-identity-choice h3,
+.synthetic-identity-choice p {
+  margin-bottom: 5px;
+}
+.synthetic-identity-ready {
+  color: var(--green);
+  font-weight: 700;
+}
+.report-address-disclosure > summary,
+.field-coverage-disclosure > summary {
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+  color: var(--link);
+  font-weight: 650;
+  cursor: pointer;
+}
+.field-coverage-disclosure {
+  margin-top: 22px;
+  border-block: 1px solid var(--border);
+}
+.field-coverage-content {
+  padding: 8px 0 18px;
+}
+.field-coverage-content > p {
+  color: var(--secondary);
+}
+.field-coverage-table {
+  border: 1px solid var(--border);
+}
+.field-coverage-header,
+.field-coverage-row {
+  padding: 9px 11px;
+  display: grid;
+  grid-template-columns: minmax(170px, 1.35fr) minmax(80px, 0.55fr) minmax(
+      150px,
+      1fr
+    );
+  gap: 14px;
+  border-bottom: 1px solid var(--border);
+  font-size: 14px;
+}
+.field-coverage-header {
+  background: var(--blue-050);
+  color: var(--navy-900);
+}
+.field-coverage-row:last-child {
+  border-bottom: 0;
+}
+.field-coverage-row span:nth-child(2) {
+  color: var(--green);
+  font-weight: 650;
+}
+.field-coverage-row span.coverage-optional {
+  color: var(--secondary);
+  font-weight: 500;
+}
+.field-coverage-row span:nth-child(3) {
+  color: var(--secondary);
+}
+.report-declaration {
+  margin-top: 22px;
+  padding: 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  border: 1px solid #d7e3ec;
+  background: var(--blue-050);
+  cursor: pointer;
+}
+.report-declaration input {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+  margin: 2px 0 0;
+  accent-color: var(--navy-900);
+}
+.report-declaration span {
+  font-weight: 600;
+}
+.identity-document-disclosure img {
+  width: min(100%, 380px);
+  height: auto;
+  margin-top: 12px;
+  display: block;
+  border: 1px solid var(--border);
+}
 
 @media (max-width: 800px) {
   .shell {
@@ -2776,5 +2868,13 @@ h3 {
   }
   .report-method-panel {
     padding: 14px !important;
+  }
+  .field-coverage-header {
+    display: none;
+  }
+  .field-coverage-row {
+    grid-template-columns: 1fr;
+    gap: 2px;
+    padding-block: 12px;
   }
 }

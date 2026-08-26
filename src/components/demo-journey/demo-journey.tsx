@@ -30,6 +30,11 @@ import {
   type TranscriptionResult,
 } from "../../incident/schema";
 import { normalizeIncidentDraft } from "../../incident/normalization";
+import {
+  buildNcrpCompatibleComplaint,
+  requiredComplaintFieldsReady,
+  type NcrpCompatibleComplaint,
+} from "../../incident/ncrp-compatible-complaint";
 import { CITIZEN_MESSAGES } from "../../content/en";
 import {
   createEmptyTestProfile,
@@ -159,6 +164,7 @@ export function DemoJourney() {
   const [testProfile, setTestProfile] = useState<ReporterProfile>(() => createEmptyTestProfile());
   const [selectedReportedAmount, setSelectedReportedAmount] = useState<number | null>(null);
   const [isTranscriptionError, setIsTranscriptionError] = useState(false);
+  const [identityDocumentProvided, setIdentityDocumentProvided] = useState(false);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const recorderChunksRef = useRef<Blob[]>([]);
   const recordingStartedAtRef = useRef<number | null>(null);
@@ -212,6 +218,7 @@ export function DemoJourney() {
     setSelectedReportedAmount(null);
     setMissingAnswers({});
     setIsDemoIncident(true);
+    setIdentityDocumentProvided(true);
     setLoadingMessage(t("workspace.organisingSample"));
     setView("ANALYSING");
     window.setTimeout(() => {
@@ -232,6 +239,7 @@ export function DemoJourney() {
     setTranscription(null);
     setRecordingSeconds(0);
     setIsDemoIncident(false);
+    setIdentityDocumentProvided(false);
     setFormError(null);
     setView("REPORT_START");
   }
@@ -483,18 +491,35 @@ export function DemoJourney() {
   }
 
   function reviewReport() {
+    const activeProfile = reporterProfile ?? testProfile;
+    const complaint = draft ? buildNcrpCompatibleComplaint({
+      draft,
+      profile: activeProfile,
+      transcription,
+      typedNarrative: narrative,
+      isDemoIncident,
+      screenshotNames: isDemoIncident
+        ? ["Synthetic KYC message screenshot", "Synthetic bank transaction screenshot"]
+        : screenshots.map((file) => file.name),
+      identityDocumentProvided,
+    }) : null;
     if (
       !draft ||
       deriveMissingQuestions(draft).length > 0 ||
-      (amountResolution?.hasConflict && !amountResolution.selectedAmount)
+      (amountResolution?.hasConflict && !amountResolution.selectedAmount) ||
+      !complaint ||
+      !requiredComplaintFieldsReady(complaint)
     ) return;
     setFormError(null);
     setView("REVIEW");
   }
 
-  function submitComplaint() {
+  function submitComplaint(complaint: NcrpCompatibleComplaint) {
     if (!draft) return;
     try {
+      if (complaint.groups.declaration.accepted.status !== "CONFIRMED") {
+        throw new Error("Confirm the synthetic declaration before submitting.");
+      }
       const submittedAt = isDemoIncident
         ? "2026-08-22T02:30:00.000Z"
         : new Date().toISOString();
@@ -635,6 +660,20 @@ export function DemoJourney() {
                 ? t("profile.fromSimulated")
                 : t("profile.fromTest")}
             </p>
+            <div className="synthetic-identity-choice">
+              <div>
+                <h3>{t("field.identityDocument")}</h3>
+                <p>{locale === "hi" ? "दिखाए गए एनसीआरपी शिकायत प्रवाह के लिए जरूरी।" : "Required for the represented NCRP complaint flow."}</p>
+              </div>
+              {identityDocumentProvided ? (
+                <p className="synthetic-identity-ready">✓ {t("field.syntheticIdentity")}</p>
+              ) : (
+                <button className="secondary-button" type="button" onClick={() => setIdentityDocumentProvided(true)}>
+                  {locale === "hi" ? "काल्पनिक पहचान दस्तावेज़ उपयोग करें" : "Use synthetic identity document"}
+                </button>
+              )}
+              <p className="form-hint">{locale === "hi" ? "यह प्रोटोटाइप असली सरकारी पहचान दस्तावेज़ एकत्र नहीं करता।" : "This prototype does not collect real government identity documents."}</p>
+            </div>
           </section>
           <UrgentMoneyGuidance />
           <button
@@ -644,7 +683,8 @@ export function DemoJourney() {
               !reportingFor ||
               !testProfile.displayName.trim() ||
               !testProfile.state.trim() ||
-              !testProfile.registeredMobile.trim()
+              !testProfile.registeredMobile.trim() ||
+              !identityDocumentProvided
             }
             onClick={() => {
               setReporterProfile(testProfile);
@@ -686,6 +726,7 @@ export function DemoJourney() {
           isDemoIncident={isDemoIncident}
           experienceMode={experienceMode}
           reporterProfile={reporterProfile ?? testProfile}
+          identityDocumentProvided={identityDocumentProvided}
           demoNarrationLanguage={demoNarrationLanguage}
           isTranscriptionError={isTranscriptionError}
           draft={draft}
@@ -730,16 +771,18 @@ export function DemoJourney() {
             {caseData.complaint.acknowledgementId}
           </p>
           <p>{t("complaint.response")}</p>
-          <h2>{t("complaint.next")}</h2>
-          <p>{t("complaint.nextBody")}</p>
-          <p>{t("complaint.demoAdvance")}</p>
-          <button
-            className="primary-button"
-            type="button"
-            onClick={() => setView("MRM_REQUEST")}
-          >
-            {t("complaint.continueRestoration")}
-          </button>
+          <p className="journey-note">{t("complaint.noGovernment")}</p>
+          <div className="entry-actions">
+            <button className="primary-button" type="button" onClick={() => {
+              resetDemo();
+              setView("ENTRY");
+            }}>
+              {t("complaint.startAnother")}
+            </button>
+            <button className="secondary-button" type="button" onClick={() => setView("REVIEW")}>
+              {t("complaint.viewPrepared")}
+            </button>
+          </div>
         </StageLayout>
       );
       break;

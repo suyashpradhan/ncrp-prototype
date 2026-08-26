@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="520" height="520" viewBox="0 0 520 520" role="img" aria-labelledby="title description">
+  <title id="title">Synthetic KYC fraud message evidence</title>
+  <description id="description">A synthetic message showing a masked sender and a safe invalid demonstration URL.</description>
+  <rect width="520" height="620" fill="#f4f0ea"/>
+  <rect width="520" height="76" fill="#ffffff" stroke="#ccd6df"/>
+  <circle cx="42" cy="39" r="21" fill="#dfe8ed"/>
+  <text x="42" y="46" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#304554">K</text>
+  <text x="76" y="34" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#1b2633">98XX XX1234</text>
+  <text x="76" y="55" font-family="Arial, sans-serif" font-size="13" fill="#53606d">Unverified synthetic sender</text>
+  <rect x="201" y="104" width="118" height="27" rx="4" fill="#ffffff"/>
+  <text x="260" y="123" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#53606d">22 AUGUST 2026</text>
+  <rect x="23" y="158" width="405" height="144" rx="6" fill="#ffffff" stroke="#d7dde2"/>
+  <text x="38" y="191" font-family="Arial, sans-serif" font-size="17" fill="#1b2633">Your SBI KYC verification has expired.</text>
+  <text x="38" y="216" font-family="Arial, sans-serif" font-size="17" fill="#1b2633">Complete verification through the link below.</text>
+  <text x="38" y="252" font-family="Arial, sans-serif" font-size="17" fill="#1d5a92" text-decoration="underline">https://kyc-demo.invalid/update</text>
+  <text x="408" y="284" text-anchor="end" font-family="Arial, sans-serif" font-size="12" fill="#53606d">6:52 AM</text>
+  <rect x="23" y="314" width="405" height="96" rx="6" fill="#ffffff" stroke="#d7dde2"/>
+  <text x="38" y="348" font-family="Arial, sans-serif" font-size="17" fill="#1b2633">Open the link and follow the app instructions.</text>
+  <text x="38" y="373" font-family="Arial, sans-serif" font-size="17" fill="#1b2633">Avoid account restriction.</text>
+  <text x="408" y="396" text-anchor="end" font-family="Arial, sans-serif" font-size="12" fill="#53606d">6:53 AM</text>
+  <rect y="464" width="520" height="56" fill="#ffffff" stroke="#ccd6df"/>
+  <text x="260" y="497" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="#53606d">SYNTHETIC DEMO EVIDENCE · NOT A REAL MESSAGE</text>
+</svg>

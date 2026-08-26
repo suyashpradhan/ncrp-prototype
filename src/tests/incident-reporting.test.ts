@@ -9,6 +9,13 @@ import { generateNcrpFields, totalIncidentTransactionAmount } from "../incident/
 import { IncidentDraftSchema } from "../incident/schema";
 import { CITIZEN_DOES_NOT_HAVE } from "../presentation/report-details";
 import { normalizeIncidentChannel } from "../incident/normalization";
+import {
+  NCRP_COMPATIBLE_SCHEMA_VERSION,
+  NCRP_FIELD_DEFINITIONS,
+  NcrpCompatibleComplaintSchema,
+  buildNcrpCompatibleComplaint,
+  requiredComplaintFieldsReady,
+} from "../incident/ncrp-compatible-complaint";
 import { deriveReportCompletion, deriveReportGroups } from "../presentation/report-details";
 
 describe("AI-assisted incident reporting boundary", () => {
@@ -148,7 +155,8 @@ describe("AI-assisted incident reporting boundary", () => {
       "₹40,000",
       "SMS / chat message",
       "DEMO-UTR-40000-220826",
-      "https://demo.invalid/kyc",
+      "98XX XX1234",
+      "https://kyc-demo.invalid/update",
       "Asha Verma",
     ]));
   });
@@ -180,6 +188,7 @@ describe("AI-assisted incident reporting boundary", () => {
 
   it("keeps reporter identity separate from the narrated incident", () => {
     const testProfile = {
+      ...SYNTHETIC_NCRP_PROFILE,
       displayName: "Synthetic Tester",
       state: "Goa",
       registeredMobile: "••••••1122",
@@ -195,6 +204,48 @@ describe("AI-assisted incident reporting boundary", () => {
       expect.objectContaining({ id: "reporter-mobile", value: "••••••1122" }),
     ]));
     expect(DEMO_INCIDENT_DRAFT.incident.narrative).not.toContain("Synthetic Tester");
+  });
+
+  it("maps the demo into the versioned NCRP-compatible complaint contract", () => {
+    const complaint = buildNcrpCompatibleComplaint({
+      draft: DEMO_INCIDENT_DRAFT,
+      profile: SYNTHETIC_NCRP_PROFILE,
+      transcription: DEMO_NARRATIONS["hi-IN"],
+      typedNarrative: "",
+      isDemoIncident: true,
+      screenshotNames: ["Synthetic KYC message screenshot", "Synthetic bank transaction screenshot"],
+      identityDocumentProvided: true,
+    });
+
+    expect(NcrpCompatibleComplaintSchema.parse(complaint)).toEqual(complaint);
+    expect(complaint.schemaVersion).toBe(NCRP_COMPATIBLE_SCHEMA_VERSION);
+    expect(complaint.structureLabel).toBe("NCRP-compatible prototype complaint structure");
+    expect(complaint.groups.transactions[0].amount.value).toBe(40_000);
+    expect(complaint.groups.suspect.mobileNumber.value).toBe("98XX XX1234");
+    expect(complaint.groups.suspect.url.value).toBe("https://kyc-demo.invalid/update");
+    expect(complaint.groups.identityDocument.attachment?.localPath).toBe("/demo/profile/synthetic-national-id.png");
+    expect(requiredComplaintFieldsReady(complaint)).toBe(true);
+  });
+
+  it("centralizes requiredness and keeps optional suspect fields non-blocking", () => {
+    expect(NCRP_FIELD_DEFINITIONS.find((item) => item.id === "identityDocument.provided")?.required).toBe(true);
+    expect(NCRP_FIELD_DEFINITIONS.find((item) => item.id === "suspect.mobileNumber")?.required).toBe(false);
+    expect(NCRP_FIELD_DEFINITIONS.find((item) => item.id === "incident.reasonForDelay")?.conditionalRequired).toBe("WHEN_REPORTING_DELAYED");
+  });
+
+  it("does not treat a missing synthetic identity document as complete", () => {
+    const complaint = buildNcrpCompatibleComplaint({
+      draft: DEMO_INCIDENT_DRAFT,
+      profile: SYNTHETIC_NCRP_PROFILE,
+      transcription: DEMO_NARRATIONS["en-IN"],
+      typedNarrative: "",
+      isDemoIncident: false,
+      screenshotNames: ["message.png", "transaction.png"],
+      identityDocumentProvided: false,
+    });
+
+    expect(complaint.groups.identityDocument.provided.status).toBe("NEEDS_INPUT");
+    expect(requiredComplaintFieldsReady(complaint)).toBe(false);
   });
 
   it("renders important interface copy independently in English and Hindi", () => {

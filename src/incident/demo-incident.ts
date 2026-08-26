@@ -84,7 +84,8 @@ export const DEMO_INCIDENT_DRAFT = {
     },
   ],
   suspectIdentifiers: [
-    { type: "URL", value: "https://demo.invalid/kyc" },
+    { type: "PHONE", value: "98XX XX1234" },
+    { type: "URL", value: "https://kyc-demo.invalid/update" },
   ],
   evidence: [
     {
@@ -92,7 +93,8 @@ export const DEMO_INCIDENT_DRAFT = {
       extractedFacts: [
         "Synthetic KYC message",
         "SBI KYC update was claimed",
-        "Safe non-resolving demo link",
+        "Sender shown as 98XX XX1234",
+        "Safe non-resolving link kyc-demo.invalid",
       ],
     },
     {

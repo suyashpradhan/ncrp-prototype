@@ -17,6 +17,11 @@ export function AboutContent() {
 
         <div className="secondary-sections">
           <section>
+            <h2>{t("about.phase1Title")}</h2>
+            <p>{t("about.phase1Body")}</p>
+            <p>{t("about.phase1Principle")}</p>
+          </section>
+          <section>
             <h2>{m(UI_MESSAGES.about.existingStagesTitle)}</h2>
             <p>{m(UI_MESSAGES.about.existingStagesBody)}</p>
           </section>
