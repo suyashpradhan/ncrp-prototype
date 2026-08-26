@@ -2,7 +2,11 @@ import Link from "next/link";
 import type { Case } from "../../domain/case";
 import { FINANCIAL_STATE_MESSAGES, UI_MESSAGES } from "../../content/en";
 import { reconcileCaseAmounts } from "../../domain/reconciliation";
-import { deriveCurrentOwner, deriveFinancialState, derivePlainLanguageStatus } from "../../sop/selectors";
+import {
+  deriveCurrentOwner,
+  deriveFinancialState,
+  derivePlainLanguageStatus,
+} from "../../sop/selectors";
 import { formatCurrency, getActorLabel } from "../../presentation/format";
 
 export function MoneyLedger({ caseData }: { caseData: Case }) {
@@ -14,13 +18,19 @@ export function MoneyLedger({ caseData }: { caseData: Case }) {
         <div className="shell narrow-shell">
           <p className="eyebrow">{UI_MESSAGES.ledger.eyebrow.defaultMessage}</p>
           <h1>{UI_MESSAGES.ledger.title.defaultMessage}</h1>
-          <p className="lede">{UI_MESSAGES.ledger.intro.defaultMessage}</p>
         </div>
       </section>
 
-      <section className="section-pad ledger-section" aria-labelledby="ledger-list-heading">
+      <section
+        className="section-pad ledger-section"
+        aria-labelledby="ledger-list-heading"
+      >
         <div className="shell narrow-shell">
-          <div className="reconciliation-panel" role="region" aria-label={UI_MESSAGES.ledger.reconciliationLabel.defaultMessage}>
+          <div
+            className="reconciliation-panel"
+            role="region"
+            aria-label={UI_MESSAGES.ledger.reconciliationLabel.defaultMessage}
+          >
             <dl>
               <div>
                 <dt>{UI_MESSAGES.ledger.reported.defaultMessage}</dt>
@@ -41,7 +51,9 @@ export function MoneyLedger({ caseData }: { caseData: Case }) {
             </p>
           </div>
 
-          <h2 id="ledger-list-heading" className="ledger-list-heading">{UI_MESSAGES.ledger.pathList.defaultMessage}</h2>
+          <h2 id="ledger-list-heading" className="ledger-list-heading">
+            {UI_MESSAGES.ledger.pathList.defaultMessage}
+          </h2>
           <ol className="ledger-list">
             {caseData.moneyPaths.map((path) => {
               const state = deriveFinancialState(path);
@@ -51,19 +63,30 @@ export function MoneyLedger({ caseData }: { caseData: Case }) {
               return (
                 <li key={path.id} className="ledger-row">
                   <div className="ledger-amount-block">
-                    <span className="ledger-amount">{formatCurrency(path.amount)}</span>
-                    <span className={`financial-state financial-${state.toLowerCase()}`}>
+                    <span className="ledger-amount">
+                      {formatCurrency(path.amount)}
+                    </span>
+                    <span
+                      className={`financial-state financial-${state.toLowerCase()}`}
+                    >
                       {FINANCIAL_STATE_MESSAGES[state].defaultMessage}
                     </span>
                   </div>
                   <div className="ledger-status-block">
-                    <span className="field-label">{UI_MESSAGES.common.currentStep.defaultMessage}</span>
+                    <span className="field-label">
+                      {UI_MESSAGES.common.currentStep.defaultMessage}
+                    </span>
                     <strong>{status.defaultMessage}</strong>
                     <span>{getActorLabel(owner, path)}</span>
                   </div>
                   <div className="ledger-institution-block">
-                    <span className="field-label">{UI_MESSAGES.common.institution.defaultMessage}</span>
-                    <span>{path.beneficiaryInstitution?.name ?? UI_MESSAGES.common.unknownInstitution.defaultMessage}</span>
+                    <span className="field-label">
+                      {UI_MESSAGES.common.institution.defaultMessage}
+                    </span>
+                    <span>
+                      {path.beneficiaryInstitution?.name ??
+                        UI_MESSAGES.common.unknownInstitution.defaultMessage}
+                    </span>
                   </div>
                   <Link
                     className="icon-link"

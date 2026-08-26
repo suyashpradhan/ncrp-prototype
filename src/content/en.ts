@@ -4,7 +4,10 @@ import type { FraudType } from "../domain/case";
 import type { Message } from "../domain/messages";
 import type { ProcessRoute, Provenance } from "../sop/processes";
 
-const message = (key: string, defaultMessage: string): Message => ({ key, defaultMessage });
+const message = (key: string, defaultMessage: string): Message => ({
+  key,
+  defaultMessage,
+});
 
 export const UI_MESSAGES = {
   prototype: {
@@ -14,7 +17,7 @@ export const UI_MESSAGES = {
     ),
     fullDisclosure: message(
       "prototype.fullDisclosure",
-      "Independent prototype · Uses synthetic case data · No government system is connected",
+      "Uses synthetic case data · No government system is connected",
     ),
     label: message("prototype.label", "Independent prototype · Synthetic data"),
   },
@@ -39,7 +42,10 @@ export const UI_MESSAGES = {
     recordedProcess: message("common.recordedProcess", "Recorded process"),
     financialOutcome: message("common.financialOutcome", "Financial outcome"),
     legalOutcome: message("common.legalOutcome", "Legal status"),
-    acknowledgement: message("common.acknowledgement", "Synthetic acknowledgement"),
+    acknowledgement: message(
+      "common.acknowledgement",
+      "Synthetic acknowledgement",
+    ),
     fir: message("common.fir", "FIR status"),
     jurisdiction: message("common.jurisdiction", "Jurisdiction"),
     reportedLoss: message("common.reportedLoss", "Reported"),
@@ -60,29 +66,47 @@ export const UI_MESSAGES = {
       "common.noClock",
       "No procedural clock is encoded for the current stage.",
     ),
-    basedOnSop: message("common.basedOnSop", "Based on the January 2026 NCRP-CFCFRMS SOP."),
+    basedOnSop: message(
+      "common.basedOnSop",
+      "Based on the January 2026 NCRP-CFCFRMS SOP.",
+    ),
     backToOverview: message("common.backToOverview", "Back"),
   },
   overview: {
     eyebrow: message("overview.eyebrow", "Complaint financial resolution"),
-    title: message("overview.title", "Your complaint does not have one status."),
+    title: message(
+      "overview.title",
+      "Your complaint does not have one status.",
+    ),
     intro: message(
       "overview.intro",
       "Different portions of your money are currently waiting on different actors. Here is what needs attention now.",
     ),
-    sectionTitle: message("overview.sectionTitle", "What is happening right now"),
+    sectionTitle: message(
+      "overview.sectionTitle",
+      "What is happening right now",
+    ),
     sectionIntro: message(
       "overview.sectionIntro",
       "Amounts are ordered by what needs attention now, not by transaction time.",
     ),
-    ledgerCtaTitle: message("overview.ledgerCtaTitle", "See where the full reported amount went"),
+    ledgerCtaTitle: message(
+      "overview.ledgerCtaTitle",
+      "See where the full reported amount went",
+    ),
     ledgerCtaBody: message(
       "overview.ledgerCtaBody",
       "The amount summary accounts for every portion of the reported loss.",
     ),
     ledgerCta: message("overview.ledgerCta", "View amount summary"),
-    pathCount: message("overview.pathCount", "Four portions · four current states"),
-    summaryLabel: message("overview.summaryLabel", "Synthetic complaint summary"),
+    pathCount: message(
+      "overview.pathCount",
+      "Four portions · four current states",
+    ),
+    summaryLabel: message(
+      "overview.summaryLabel",
+      "Synthetic complaint summary",
+    ),
   },
   ledger: {
     eyebrow: message("ledger.eyebrow", "Reported amount overview"),
@@ -94,16 +118,25 @@ export const UI_MESSAGES = {
     reported: message("ledger.reported", "Reported"),
     allocated: message("ledger.allocated", "Across recorded amounts"),
     difference: message("ledger.difference", "Unaccounted difference"),
-    reconciled: message("ledger.reconciled", "All recorded amounts reconcile to the reported loss."),
+    reconciled: message(
+      "ledger.reconciled",
+      "All recorded amounts reconcile to the reported loss.",
+    ),
     pathList: message("ledger.pathList", "Recorded amounts"),
-    reconciliationLabel: message("ledger.reconciliationLabel", "Case amount reconciliation"),
+    reconciliationLabel: message(
+      "ledger.reconciliationLabel",
+      "Case amount reconciliation",
+    ),
   },
   detail: {
     eyebrow: message("detail.eyebrow", "Amount detail"),
     title: message("detail.title", "Why is this amount here?"),
     processSummary: message("detail.processSummary", "Current process state"),
     outcomes: message("detail.outcomes", "Financial and legal outcomes"),
-    routeInterpreter: message("detail.routeInterpreter", "Recorded process information"),
+    routeInterpreter: message(
+      "detail.routeInterpreter",
+      "Recorded process information",
+    ),
     routeGuardrail: message(
       "detail.routeGuardrail",
       "These are recorded synthetic case facts. The application did not choose this process.",
@@ -120,7 +153,10 @@ export const UI_MESSAGES = {
     ),
     provenanceSource: message("detail.provenanceSource", "Source"),
     provenanceProcess: message("detail.provenanceProcess", "Recorded process"),
-    provenanceReference: message("detail.provenanceReference", "Reference used in this demo"),
+    provenanceReference: message(
+      "detail.provenanceReference",
+      "Reference used in this demo",
+    ),
     provenanceNote: message("detail.provenanceNote", "Prototype note"),
     provenanceMissing: message(
       "detail.provenanceMissing",
@@ -130,19 +166,28 @@ export const UI_MESSAGES = {
       "detail.provenanceLearnMore",
       "How this prototype uses process sources",
     ),
-    noRecordedProcess: message("detail.noRecordedProcess", "No process route currently recorded"),
+    noRecordedProcess: message(
+      "detail.noRecordedProcess",
+      "No process route currently recorded",
+    ),
     rightNow: message("detail.rightNow", "Right now"),
     honestOutcomes: message("detail.honestOutcomes", "Honest outcomes"),
     authoritativeRecord: message(
       "detail.authoritativeRecord",
       "Authoritative synthetic record",
     ),
-    eventDrivenState: message("detail.eventDrivenState", "State derived from recorded updates"),
+    eventDrivenState: message(
+      "detail.eventDrivenState",
+      "State derived from recorded updates",
+    ),
   },
   clock: {
     day: message("clock.day", "Day"),
     overdue: message("clock.overdue", "days beyond this process window"),
-    withinWindow: message("clock.withinWindow", "Within the recorded process window"),
+    withinWindow: message(
+      "clock.withinWindow",
+      "Within the recorded process window",
+    ),
   },
   demo: {
     label: message("demo.label", "Demo mode"),
@@ -161,7 +206,10 @@ export const UI_MESSAGES = {
       "No further synthetic update is modelled for this amount.",
     ),
     latestUpdate: message("demo.latestUpdate", "Latest simulated event"),
-    noUpdate: message("demo.noUpdate", "No simulated update has been applied yet."),
+    noUpdate: message(
+      "demo.noUpdate",
+      "No simulated update has been applied yet.",
+    ),
   },
   footer: {
     guardrail: message(
@@ -187,16 +235,31 @@ export const UI_MESSAGES = {
       "about.noLiveSystem",
       "No live NCRP, police or banking system is connected. This prototype is not affiliated with or endorsed by any official government service.",
     ),
-    existingStagesTitle: message("about.existingStagesTitle", "Research-grounded process structure"),
+    existingStagesTitle: message(
+      "about.existingStagesTitle",
+      "Research-grounded process structure",
+    ),
     existingStagesBody: message(
       "about.existingStagesBody",
       "Complaint fields, Money Restoration concepts, institutional actors and relevant procedural rules represented in the demo.",
     ),
-    proposedTitle: message("about.proposedTitle", "Proposed citizen experience"),
-    proposedBody: message("about.proposedBody", "Plain-language evidence organisation before submission and clear per-amount explanations after submission."),
+    proposedTitle: message(
+      "about.proposedTitle",
+      "Proposed citizen experience",
+    ),
+    proposedBody: message(
+      "about.proposedBody",
+      "Plain-language evidence organisation before submission and clear per-amount explanations after submission.",
+    ),
     dataTitle: message("about.dataTitle", "Data"),
-    dataBody: message("about.dataBody", "The citizen, evidence, complaint, transactions, bank and police events are all synthetic."),
-    disclosureTitle: message("about.disclosureTitle", "This is not a government service."),
+    dataBody: message(
+      "about.dataBody",
+      "The citizen, evidence, complaint, transactions, bank and police events are all synthetic.",
+    ),
+    disclosureTitle: message(
+      "about.disclosureTitle",
+      "This is not a government service.",
+    ),
     disclosureBody: message(
       "about.disclosureBody",
       "It is not NCRP or MRM, it is not connected to a live complaint, and it does not represent government endorsement or deployment.",
@@ -232,33 +295,69 @@ export const UI_MESSAGES = {
       "None of the case details shown in this application describe a real person or live government record.",
     ),
     syntheticItems: [
-      message("about.syntheticItem.citizen", "The citizen and complaint number."),
-      message("about.syntheticItem.accounts", "Bank details and beneficiary accounts."),
+      message(
+        "about.syntheticItem.citizen",
+        "The citizen and complaint number.",
+      ),
+      message(
+        "about.syntheticItem.accounts",
+        "Bank details and beneficiary accounts.",
+      ),
       message("about.syntheticItem.activity", "Police and bank activity."),
       message("about.syntheticItem.events", "Timestamps and financial events."),
-      message("about.syntheticItem.integrations", "All government, police and banking integrations."),
+      message(
+        "about.syntheticItem.integrations",
+        "All government, police and banking integrations.",
+      ),
     ],
     boundariesEyebrow: message("about.boundariesEyebrow", "Product boundaries"),
-    boundariesTitle: message("about.boundariesTitle", "What this prototype does not do"),
+    boundariesTitle: message(
+      "about.boundariesTitle",
+      "What this prototype does not do",
+    ),
     boundariesIntro: message(
       "about.boundariesIntro",
       "The interface explains supplied synthetic state. It does not create or alter official state.",
     ),
     boundaryItems: [
-      message("about.boundaryItem.reporting", "It does not file or modify a cybercrime complaint or restoration request."),
-      message("about.boundaryItem.route", "It does not select an SOP process or decide legal entitlement."),
-      message("about.boundaryItem.deadline", "It does not invent an end-to-end deadline or predict a refund date."),
-      message("about.boundaryItem.advice", "It does not provide personalised legal advice or declare an actor legally at fault."),
+      message(
+        "about.boundaryItem.reporting",
+        "It does not file or modify a cybercrime complaint or restoration request.",
+      ),
+      message(
+        "about.boundaryItem.route",
+        "It does not select an SOP process or decide legal entitlement.",
+      ),
+      message(
+        "about.boundaryItem.deadline",
+        "It does not invent an end-to-end deadline or predict a refund date.",
+      ),
+      message(
+        "about.boundaryItem.advice",
+        "It does not provide personalised legal advice or declare an actor legally at fault.",
+      ),
     ],
-    provenanceEyebrow: message("about.provenanceEyebrow", "Source transparency"),
+    provenanceEyebrow: message(
+      "about.provenanceEyebrow",
+      "Source transparency",
+    ),
     provenanceTitle: message("about.provenanceTitle", "How provenance is used"),
-    provenanceSummary: message("about.provenanceSummary", "Source / provenance details"),
+    provenanceSummary: message(
+      "about.provenanceSummary",
+      "Source / provenance details",
+    ),
     provenanceBody: message(
       "about.provenanceBody",
       "When an amount shows an SOP-derived route or procedural clock, its detail view can expose the encoded source, recorded process, demonstration reference and a prototype note. Provenance explains why information is displayed; it is not evidence of live official action or legal entitlement.",
     ),
-    principle: message("about.principle", "Rules determine state. The interface explains state."),
-    principleSummary: message("about.principleSummary", "Technical design principle"),
+    principle: message(
+      "about.principle",
+      "Rules determine state. The interface explains state.",
+    ),
+    principleSummary: message(
+      "about.principleSummary",
+      "Technical design principle",
+    ),
   },
   notFound: {
     eyebrow: message("notFound.eyebrow", "Amount not found"),
@@ -280,8 +379,14 @@ export const CITIZEN_MESSAGES = {
       "landing.intro",
       "Already reported financial cyber fraud through NCRP or 1930? Enter your case details below.",
     ),
-    acknowledgement: message("landing.acknowledgement", "NCRP acknowledgement number"),
-    registeredMobile: message("landing.registeredMobile", "Registered mobile number"),
+    acknowledgement: message(
+      "landing.acknowledgement",
+      "NCRP acknowledgement number",
+    ),
+    registeredMobile: message(
+      "landing.registeredMobile",
+      "Registered mobile number",
+    ),
     continue: message("landing.continue", "Continue"),
     useDemo: message("landing.useDemo", "Use demo case"),
     disclosure: message(
@@ -323,11 +428,20 @@ export const CITIZEN_MESSAGES = {
     amount: message("journey.amount", "Amount"),
     incidentDate: message("journey.incidentDate", "Incident date"),
     evidence: message("journey.evidence", "Transaction evidence"),
-    transactionRecord: message("journey.evidence.transaction", "Transaction record"),
+    transactionRecord: message(
+      "journey.evidence.transaction",
+      "Transaction record",
+    ),
     screenshots: message("journey.evidence.screenshots", "Screenshots"),
     bankStatement: message("journey.evidence.bankStatement", "Bank statement"),
-    submitComplaint: message("journey.ncrp.submit", "Submit synthetic complaint"),
-    complaintRegistered: message("journey.ncrp.registered", "Complaint registered"),
+    submitComplaint: message(
+      "journey.ncrp.submit",
+      "Submit synthetic complaint",
+    ),
+    complaintRegistered: message(
+      "journey.ncrp.registered",
+      "Complaint registered",
+    ),
     complaintResponse: message(
       "journey.ncrp.response",
       "The financial complaint can now enter the NCRP/CFCFRMS response process.",
@@ -341,10 +455,16 @@ export const CITIZEN_MESSAGES = {
       "Different portions of one fraud can end up in different financial situations.",
     ),
     heldAt: message("journey.trail.heldAt", "Held at"),
-    received: message("journey.trail.received", "Received under interim custody"),
+    received: message(
+      "journey.trail.received",
+      "Received under interim custody",
+    ),
     cashWithdrawal: message("journey.trail.cash", "Cash withdrawal recorded"),
     notSecured: message("journey.trail.notSecured", "Not currently secured"),
-    attributionPending: message("journey.trail.attribution", "Attribution pending"),
+    attributionPending: message(
+      "journey.trail.attribution",
+      "Attribution pending",
+    ),
     totalReported: message("journey.trail.total", "Total reported"),
     heldClarification: message(
       "journey.trail.heldClarification",
@@ -380,14 +500,20 @@ export const CITIZEN_MESSAGES = {
       "journey.mrm.response",
       "The request can now move through police, bank and other recorded procedural steps.",
     ),
-    afterRestoration: message("journey.handoff.title", "After the restoration request"),
+    afterRestoration: message(
+      "journey.handoff.title",
+      "After the restoration request",
+    ),
     handoffIntro: message(
       "journey.handoff.intro",
       "The citizen still needs to understand:",
     ),
     handoffWhere: message("journey.handoff.where", "Where is each amount now?"),
     handoffWho: message("journey.handoff.who", "Who needs to act?"),
-    handoffAction: message("journey.handoff.action", "Do I need to do anything?"),
+    handoffAction: message(
+      "journey.handoff.action",
+      "Do I need to do anything?",
+    ),
     proposedView: message(
       "journey.handoff.proposed",
       "Proposed Financial Resolution view",
@@ -405,33 +531,60 @@ export const CITIZEN_MESSAGES = {
       "You have already reported this fraud and submitted a Money Restoration request.",
     ),
     historyTitle: message("case.historyTitle", "What has happened so far"),
-    historyDisclosure: message("case.historyDisclosure", "How did we get here?"),
+    historyDisclosure: message(
+      "case.historyDisclosure",
+      "How did we get here?",
+    ),
     historyItems: [
       message("case.history.reported", "Fraud reported"),
       message("case.history.trail", "Financial trail started"),
       message("case.history.held", "Some money identified or held"),
       message("case.history.request", "Money Restoration request raised"),
     ],
-    actionQuestion: message("case.actionQuestion", "Do you need to do anything?"),
-    noAction: message("case.noAction", "No action required from you right now."),
-    actionRequired: message("case.actionRequired", "An action is recorded for you."),
+    actionQuestion: message(
+      "case.actionQuestion",
+      "Do you need to do anything?",
+    ),
+    noAction: message(
+      "case.noAction",
+      "No action required from you right now.",
+    ),
+    actionRequired: message(
+      "case.actionRequired",
+      "An action is recorded for you.",
+    ),
     nowTitle: message("case.nowTitle", "What is happening to your money?"),
     nowIntro: message(
       "case.nowIntro",
       "Different portions of the ₹2,00,000 you reported are currently in different situations.",
     ),
-    standingTitle: message("case.standingTitle", "What is happening to your money?"),
+    standingTitle: message(
+      "case.standingTitle",
+      "What is happening to your money?",
+    ),
     needToDo: message("case.needToDo", "You need to do"),
     seeDetails: message("case.seeDetails", "View details"),
     whatMeans: message("case.whatMeans", "What does this mean?"),
-    reconciliationLabel: message("case.reconciliationLabel", "Where your money stands"),
-    proposedView: message("case.proposedView", "Proposed Financial Resolution view"),
-    restorationRequest: message("case.restorationRequest", "Money Restoration request"),
+    reconciliationLabel: message(
+      "case.reconciliationLabel",
+      "Where your money stands",
+    ),
+    proposedView: message(
+      "case.proposedView",
+      "Proposed Financial Resolution view",
+    ),
+    restorationRequest: message(
+      "case.restorationRequest",
+      "Money Restoration request",
+    ),
     active: message("case.active", "Currently in active processes"),
     received: message("case.received", "Received under interim custody"),
     exited: message("case.exited", "Exited financial system"),
     notHeld: message("case.notHeld", "Not currently secured"),
-    signInPrompt: message("case.signInPrompt", "Start the synthetic complaint journey to open this case."),
+    signInPrompt: message(
+      "case.signInPrompt",
+      "Start the synthetic complaint journey to open this case.",
+    ),
     signInAction: message("case.signInAction", "Start demo journey"),
   },
   amount: {
@@ -445,7 +598,10 @@ export const CITIZEN_MESSAGES = {
       "amount.bankExplanation",
       "The bank has received the recorded direction required to process this amount.",
     ),
-    exitedTitle: message("amount.exitedTitle", "This money left the banking system"),
+    exitedTitle: message(
+      "amount.exitedTitle",
+      "This money left the banking system",
+    ),
     exitedExplanation: message(
       "amount.exitedExplanation",
       "The synthetic case records a cash withdrawal.",
@@ -455,36 +611,75 @@ export const CITIZEN_MESSAGES = {
       "amount.notHeldExplanation",
       "This portion is not currently recorded as held.",
     ),
-    receivedTitle: message("amount.receivedTitle", "Received under interim custody"),
+    receivedTitle: message(
+      "amount.receivedTitle",
+      "Received under interim custody",
+    ),
     receivedExplanation: message(
       "amount.receivedExplanation",
       "This amount has been credited under the recorded interim-custody process.",
     ),
-    genericTitle: message("amount.genericTitle", "An official step is in progress"),
+    genericTitle: message(
+      "amount.genericTitle",
+      "An official step is in progress",
+    ),
     genericExplanation: message(
       "amount.genericExplanation",
       "This amount is moving through the recorded restoration process.",
     ),
   },
   detail: {
-    whatsHappening: message("citizenDetail.whatsHappening", "Why am I waiting?"),
-    receivedQuestion: message("citizenDetail.receivedQuestion", "What has happened?"),
-    actionTitle: message("citizenDetail.actionTitle", "Do I need to do anything?"),
+    whatsHappening: message(
+      "citizenDetail.whatsHappening",
+      "Why am I waiting?",
+    ),
+    receivedQuestion: message(
+      "citizenDetail.receivedQuestion",
+      "What has happened?",
+    ),
+    actionTitle: message(
+      "citizenDetail.actionTitle",
+      "Do I need to do anything?",
+    ),
     no: message("citizenDetail.no", "No."),
     yes: message("citizenDetail.yes", "Yes."),
-    noAction: message("citizenDetail.noAction", "No citizen action is currently recorded."),
-    clockTitle: message("citizenDetail.clockTitle", "How long does this step have?"),
+    noAction: message(
+      "citizenDetail.noAction",
+      "No citizen action is currently recorded.",
+    ),
+    clockTitle: message(
+      "citizenDetail.clockTitle",
+      "How long does this step have?",
+    ),
     noClock: message(
       "citizenDetail.noClock",
       "No procedural time window is recorded for this current step.",
     ),
     nextTitle: message("citizenDetail.nextTitle", "What happens next?"),
-    historyTitle: message("citizenDetail.historyTitle", "What has happened so far?"),
-    amountHistoryTitle: message("citizenDetail.amountHistoryTitle", "What happened to this amount?"),
-    compactActionTitle: message("citizenDetail.compactActionTitle", "Your action"),
-    compactNoAction: message("citizenDetail.compactNoAction", "Nothing required right now."),
-    compactNoActionShort: message("citizenDetail.compactNoActionShort", "Nothing required right now."),
-    compactClockTitle: message("citizenDetail.compactClockTitle", "Process window"),
+    historyTitle: message(
+      "citizenDetail.historyTitle",
+      "What has happened so far?",
+    ),
+    amountHistoryTitle: message(
+      "citizenDetail.amountHistoryTitle",
+      "What happened to this amount?",
+    ),
+    compactActionTitle: message(
+      "citizenDetail.compactActionTitle",
+      "Your action",
+    ),
+    compactNoAction: message(
+      "citizenDetail.compactNoAction",
+      "Nothing required right now.",
+    ),
+    compactNoActionShort: message(
+      "citizenDetail.compactNoActionShort",
+      "Nothing required right now.",
+    ),
+    compactClockTitle: message(
+      "citizenDetail.compactClockTitle",
+      "Process window",
+    ),
     meaningTitle: message("citizenDetail.meaningTitle", "What does this mean?"),
     exitedMeaning: message(
       "citizenDetail.exitedMeaning",
@@ -494,9 +689,18 @@ export const CITIZEN_MESSAGES = {
       "citizenDetail.notHeldMeaning",
       "No active restoration process or process window is currently recorded for this amount.",
     ),
-    officialSummary: message("citizenDetail.officialSummary", "Official process details"),
-    officialTitle: message("citizenDetail.officialTitle", "Official process details"),
-    recordedFacts: message("citizenDetail.recordedFacts", "Recorded case facts"),
+    officialSummary: message(
+      "citizenDetail.officialSummary",
+      "Official process details",
+    ),
+    officialTitle: message(
+      "citizenDetail.officialTitle",
+      "Official process details",
+    ),
+    recordedFacts: message(
+      "citizenDetail.recordedFacts",
+      "Recorded case facts",
+    ),
     ioDetail: message(
       "citizenDetail.ioDetail",
       "Before this amount can move forward, the recorded account-holder verification step needs to be completed.",
@@ -517,20 +721,26 @@ export const CITIZEN_MESSAGES = {
       "citizenDetail.genericNext",
       "The next update will be shown when the responsible institution records it.",
     ),
-    interimStatus: message(
-      "citizenDetail.interimStatus",
-      "Interim custody",
+    interimStatus: message("citizenDetail.interimStatus", "Interim custody"),
+    interimHelp: message(
+      "citizenDetail.interimHelp",
+      "What does interim custody mean?",
     ),
-    interimHelp: message("citizenDetail.interimHelp", "What does interim custody mean?"),
     interimExplanation: message(
       "citizenDetail.interimExplanation",
       "The synthetic case records an indemnity bond. Further court directions may still apply.",
     ),
   },
   clock: {
-    sopWindow: message("citizenClock.sopWindow", "The recorded process contains a 7-calendar-day window for this step."),
+    sopWindow: message(
+      "citizenClock.sopWindow",
+      "The recorded process contains a 7-calendar-day window for this step.",
+    ),
     currentCase: message("citizenClock.currentCase", "Synthetic case"),
-    beyond: message("citizenClock.beyond", "This process step is beyond that recorded window."),
+    beyond: message(
+      "citizenClock.beyond",
+      "This process step is beyond that recorded window.",
+    ),
     bankWindow: message(
       "citizenClock.bankWindow",
       "The recorded bank process requires action within 15 calendar days after receiving the direction.",
@@ -546,7 +756,10 @@ export const CITIZEN_MESSAGES = {
     steps: [
       {
         title: message("how.step1.title", "1. Report fraud"),
-        body: message("how.step1.body", "Share what happened by speaking, uploading synthetic evidence or typing. Urgent 1930 guidance appears early."),
+        body: message(
+          "how.step1.body",
+          "Share what happened by speaking, uploading synthetic evidence or typing. Urgent 1930 guidance appears early.",
+        ),
       },
       {
         title: message("how.step2.title", "2. Review & submit"),
@@ -602,15 +815,30 @@ export const FRAUD_TYPE_MESSAGES = {
 
 export const FINANCIAL_STATE_MESSAGES = {
   HELD: message("financialState.held", "Held"),
-  RESTORATION_PROCESSING: message("financialState.processing", "Held · restoration processing"),
-  INTERIM_CUSTODY: message("financialState.interimCustody", "Interim custody confirmed"),
-  EXITED_FINANCIAL_SYSTEM: message("financialState.exited", "Exited the financial system"),
+  RESTORATION_PROCESSING: message(
+    "financialState.processing",
+    "Held · restoration processing",
+  ),
+  INTERIM_CUSTODY: message(
+    "financialState.interimCustody",
+    "Interim custody confirmed",
+  ),
+  EXITED_FINANCIAL_SYSTEM: message(
+    "financialState.exited",
+    "Exited the financial system",
+  ),
   NOT_CURRENTLY_HELD: message("financialState.notHeld", "Not currently held"),
-  MULTI_VICTIM_ATTRIBUTION: message("financialState.attribution", "Attribution pending"),
+  MULTI_VICTIM_ATTRIBUTION: message(
+    "financialState.attribution",
+    "Attribution pending",
+  ),
 } satisfies Record<FinancialState, Message>;
 
 export const LEGAL_OUTCOME_MESSAGES = {
-  RECORDED_PROCESS_ACTIVE: message("legalOutcome.active", "Recorded process active"),
+  RECORDED_PROCESS_ACTIVE: message(
+    "legalOutcome.active",
+    "Recorded process active",
+  ),
   INTERIM_CUSTODY_UNDER_RECORDED_PROCESS: message(
     "legalOutcome.interimCustody",
     "Interim custody under the recorded process",
@@ -623,9 +851,15 @@ export const LEGAL_OUTCOME_MESSAGES = {
 } satisfies Record<LegalOutcomeState, Message>;
 
 export const EVENT_MESSAGES = {
-  COMPLAINT_REGISTERED: message("event.complaintRegistered", "Complaint registered"),
+  COMPLAINT_REGISTERED: message(
+    "event.complaintRegistered",
+    "Complaint registered",
+  ),
   FIR_REGISTERED: message("event.firRegistered", "FIR registered"),
-  MONEY_PATH_IDENTIFIED: message("event.moneyPathIdentified", "Amount identified in the financial trail"),
+  MONEY_PATH_IDENTIFIED: message(
+    "event.moneyPathIdentified",
+    "Amount identified in the financial trail",
+  ),
   AMOUNT_HELD: message("event.amountHeld", "Amount put on hold"),
   AMOUNT_EXITED_FINANCIAL_SYSTEM: message(
     "event.amountExited",
@@ -635,7 +869,10 @@ export const EVENT_MESSAGES = {
     "event.amountNotHeld",
     "Amount recorded as not currently held",
   ),
-  MRM_REQUEST_RAISED: message("event.mrmRequestRaised", "Money Restoration request raised"),
+  MRM_REQUEST_RAISED: message(
+    "event.mrmRequestRaised",
+    "Money Restoration request raised",
+  ),
   REQUEST_ASSIGNED_TO_IO: message(
     "event.requestAssignedToIo",
     "Request received by concerned police",
@@ -644,15 +881,27 @@ export const EVENT_MESSAGES = {
     "event.noticeRequired",
     "Account-holder notice marked as required",
   ),
-  ACCOUNT_HOLDER_NOTICE_ISSUED: message("event.noticeIssued", "Account-holder notice issued"),
-  ACCOUNT_HOLDER_RESPONDED: message("event.accountHolderResponded", "Account holder responded"),
+  ACCOUNT_HOLDER_NOTICE_ISSUED: message(
+    "event.noticeIssued",
+    "Account-holder notice issued",
+  ),
+  ACCOUNT_HOLDER_RESPONDED: message(
+    "event.accountHolderResponded",
+    "Account holder responded",
+  ),
   ACCOUNT_HOLDER_NON_RESPONSE_RECORDED: message(
     "event.nonResponse",
     "Account-holder non-response recorded",
   ),
-  SP_DCP_APPROVAL_RECORDED: message("event.approval", "SP / DCP approval recorded"),
+  SP_DCP_APPROVAL_RECORDED: message(
+    "event.approval",
+    "SP / DCP approval recorded",
+  ),
   INDEMNITY_BOND_RECORDED: message("event.bond", "Indemnity bond recorded"),
-  BANK_DIRECTION_ISSUED: message("event.bankDirectionIssued", "Direction issued to the bank"),
+  BANK_DIRECTION_ISSUED: message(
+    "event.bankDirectionIssued",
+    "Direction issued to the bank",
+  ),
   BANK_DIRECTION_RECEIVED: message(
     "event.bankDirectionReceived",
     "Direction recorded as received by the bank",
@@ -661,6 +910,9 @@ export const EVENT_MESSAGES = {
     "event.interimCustodyConfirmed",
     "Interim custody confirmed",
   ),
-  ACCOUNT_HOLDER_CONTESTED: message("event.contested", "Account holder contested the action"),
+  ACCOUNT_HOLDER_CONTESTED: message(
+    "event.contested",
+    "Account holder contested the action",
+  ),
   COURT_ROUTE_RECORDED: message("event.courtRoute", "Court route recorded"),
 } satisfies Record<ProcessEventType, Message>;

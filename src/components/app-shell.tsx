@@ -24,18 +24,9 @@ export function AppShell({ children }: AppShellProps) {
                 {UI_MESSAGES.brand.eyebrow.defaultMessage}
               </span>
             </Link>
-            <nav className="header-navigation" aria-label={UI_MESSAGES.navigation.label.defaultMessage}>
-              <Link href="/how-it-works">{UI_MESSAGES.footer.howLink.defaultMessage}</Link>
-              <Link href="/about">{UI_MESSAGES.footer.aboutLink.defaultMessage}</Link>
-            </nav>
           </div>
         </div>
       </header>
-      <div className="prototype-strip">
-        <div className="shell">
-          {UI_MESSAGES.prototype.fullDisclosure.defaultMessage}
-        </div>
-      </div>
       <main id="main-content" tabIndex={-1}>
         {children}
       </main>
