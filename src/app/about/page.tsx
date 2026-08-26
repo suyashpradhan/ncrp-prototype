@@ -3,7 +3,7 @@ import { UI_MESSAGES } from "../../content/en";
 
 export const metadata: Metadata = {
   title: "About this prototype",
-  description: "What the independent NCRP Financial Fraud Support prototype represents.",
+  description: "What the independent Financial Cyber Fraud Reporting prototype represents.",
 };
 
 export default function AboutPage() {

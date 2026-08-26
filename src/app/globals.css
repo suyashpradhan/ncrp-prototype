@@ -539,6 +539,206 @@ textarea::placeholder { color: #666; opacity: 1; }
 .form-hint span { color: var(--text); font-variant-numeric: tabular-nums; }
 .form-error { margin: 14px 0 0; color: #8a1f1f; font-weight: 600; }
 
+.report-workspace-stage { min-height: 64vh; }
+
+.report-workspace-shell {
+  width: min(calc(100% - 48px), 1180px);
+  margin-inline: auto;
+}
+
+.report-workspace-shell > .journey-progress { margin-bottom: 24px; }
+
+.report-workspace {
+  display: grid;
+  grid-template-columns: minmax(340px, .8fr) minmax(520px, 1.2fr);
+  gap: 0;
+}
+
+.report-input-pane {
+  min-width: 0;
+  padding: 4px 32px 36px 0;
+}
+
+.report-details-pane {
+  min-width: 0;
+  padding: 4px 0 36px 34px;
+  border-left: 1px solid var(--border);
+}
+
+.report-input-pane h1,
+.report-pane-heading h2 { margin-bottom: 8px; }
+
+.pane-intro,
+.report-pane-heading p,
+.review-source-intro {
+  margin-bottom: 0;
+  color: var(--secondary);
+}
+
+.report-input-pane .report-tabs { margin-top: 22px; }
+.report-input-pane .report-method-panel { padding-top: 20px; }
+.report-input-pane .report-method-panel h2 { font-size: 20px; }
+.report-input-pane .report-method-panel > p { margin-bottom: 16px; }
+.report-input-pane .report-method-panel .primary-button { margin-top: 14px; }
+.report-input-pane textarea { min-height: 138px; }
+.source-actions { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px 16px; }
+
+.report-sources { margin-top: 24px; border-top: 1px solid var(--border); }
+.report-source-block { padding: 16px 0; border-bottom: 1px solid var(--border); }
+.report-source-block h3 { margin-bottom: 7px; font-size: 16px; }
+.source-transcript { margin-bottom: 6px; white-space: pre-line; }
+.source-meta,
+.report-field-help,
+.report-field-source {
+  color: var(--metadata);
+  font-size: 14px;
+}
+.source-meta { margin-bottom: 0; }
+.translation-disclosure { margin-top: 8px; }
+.translation-disclosure summary {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  color: var(--link);
+  cursor: pointer;
+}
+.translation-disclosure p { margin: 6px 0 0; }
+
+.report-source-files { margin: 0; padding: 0; list-style: none; }
+.report-source-files > li { border-top: 1px solid var(--border); }
+.report-source-files > li:last-child { border-bottom: 1px solid var(--border); }
+.report-source-file-row,
+.report-source-files summary {
+  min-height: 48px;
+  padding: 8px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+.report-source-files summary { color: var(--text); cursor: pointer; }
+.report-source-files strong { color: #23643f; font-size: 14px; }
+.report-source-files img {
+  width: min(100%, 280px);
+  height: auto;
+  margin: 8px 0 14px;
+  border: 1px solid var(--border);
+}
+
+.report-empty-state,
+.report-processing-state,
+.report-error-state {
+  margin-top: 24px;
+  padding: 22px 0;
+  border-block: 1px solid var(--border);
+}
+.report-empty-state p,
+.report-processing-state p,
+.report-error-state p { max-width: 520px; }
+.report-empty-state p:last-child,
+.report-processing-state p:last-child,
+.report-error-state p:last-child { margin-bottom: 0; }
+.report-processing-state .loading-marker { margin-bottom: 12px; }
+.report-error-state h3 { font-size: 20px; }
+
+.report-skeleton { margin-top: 20px; }
+.report-skeleton span {
+  width: 100%;
+  height: 46px;
+  display: block;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(90deg, #f3f4f5 0 35%, #fafafa 35% 100%);
+}
+
+.report-completion {
+  margin-top: 20px;
+  padding: 12px 0;
+  border-block: 1px solid var(--border);
+}
+.report-completion p { margin-bottom: 2px; }
+.report-completion p:last-child { margin-bottom: 0; color: var(--secondary); }
+
+.report-detail-tabs {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-bottom: 1px solid var(--border);
+}
+.report-detail-tabs button {
+  min-width: 0;
+  min-height: 58px;
+  padding: 8px 7px;
+  background: transparent;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  color: var(--secondary);
+  cursor: pointer;
+  text-align: left;
+}
+.report-detail-tabs button:hover { color: var(--link); }
+.report-detail-tabs button[aria-pressed="true"] { border-bottom-color: var(--link); color: var(--text); }
+.report-detail-tabs span,
+.report-detail-tabs small { display: block; overflow-wrap: normal; }
+.report-detail-tabs span { font-weight: 600; }
+.report-detail-tabs small { margin-top: 2px; font-size: 11px; line-height: 1.25; }
+
+.report-group { animation: report-fields-in .22s ease-out; }
+.report-field-section { padding-top: 16px; }
+.report-field-section + .report-field-section { margin-top: 8px; border-top: 1px solid var(--border); }
+.report-field-section > h3 { margin-bottom: 4px; font-size: 17px; }
+
+.report-field {
+  padding: 12px 0;
+  position: relative;
+  border-bottom: 1px solid var(--border);
+}
+.report-field-label { margin-bottom: 3px; color: var(--metadata); font-size: 14px; }
+.report-field-value { margin: 0; padding-right: 70px; font-weight: 600; white-space: pre-line; }
+.report-field-state { margin: 0 0 8px; font-weight: 600; }
+.report-field-help,
+.report-field-source { margin: 4px 0 0; }
+.ready-mark { margin-left: 7px; color: #23643f; font-weight: 700; }
+.field-edit-button { min-height: 36px; position: absolute; top: 25px; right: 0; }
+
+.report-field-missing { padding-block: 14px; }
+.report-missing-editor { max-width: 410px; }
+.report-missing-editor label { display: block; margin-bottom: 6px; font-weight: 600; }
+.report-missing-editor input,
+.report-inline-edit input {
+  width: 100%;
+  min-height: 46px;
+  padding: 9px 11px;
+  background: #fff;
+  border: 2px solid #777;
+  border-radius: 1px;
+  color: var(--text);
+}
+.inline-field-actions { margin-top: 10px; display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px; }
+.inline-field-actions .secondary-button { min-height: 42px; padding-block: 6px; }
+.report-inline-edit { margin-top: 16px; padding: 16px 0; border-block: 1px solid var(--border); }
+.report-inline-edit + .report-inline-edit { margin-top: 0; border-top: 0; }
+
+.report-primary-actions { margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border); }
+.report-primary-actions p { margin: 7px 0 0; color: var(--secondary); font-size: 14px; }
+.report-primary-actions + .journey-note { margin-top: 8px; }
+
+.report-review-groups { margin-top: 20px; border-top: 1px solid var(--border); }
+.report-review-group { padding: 17px 0; border-bottom: 1px solid var(--border); }
+.report-review-group h3 { font-size: 18px; }
+.review-field-row {
+  padding: 5px 0;
+  display: grid;
+  grid-template-columns: minmax(135px, .8fr) minmax(0, 1.2fr);
+  gap: 14px;
+}
+.review-field-row span { color: var(--metadata); font-size: 14px; }
+.review-field-row strong { font-weight: 500; }
+
+@keyframes report-fields-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 .case-entry-actions,
 .prototype-demo-actions {
   margin-top: 18px;
@@ -786,6 +986,12 @@ textarea::placeholder { color: #666; opacity: 1; }
 
   :where(.primary-button, .secondary-button, .text-button) { width: 100%; }
 
+  .report-field-value { padding-right: 0; }
+  .field-edit-button {
+    position: static;
+    margin-top: 6px;
+  }
+
   .event-list li,
   .current-history-item {
     grid-template-columns: 58px 10px minmax(0, 1fr);
@@ -793,9 +999,19 @@ textarea::placeholder { color: #666; opacity: 1; }
   }
 }
 
+@media (max-width: 800px) {
+  .report-workspace-shell { width: min(calc(100% - 32px), var(--reading-width)); }
+  .report-workspace { grid-template-columns: 1fr; }
+  .report-input-pane { padding: 0 0 26px; }
+  .report-details-pane { padding: 26px 0 34px; border-top: 1px solid var(--border); border-left: 0; }
+  .report-detail-tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .report-detail-tabs button { min-height: 56px; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   .loading-marker { animation: none; }
+  .report-group { animation: none; }
 }
 
 @media (prefers-contrast: more) {

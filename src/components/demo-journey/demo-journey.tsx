@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
   useEffect,
@@ -9,17 +8,12 @@ import {
   type ChangeEvent,
   type ReactNode,
 } from "react";
-import { CITIZEN_MESSAGES } from "../../content/en";
 import { DEMO_INCIDENT_DRAFT } from "../../incident/demo-incident";
 import {
   applyMissingAnswer,
   deriveMissingQuestions,
   type MissingQuestion,
 } from "../../incident/missing-information";
-import {
-  generateNcrpFields,
-  totalIncidentTransactionAmount,
-} from "../../incident/ncrp-mapping";
 import {
   IncidentDraftSchema,
   TranscriptionResultSchema,
@@ -36,6 +30,11 @@ import {
 import { formatCurrency } from "../../presentation/format";
 import { DEMO_CASE_ACCESS, useDemoCase } from "../demo-case/demo-case-provider";
 import { JourneyProgress, type JourneyProgressStep } from "./journey-progress";
+import {
+  ReportWorkspace,
+  type ReportMethod,
+  type ReportWorkspaceMode,
+} from "./report-workspace";
 
 type JourneyView =
   | "REPORT_START"
@@ -51,12 +50,6 @@ type JourneyView =
   | "ANALYSIS_ERROR";
 
 type ReportingFor = "SELF" | "HELPING";
-type ReportMethod = "SPEAK" | "UPLOAD" | "TYPE";
-
-const DEMO_EVIDENCE = [
-  { src: "/demo/whatsapp-investment-scam.png", alt: "Synthetic WhatsApp investment conversation" },
-  { src: "/demo/upi-payments.png", alt: "Synthetic UPI payment records" },
-] as const;
 
 function StageLayout({
   progress,
@@ -90,17 +83,6 @@ function TrailState({ item }: { item: JourneyTrailItem }) {
   }
 }
 
-function dateLabel(date: string | null): string {
-  if (!date) return "Not provided";
-  const [year, month, day] = date.split("-").map(Number);
-  return new Intl.DateTimeFormat("en-IN", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    timeZone: "Asia/Kolkata",
-  }).format(new Date(Date.UTC(year, month - 1, day, 12)));
-}
-
 async function compressScreenshot(file: File): Promise<File> {
   if (file.size <= 1_500_000 || typeof createImageBitmap === "undefined") return file;
 
@@ -124,16 +106,8 @@ async function compressScreenshot(file: File): Promise<File> {
 function UrgentMoneyGuidance() {
   return (
     <p className="urgent-guidance">
-      If money was lost recently, call <a href="tel:1930">1930</a> as soon as possible.
+      Lost money recently? Call <a href="tel:1930">1930</a> as soon as possible while you prepare the report.
     </p>
-  );
-}
-
-function EvidenceSafetyNotice() {
-  return (
-    <div className="safety-notice">
-      <p>Use synthetic or test information only. Do not upload OTPs, PINs or passwords.</p>
-    </div>
   );
 }
 
@@ -153,8 +127,6 @@ export function DemoJourney() {
   const [loadingMessage, setLoadingMessage] = useState("Reading your evidence…");
   const [formError, setFormError] = useState<string | null>(null);
   const [missingAnswers, setMissingAnswers] = useState<Record<string, string>>({});
-  const [missingQuestionTotal, setMissingQuestionTotal] = useState(0);
-  const [isEditing, setIsEditing] = useState(false);
   const [isDemoIncident, setIsDemoIncident] = useState(false);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const recorderChunksRef = useRef<Blob[]>([]);
@@ -162,7 +134,13 @@ export function DemoJourney() {
   const summary = deriveJourneyFinancialSummary(caseData);
 
   useEffect(() => {
-    if (view !== "REPORT_START") {
+    if (
+      view === "REPORT_INPUT" ||
+      view === "COMPLAINT_REGISTERED" ||
+      view === "FINANCIAL_TRAIL" ||
+      view === "MRM_REQUEST" ||
+      view === "MRM_SUBMITTED"
+    ) {
       document.querySelector<HTMLElement>("#journey-stage-heading")?.focus();
     }
   }, [view]);
@@ -190,16 +168,18 @@ export function DemoJourney() {
 
   function useDemoIncident() {
     initialiseCase();
-    setLoadingMessage("Reading your information…");
+    setNarrative(DEMO_INCIDENT_DRAFT.incident.narrative ?? DEMO_INCIDENT_DRAFT.citizenSummary.shortSummary);
+    setScreenshots([]);
+    setAudio(null);
+    setTranscription(null);
+    setFormError(null);
+    setIsDemoIncident(true);
+    setLoadingMessage("Organising your report…");
     setView("ANALYSING");
     window.setTimeout(() => {
-      setLoadingMessage("Organising your report…");
-      window.setTimeout(() => {
-        setDraft(structuredClone(DEMO_INCIDENT_DRAFT));
-        setIsDemoIncident(true);
-        setView("ANALYSIS_RESULT");
-      }, 400);
-    }, 450);
+      setDraft(structuredClone(DEMO_INCIDENT_DRAFT));
+      setView("ANALYSIS_RESULT");
+    }, 850);
   }
 
   async function startRecording() {
@@ -215,7 +195,9 @@ export function DemoJourney() {
         if (event.data.size > 0) recorderChunksRef.current.push(event.data);
       };
       recorder.onstop = () => {
-        setAudio(new Blob(recorderChunksRef.current, { type: recorder.mimeType }));
+        const recording = new Blob(recorderChunksRef.current, { type: recorder.mimeType });
+        setAudio(recording);
+        void buildComplaint(recording);
       };
       recorderRef.current = recorder;
       setAudio(null);
@@ -258,13 +240,15 @@ export function DemoJourney() {
       event.target.value = "";
       return;
     }
-    setScreenshots(await Promise.all(selected.map(compressScreenshot)));
+    const preparedScreenshots = await Promise.all(selected.map(compressScreenshot));
+    setScreenshots(preparedScreenshots);
+    void buildComplaint(undefined, preparedScreenshots);
   }
 
-  async function transcribeRecording(): Promise<TranscriptionResult> {
-    if (!audio) throw new Error("No recording is available.");
+  async function transcribeRecording(recording: Blob | null): Promise<TranscriptionResult> {
+    if (!recording) throw new Error("No recording is available.");
     const data = new FormData();
-    data.append("audio", audio, "statement.webm");
+    data.append("audio", recording, "statement.webm");
     const response = await fetch("/api/transcribe", { method: "POST", body: data });
     const result: unknown = await response.json();
     if (!response.ok) {
@@ -277,9 +261,14 @@ export function DemoJourney() {
     return TranscriptionResultSchema.parse(result);
   }
 
-  async function buildComplaint() {
-    if (!narrative.trim() && screenshots.length === 0 && !transcription) {
-      if (!audio) {
+  async function buildComplaint(
+    recordingOverride?: Blob,
+    screenshotOverride?: File[],
+  ) {
+    const recording = recordingOverride ?? audio;
+    const evidence = screenshotOverride ?? screenshots;
+    if (!narrative.trim() && evidence.length === 0 && !transcription) {
+      if (!recording && evidence.length === 0) {
         setFormError("Speak, add a test screenshot or type what happened before continuing.");
         return;
       }
@@ -290,12 +279,13 @@ export function DemoJourney() {
     }
 
     setFormError(null);
-    setLoadingMessage(audio && !transcription ? "Reading your statement…" : "Reading your information…");
+    setIsDemoIncident(false);
+    setLoadingMessage(recording && !transcription ? "Reading your statement…" : "Organising your report…");
     setView("ANALYSING");
     try {
       let preparedTranscription = transcription;
-      if (audio && !preparedTranscription) {
-        preparedTranscription = await transcribeRecording();
+      if (recording && !preparedTranscription) {
+        preparedTranscription = await transcribeRecording(recording);
         setTranscription(preparedTranscription);
       }
 
@@ -304,10 +294,16 @@ export function DemoJourney() {
       data.append("narrative", narrative);
       data.append("englishTranscript", preparedTranscription?.englishTranscript ?? "");
       data.append("reportingFor", reportingFor);
-      screenshots.forEach((file) => data.append("screenshots", file, file.name));
+      evidence.forEach((file) => data.append("screenshots", file, file.name));
       const response = await fetch("/api/analyze-incident", { method: "POST", body: data });
-      const result: unknown = await response.json();
-      if (!response.ok) throw new Error("Analysis failed.");
+      const result: unknown = await response.json().catch(() => null);
+      if (!response.ok) {
+        const serviceMessage =
+          result && typeof result === "object" && "error" in result && typeof result.error === "string"
+            ? result.error
+            : null;
+        throw new Error(serviceMessage ?? "We couldn’t organise the information. Your input is still here.");
+      }
       setDraft(IncidentDraftSchema.parse(result));
       setIsDemoIncident(false);
       setView("ANALYSIS_RESULT");
@@ -315,13 +311,6 @@ export function DemoJourney() {
       setFormError(error instanceof Error ? error.message : null);
       setView("ANALYSIS_ERROR");
     }
-  }
-
-  function acceptAnalysis() {
-    if (!draft) return;
-    const questions = deriveMissingQuestions(draft);
-    setMissingQuestionTotal(questions.length);
-    setView(questions.length > 0 ? "MISSING_INFORMATION" : "REVIEW");
   }
 
   function saveMissingAnswer(question: MissingQuestion, fallback?: string) {
@@ -335,7 +324,13 @@ export function DemoJourney() {
     setDraft(updated);
     setMissingAnswers({});
     setFormError(null);
-    setView(deriveMissingQuestions(updated).length > 0 ? "MISSING_INFORMATION" : "REVIEW");
+    setView("ANALYSIS_RESULT");
+  }
+
+  function reviewReport() {
+    if (!draft || deriveMissingQuestions(draft).length > 0) return;
+    setFormError(null);
+    setView("REVIEW");
   }
 
   function submitComplaint() {
@@ -350,7 +345,7 @@ export function DemoJourney() {
       content = (
         <StageLayout progress="REPORT">
           <h1>Report a financial cyber fraud</h1>
-          <p className="lede">Tell us what happened. We’ll help organise the information needed for the report.</p>
+          <p className="lede">Tell us what happened. We’ll organise the information needed for your report.</p>
           <fieldset className="reporting-for-fieldset">
             <legend>Who are you reporting for?</legend>
             <div className="choice-list">
@@ -374,223 +369,50 @@ export function DemoJourney() {
       break;
 
     case "REPORT_INPUT":
-      content = (
-        <StageLayout progress="REPORT">
-          <h1 id="journey-stage-heading" tabIndex={-1}>Tell us what happened</h1>
-          <p className="lede">Choose the easiest way to share the information.</p>
-
-          <div className="report-tabs" role="group" aria-label="Ways to share what happened">
-            {([
-              ["SPEAK", "Speak"],
-              ["UPLOAD", "Upload evidence"],
-              ["TYPE", "Type"],
-            ] as const).map(([method, label]) => (
-              <button
-                key={method}
-                id={`report-tab-${method.toLowerCase()}`}
-                className="report-tab"
-                type="button"
-                aria-pressed={reportMethod === method}
-                onClick={() => setReportMethod(method)}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-
-          {reportMethod === "SPEAK" ? (
-            <section id="report-panel-speak" className="report-method-panel" aria-labelledby="speak-heading">
-              <h2 id="speak-heading">Speak in your language</h2>
-              <p>You can describe what happened naturally. We’ll organise the important details for you.</p>
-              {!audio ? (
-                <>
-                  <div className="recording-control">
-                    <button className={isRecording ? "secondary-button" : "primary-button"} type="button" onClick={isRecording ? stopRecording : startRecording}>
-                      {isRecording ? "Stop recording" : "Start recording"}
-                    </button>
-                    <span className="recording-time" aria-live="polite">00:{String(recordingSeconds).padStart(2, "0")}</span>
-                  </div>
-                  <button className="text-button demo-incident-button" type="button" onClick={useDemoIncident}>Use demo incident</button>
-                </>
-              ) : (
-                <>
-                  <div className="input-added-state" role="status">
-                    <p><strong>Statement added ✓</strong></p>
-                    <p>{transcription?.languageCode === "hi-IN" ? "Hindi" : "Recording"} · {recordingSeconds || 1} seconds</p>
-                    <button className="text-button" type="button" onClick={recordAgain}>Record again</button>
-                  </div>
-                  <button className="text-button method-switch" type="button" onClick={() => setReportMethod("UPLOAD")}>Add evidence</button>
-                  <button className="primary-button" type="button" onClick={buildComplaint}>Continue</button>
-                </>
-              )}
-            </section>
-          ) : null}
-
-          {reportMethod === "UPLOAD" ? (
-            <section id="report-panel-upload" className="report-method-panel" aria-labelledby="report-tab-upload">
-              <h2>Add evidence</h2>
-              <p>Upload screenshots of transactions, chats or payment confirmations.</p>
-              <label className="file-button" htmlFor="incident-screenshots">Choose screenshots</label>
-              <input id="incident-screenshots" className="visually-hidden" type="file" accept="image/png,image/jpeg,image/webp" multiple onChange={handleScreenshots} />
-              <p className="form-hint">Maximum 2 synthetic or demo screenshots.</p>
-              <EvidenceSafetyNotice />
-              {screenshots.length > 0 ? (
-                <p className="input-added-state" role="status"><strong>{screenshots.length} {screenshots.length === 1 ? "screenshot" : "screenshots"} added ✓</strong></p>
-              ) : null}
-              <button className="primary-button" type="button" onClick={buildComplaint}>Continue</button>
-            </section>
-          ) : null}
-
-          {reportMethod === "TYPE" ? (
-            <section id="report-panel-type" className="report-method-panel" aria-labelledby="report-tab-type">
-              <h2>Describe what happened</h2>
-              <label className="visually-hidden" htmlFor="incident-narrative">What happened?</label>
-              <textarea id="incident-narrative" rows={7} value={narrative} onChange={(event) => setNarrative(event.target.value)} placeholder="I received a WhatsApp message about an investment opportunity…" maxLength={8000} />
-              <button className="primary-button" type="button" onClick={buildComplaint}>Continue</button>
-            </section>
-          ) : null}
-
-          {formError ? <p className="form-error" role="alert">{formError}</p> : null}
-        </StageLayout>
-      );
-      break;
-
     case "ANALYSING":
-      content = (
-        <StageLayout progress="REVIEW">
-          <div className="loading-state" role="status" aria-live="polite">
-            <span className="loading-marker" aria-hidden="true" />
-            <h1 id="journey-stage-heading" tabIndex={-1}>{loadingMessage}</h1>
-          </div>
-        </StageLayout>
-      );
-      break;
-
     case "ANALYSIS_ERROR":
-      content = (
-        <StageLayout progress="REVIEW">
-          <h1 id="journey-stage-heading" tabIndex={-1}>We couldn’t analyse this evidence</h1>
-          <p>Try again, or continue with the synthetic demo incident.</p>
-          <div className="entry-actions">
-            <button className="primary-button" type="button" onClick={useDemoIncident}>Use demo incident</button>
-            <button className="secondary-button" type="button" onClick={() => setView("REPORT_INPUT")}>Try again</button>
-          </div>
-        </StageLayout>
-      );
-      break;
-
-    case "ANALYSIS_RESULT": {
-      if (!draft) return null;
-      const total = totalIncidentTransactionAmount(draft);
-      content = (
-        <StageLayout progress="REVIEW">
-          <h1 id="journey-stage-heading" tabIndex={-1}>Here’s what we understood</h1>
-          <div className="understanding-lead">
-            <h2>{draft.citizenSummary.incidentLabel}</h2>
-            <p className="understanding-amount">{total > 0 ? `${formatCurrency(total)} lost` : "Amount not confirmed"}</p>
-            <p>{dateLabel(draft.incident.incidentDate)}</p>
-            <p>{draft.transactions.length} transactions · {draft.evidence.length} evidence items</p>
-          </div>
-
-          <section className="mapping-section" aria-labelledby="mapping-heading">
-            <h2 id="mapping-heading">Reporting category</h2>
-            <p><strong>{draft.officialMapping.categoryLabel ?? "Category not confirmed"}</strong><br />{draft.officialMapping.subCategoryLabel ?? "Sub-category not confirmed"}</p>
-          </section>
-
-          {isEditing ? (
-            <div className="edit-understanding">
-              <div className="form-field">
-                <label htmlFor="edit-label">Your description</label>
-                <input id="edit-label" value={draft.citizenSummary.incidentLabel} onChange={(event) => setDraft({ ...draft, citizenSummary: { ...draft.citizenSummary, incidentLabel: event.target.value } })} />
-              </div>
-              <div className="form-field">
-                <label htmlFor="edit-date">Incident date</label>
-                <input id="edit-date" type="date" value={draft.incident.incidentDate ?? ""} onChange={(event) => setDraft({ ...draft, incident: { ...draft.incident, incidentDate: event.target.value || null } })} />
-              </div>
-              <div className="form-field">
-                <label htmlFor="edit-place">Where it happened</label>
-                <input id="edit-place" value={draft.incident.occurredOn ?? ""} onChange={(event) => setDraft({ ...draft, incident: { ...draft.incident, occurredOn: event.target.value || null } })} />
-              </div>
-              <button className="secondary-button" type="button" onClick={() => setIsEditing(false)}>Save</button>
-            </div>
-          ) : null}
-
-          <details className="detail-disclosure extracted-details">
-            <summary>View extracted details</summary>
-            <div className="detail-disclosure-content">
-              <dl className="understanding-summary">
-                <div><dt>Where it happened</dt><dd>{draft.incident.occurredOn ?? "Not confirmed"}</dd></div>
-                <div><dt>Suspect details found</dt><dd>{draft.suspectIdentifiers.length}</dd></div>
-              </dl>
-              {isDemoIncident ? (
-                <div className="evidence-preview-grid" aria-label="Synthetic evidence used in this demo">
-                  {DEMO_EVIDENCE.map((item) => <Image key={item.src} src={item.src} alt={item.alt} width={360} height={360} sizes="(max-width: 520px) 46vw, 240px" />)}
-                </div>
-              ) : null}
-            </div>
-          </details>
-
-          <div className="entry-actions">
-            <button className="primary-button" type="button" onClick={acceptAnalysis}>Confirm details</button>
-            <button className="text-button" type="button" onClick={() => setIsEditing((current) => !current)}>{isEditing ? "Close" : "Edit"}</button>
-          </div>
-        </StageLayout>
-      );
-      break;
-    }
-
-    case "MISSING_INFORMATION": {
-      if (!draft) return null;
-      const questions = deriveMissingQuestions(draft);
-      const question = questions[0];
-      if (!question) return null;
-      const questionNumber = Math.max(1, missingQuestionTotal - questions.length + 1);
-      content = (
-        <StageLayout progress="REVIEW">
-          <p className="question-count">{questionNumber} of {missingQuestionTotal}</p>
-          <h1 id="journey-stage-heading" tabIndex={-1}>One detail is still needed</h1>
-          <div className="missing-questions form-field">
-            <label htmlFor={`missing-${question.field}`}>{question.question}</label>
-            <input id={`missing-${question.field}`} type={question.inputType} value={missingAnswers[question.field] ?? ""} onChange={(event) => setMissingAnswers({ [question.field]: event.target.value })} />
-          </div>
-          {formError ? <p className="form-error" role="alert">{formError}</p> : null}
-          <div className="entry-actions">
-            <button className="primary-button" type="button" onClick={() => saveMissingAnswer(question)}>Continue</button>
-            <button className="text-button" type="button" onClick={() => saveMissingAnswer(question, "I don't have this information")}>I don’t have this information</button>
-          </div>
-        </StageLayout>
-      );
-      break;
-    }
-
+    case "ANALYSIS_RESULT":
+    case "MISSING_INFORMATION":
     case "REVIEW": {
-      if (!draft) return null;
-      const total = totalIncidentTransactionAmount(draft);
-      const generatedFields = generateNcrpFields(draft);
+      const mode: ReportWorkspaceMode = view === "ANALYSING"
+        ? "PROCESSING"
+        : view === "ANALYSIS_ERROR"
+          ? "ERROR"
+          : view === "REVIEW"
+            ? "REVIEW"
+            : draft
+              ? "READY"
+              : "INPUT";
       content = (
-        <StageLayout progress="REVIEW">
-          <h1 id="journey-stage-heading" tabIndex={-1}>Review your report</h1>
-          <div className="review-summary">
-            <h2>{draft.citizenSummary.incidentLabel}</h2>
-            <p>{dateLabel(draft.incident.incidentDate)}</p>
-            <p><strong>{formatCurrency(total)} lost</strong><br />{draft.transactions.length} transactions</p>
-            <p><strong>Evidence</strong><br />{transcription ? "Voice statement · " : ""}{draft.evidence.length} evidence items</p>
-            <p><strong>Reporting as</strong><br />{draft.officialMapping.categoryLabel ?? "Not confirmed"}<br />{draft.officialMapping.subCategoryLabel ?? "Not confirmed"}</p>
-            <p><strong>Reporter</strong><br />Asha Verma · Karnataka</p>
-          </div>
-
-          <details className="detail-disclosure generated-fields">
-            <summary>View all report details</summary>
-            <div className="detail-disclosure-content">
-              <dl>
-                {generatedFields.map((field) => <div key={field.label}><dt>{field.label}</dt><dd>{field.value}</dd></div>)}
-              </dl>
-            </div>
-          </details>
-
-          <button className="primary-button" type="button" onClick={submitComplaint}>Submit synthetic complaint</button>
-          <p className="journey-note">This does not submit information to NCRP or any government system.</p>
-        </StageLayout>
+        <ReportWorkspace
+          mode={mode}
+          reportMethod={reportMethod}
+          narrative={narrative}
+          screenshots={screenshots}
+          transcription={transcription}
+          hasAudio={Boolean(audio)}
+          isRecording={isRecording}
+          recordingSeconds={recordingSeconds}
+          isDemoIncident={isDemoIncident}
+          draft={draft}
+          loadingMessage={loadingMessage}
+          formError={formError}
+          missingAnswers={missingAnswers}
+          onReportMethodChange={setReportMethod}
+          onNarrativeChange={setNarrative}
+          onStartRecording={() => void startRecording()}
+          onStopRecording={stopRecording}
+          onRecordAgain={recordAgain}
+          onScreenshotsChange={(event) => void handleScreenshots(event)}
+          onOrganizeReport={() => void buildComplaint()}
+          onUseDemoIncident={useDemoIncident}
+          onMissingAnswerChange={(field, value) => setMissingAnswers((current) => ({ ...current, [field]: value }))}
+          onSaveMissingAnswer={saveMissingAnswer}
+          onDraftChange={setDraft}
+          onReview={reviewReport}
+          onBackToEdit={() => setView("ANALYSIS_RESULT")}
+          onSubmit={submitComplaint}
+        />
       );
       break;
     }
@@ -600,8 +422,8 @@ export function DemoJourney() {
         <StageLayout progress="REVIEW">
           <h1 id="journey-stage-heading" tabIndex={-1}>Complaint registered</h1>
           <p className="journey-identifier">{caseData.complaint.acknowledgementId}</p>
-          <p>Your report has entered the financial-fraud response process.</p>
-          <p>Keep your original evidence and transaction details.</p>
+          <p>Your report has entered the synthetic financial-fraud response process.</p>
+          <p>Keep your original evidence and transaction information.</p>
           <button className="primary-button" type="button" onClick={() => setView("FINANCIAL_TRAIL")}>Continue</button>
         </StageLayout>
       );

@@ -19,8 +19,8 @@ export const UI_MESSAGES = {
     label: message("prototype.label", "Independent prototype · Synthetic data"),
   },
   brand: {
-    eyebrow: message("brand.eyebrow", "Independent prototype"),
-    name: message("brand.name", "NCRP Financial Fraud Support"),
+    eyebrow: message("brand.eyebrow", "NCRP experience prototype"),
+    name: message("brand.name", "Financial Cyber Fraud Reporting"),
   },
   navigation: {
     label: message("navigation.label", "Primary navigation"),
@@ -549,14 +549,14 @@ export const CITIZEN_MESSAGES = {
         body: message("how.step1.body", "Share what happened by speaking, uploading synthetic evidence or typing. Urgent 1930 guidance appears early."),
       },
       {
-        title: message("how.step2.title", "2. Review details"),
+        title: message("how.step2.title", "2. Review & submit"),
         body: message(
           "how.step2.body",
           "The prototype organises the information, asks only for missing details and gives the citizen a short report to review.",
         ),
       },
       {
-        title: message("how.step3.title", "3. Restore money"),
+        title: message("how.step3.title", "3. Money restoration"),
         body: message(
           "how.step3.body",
           "The same synthetic case continues into a simplified Money Restoration request without asking for the same information again.",

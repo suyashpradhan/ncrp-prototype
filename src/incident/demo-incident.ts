@@ -15,7 +15,7 @@ export const DEMO_INCIDENT_DRAFT = {
   incident: {
     moneyLost: true,
     incidentDate: "2026-08-12",
-    approximateTime: "09:10",
+    approximateTime: null,
     delayInReporting: false,
     delayReason: null,
     occurredOn: "WhatsApp",

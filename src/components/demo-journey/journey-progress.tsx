@@ -1,7 +1,7 @@
 const JOURNEY_STEPS = [
   { id: "REPORT", label: "Report fraud" },
-  { id: "REVIEW", label: "Review details" },
-  { id: "RESTORE", label: "Restore money" },
+  { id: "REVIEW", label: "Review & submit" },
+  { id: "RESTORE", label: "Money restoration" },
   { id: "TRACK", label: "Track progress" },
 ] as const;
 

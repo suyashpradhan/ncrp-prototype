@@ -2,9 +2,10 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { syntheticCase } from "../data/synthetic-case";
 import { DEMO_INCIDENT_DRAFT, createUnknownIncidentDraft } from "../incident/demo-incident";
-import { deriveMissingQuestions } from "../incident/missing-information";
+import { applyMissingAnswer, deriveMissingQuestions } from "../incident/missing-information";
 import { generateNcrpFields, totalIncidentTransactionAmount } from "../incident/ncrp-mapping";
 import { IncidentDraftSchema } from "../incident/schema";
+import { deriveReportCompletion, deriveReportGroups } from "../presentation/report-details";
 
 describe("AI-assisted incident reporting boundary", () => {
   it("validates the precomputed demo incident against the strict schema", () => {
@@ -58,12 +59,46 @@ describe("AI-assisted incident reporting boundary", () => {
 
     expect(deriveMissingQuestions(partial).map((question) => question.field)).toEqual([
       "incidentDate",
+      "incidentApproximateTime",
       "transactionIdOrUtr",
     ]);
   });
 
-  it("does not re-ask facts already captured from evidence", () => {
-    expect(deriveMissingQuestions(DEMO_INCIDENT_DRAFT)).toEqual([]);
+  it("asks for the one intentionally missing demo detail inline", () => {
+    expect(deriveMissingQuestions(DEMO_INCIDENT_DRAFT).map((question) => question.field)).toEqual([
+      "incidentApproximateTime",
+    ]);
+
+    const completion = deriveReportCompletion(DEMO_INCIDENT_DRAFT);
+    expect(completion).toEqual({ ready: 4, total: 5, missing: 1 });
+
+    const completed = applyMissingAnswer(DEMO_INCIDENT_DRAFT, "incidentApproximateTime", "09:10");
+    expect(deriveReportCompletion(completed)).toEqual({ ready: 5, total: 5, missing: 0 });
+  });
+
+  it("presents the structured incident, transactions, evidence and profile from one draft", () => {
+    const groups = deriveReportGroups(DEMO_INCIDENT_DRAFT);
+    const visibleValues = groups
+      .flatMap((group) => group.sections)
+      .flatMap((section) => section.fields)
+      .map((field) => field.value);
+
+    expect(groups.map((group) => group.label)).toEqual([
+      "Incident",
+      "Transactions",
+      "Evidence & suspect",
+      "Your details",
+    ]);
+    expect(visibleValues).toEqual(expect.arrayContaining([
+      "Online Financial Fraud",
+      "UPI Related Frauds",
+      "₹1,00,000",
+      "₹2,00,000",
+      "WhatsApp",
+      "UTR-DEMO-120826-01",
+      "+91 90000 00124",
+      "Asha Verma",
+    ]));
   });
 
   it("reconciles demo transactions to the same downstream ₹2,00,000 case", () => {
@@ -77,12 +112,20 @@ describe("AI-assisted incident reporting boundary", () => {
       "utf8",
     );
 
-    expect(clientSource).toContain("Use demo incident");
-    expect(clientSource).toContain("Speak in your language");
-    expect(clientSource).toContain("One detail is still needed");
+    expect(clientSource).toContain("ReportWorkspace");
     expect(clientSource).not.toContain("Suggested official NCRP mapping");
     expect(clientSource).not.toContain("OPENAI_API_KEY");
     expect(clientSource).not.toContain("SARVAM_API_KEY");
     expect(clientSource).not.toContain("process.env");
+
+    const workspaceSource = readFileSync(
+      new URL("../components/demo-journey/report-workspace.tsx", import.meta.url),
+      "utf8",
+    );
+    expect(workspaceSource).toContain("Information for your NCRP report");
+    expect(workspaceSource).toContain("Use demo incident");
+    expect(workspaceSource).toContain("Needs your input");
+    expect(workspaceSource).not.toContain("AI analysis");
+    expect(workspaceSource).not.toContain("fraud probability");
   });
 });

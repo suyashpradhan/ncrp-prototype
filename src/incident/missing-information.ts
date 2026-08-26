@@ -1,9 +1,14 @@
 import type { IncidentDraft } from "./schema";
 
 export type MissingQuestion = {
-  field: "incidentDate" | "institution" | "transactionIdOrUtr" | "occurredOn";
+  field:
+    | "incidentDate"
+    | "incidentApproximateTime"
+    | "institution"
+    | "transactionIdOrUtr"
+    | "occurredOn";
   question: string;
-  inputType: "text" | "date";
+  inputType: "text" | "date" | "time";
 };
 
 const QUESTIONS: Record<MissingQuestion["field"], MissingQuestion> = {
@@ -11,6 +16,11 @@ const QUESTIONS: Record<MissingQuestion["field"], MissingQuestion> = {
     field: "incidentDate",
     question: "When did this happen?",
     inputType: "date",
+  },
+  incidentApproximateTime: {
+    field: "incidentApproximateTime",
+    question: "About what time did this happen?",
+    inputType: "time",
   },
   institution: {
     field: "institution",
@@ -34,6 +44,7 @@ export function deriveMissingQuestions(draft: IncidentDraft): MissingQuestion[] 
   const primaryTransaction = draft.transactions[0];
 
   if (!draft.incident.incidentDate) missing.push(QUESTIONS.incidentDate);
+  if (!draft.incident.approximateTime) missing.push(QUESTIONS.incidentApproximateTime);
   if (!draft.incident.occurredOn) missing.push(QUESTIONS.occurredOn);
   if (primaryTransaction && !primaryTransaction.institution) missing.push(QUESTIONS.institution);
   if (primaryTransaction && !primaryTransaction.transactionIdOrUtr) {
@@ -56,6 +67,16 @@ export function applyMissingAnswer(
       ...draft,
       incident: { ...draft.incident, [field]: answer },
       missingRequiredFields: draft.missingRequiredFields.filter((item) => item !== field),
+    };
+  }
+
+  if (field === "incidentApproximateTime") {
+    return {
+      ...draft,
+      incident: { ...draft.incident, approximateTime: answer },
+      missingRequiredFields: draft.missingRequiredFields.filter(
+        (item) => item !== "approximateTime" && item !== field,
+      ),
     };
   }
 
