@@ -722,6 +722,7 @@ export function DemoJourney() {
           <p className="service-stage-label">
             {m(CITIZEN_MESSAGES.journey.existingNcrp)}
           </p>
+          <p className="success-mark" aria-hidden="true">✓</p>
           <h1 id="journey-stage-heading" tabIndex={-1}>
             {t("complaint.registered")}
           </h1>
@@ -791,6 +792,7 @@ export function DemoJourney() {
     case "MRM_SUBMITTED":
       content = (
         <StageLayout progress="RESTORE">
+          <p className="success-mark" aria-hidden="true">✓</p>
           <h1 id="journey-stage-heading" tabIndex={-1}>
             {t("mrm.submitted")}
           </h1>
