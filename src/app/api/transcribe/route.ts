@@ -19,13 +19,31 @@ type SarvamTranscription = {
   language_code?: string | null;
 };
 
+type SarvamErrorPayload = {
+  error?: {
+    code?: unknown;
+    request_id?: unknown;
+  };
+};
+
+function normalizeAudioForSarvam(audio: File): File {
+  const normalizedType = audio.type.split(";", 1)[0].trim().toLowerCase();
+  if (!normalizedType || normalizedType === audio.type) return audio;
+
+  return new File([audio], audio.name || "statement.webm", {
+    type: normalizedType,
+    lastModified: audio.lastModified,
+  });
+}
+
 async function transcribeWithSarvam(
   audio: File,
   apiKey: string,
   mode: "transcribe" | "translate",
 ): Promise<SarvamTranscription> {
   const body = new FormData();
-  body.append("file", audio, audio.name || "statement.webm");
+  const normalizedAudio = normalizeAudioForSarvam(audio);
+  body.append("file", normalizedAudio, normalizedAudio.name);
   body.append("model", "saaras:v3");
   body.append("mode", mode);
   body.append("language_code", "unknown");
@@ -38,6 +56,22 @@ async function transcribeWithSarvam(
   });
 
   if (!response.ok) {
+    let providerCode: string | undefined;
+    let requestId: string | undefined;
+
+    try {
+      const payload = await response.json() as SarvamErrorPayload;
+      providerCode = typeof payload.error?.code === "string" ? payload.error.code : undefined;
+      requestId = typeof payload.error?.request_id === "string" ? payload.error.request_id : undefined;
+    } catch {
+      // Keep provider response bodies out of logs if they are not valid JSON.
+    }
+
+    console.error("Sarvam speech-to-text request failed.", {
+      status: response.status,
+      providerCode,
+      requestId,
+    });
     throw new Error(`Sarvam request failed with status ${response.status}.`);
   }
 
