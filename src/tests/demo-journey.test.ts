@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { syntheticCase } from "../data/synthetic-case";
 import { simulateNextCaseUpdate } from "../domain/money-path";
@@ -7,8 +8,17 @@ import {
   deriveJourneyTrail,
 } from "../presentation/demo-journey";
 import { DEMO_CASE_ACCESS } from "../components/demo-case/demo-case-provider";
+import { JOURNEY_STEPS } from "../components/demo-journey/journey-progress";
 
 describe("continuous synthetic citizen journey", () => {
+  it("presents reporting, restoration and resolution as one chronological journey", () => {
+    expect(JOURNEY_STEPS).toEqual([
+      { id: "REPORT", label: "Report" },
+      { id: "RESTORE", label: "Restoration" },
+      { id: "RESOLUTION", label: "Resolution" },
+    ]);
+  });
+
   it("uses the same complaint and restoration identifiers throughout", () => {
     expect(syntheticCase.complaint.acknowledgementId).toBe(
       DEMO_CASE_ACCESS.acknowledgementNumber,
@@ -59,5 +69,23 @@ describe("continuous synthetic citizen journey", () => {
       receivedAmount: 0,
     });
     expect(syntheticCase.moneyPaths[0].events).toHaveLength(4);
+  });
+
+  it("keeps the detailed amount breakdown after the MRM handoff", () => {
+    const journeySource = readFileSync(
+      new URL("../components/demo-journey/demo-journey.tsx", import.meta.url),
+      "utf8",
+    );
+    const caseSource = readFileSync(
+      new URL("../components/case-overview/case-overview.tsx", import.meta.url),
+      "utf8",
+    );
+
+    expect(journeySource).toContain('setView("POST_REPORT_HANDOFF")');
+    expect(journeySource).toContain('setView("POST_MRM_HANDOFF")');
+    expect(journeySource).not.toContain("FINANCIAL_TRAIL");
+    expect(journeySource).not.toContain("Track progress");
+    expect(caseSource).toContain('current="RESOLUTION"');
+    expect(caseSource).toContain("citizen-reconciliation-total");
   });
 });

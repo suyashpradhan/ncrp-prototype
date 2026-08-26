@@ -609,7 +609,8 @@ export function ReportWorkspace(props: ReportWorkspaceProps) {
   return (
     <section className="report-workspace-stage section-pad">
       <div className="report-workspace-shell">
-        <JourneyProgress current={props.mode === "REVIEW" || props.draft ? "REVIEW" : "REPORT"} />
+        <JourneyProgress current="REPORT" />
+        <p className="service-stage-label">Existing NCRP service · redesigned citizen interaction</p>
         <div className="report-workspace">
           <ReportInputPane {...props} />
           <ReportDetailsPane {...props} />

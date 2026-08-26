@@ -10,6 +10,7 @@ import {
 import {
   deriveCitizenAction,
   deriveCurrentStage,
+  deriveCurrentOwner,
   deriveFinancialOutcome,
   deriveLegalOutcome,
 } from "../../sop/selectors";
@@ -21,6 +22,7 @@ import {
 } from "../../presentation/citizen-case";
 import {
   formatCurrency,
+  getActorLabel,
   formatProcessRoute,
 } from "../../presentation/format";
 import { SopClockView } from "../sop-clock/sop-clock";
@@ -122,7 +124,10 @@ export function MoneyPathDetail({
 
   return (
     <div className="shell narrow-shell money-detail-page section-pad">
-      <JourneyProgress current="TRACK" />
+      <JourneyProgress current="RESOLUTION" />
+      <p className="service-stage-label">
+        {CITIZEN_MESSAGES.case.proposedView.defaultMessage}
+      </p>
       <Link className="back-link" href="/case#money-status">
         ← {UI_MESSAGES.common.backToOverview.defaultMessage}
       </Link>
@@ -146,6 +151,15 @@ export function MoneyPathDetail({
           <h2 id={`received-${path.id}`}>{CITIZEN_MESSAGES.detail.receivedQuestion.defaultMessage}</h2>
           <p className="detail-status">{formatCurrency(path.amount)} received</p>
           <p>{primaryExplanation(path)}</p>
+        </section>
+      ) : null}
+
+      {policy.showCurrentActor ? (
+        <section className="compact-detail-section" aria-labelledby={`actor-${path.id}`}>
+          <h2 id={`actor-${path.id}`}>{UI_MESSAGES.common.waitingOn.defaultMessage}</h2>
+          <p className="detail-status">
+            {getActorLabel(deriveCurrentOwner(path), path).replace(" (synthetic)", "")}
+          </p>
         </section>
       ) : null}
 

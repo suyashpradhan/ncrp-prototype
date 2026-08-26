@@ -276,7 +276,7 @@ export function deriveDetailPresentationPolicy(
 
   return {
     kind: "ACTIVE_PROCESS",
-    showCurrentActor: false,
+    showCurrentActor: true,
     showCitizenAction: true,
     showProcessClock: deriveApplicableSopClock(path) !== null,
     showNextStep: true,

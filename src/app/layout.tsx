@@ -14,7 +14,7 @@ export const metadata: Metadata = {
     template: "%s · Financial Cyber Fraud Reporting",
   },
   description:
-    "A synthetic citizen journey from reporting financial cyber fraud to understanding money restoration progress.",
+    "A synthetic citizen journey from plain-language NCRP reporting through the existing restoration stage to a proposed Financial Resolution experience.",
   openGraph: {
     title: "Financial Cyber Fraud Reporting",
     description: "From a citizen's story to structured reporting and clear financial resolution",

@@ -20,12 +20,11 @@ import {
   type IncidentDraft,
   type TranscriptionResult,
 } from "../../incident/schema";
+import { CITIZEN_MESSAGES } from "../../content/en";
 import {
   DEMO_REFUND_ACCOUNT,
   DEMO_RESTORATION_REQUEST_ID,
   deriveJourneyFinancialSummary,
-  deriveJourneyTrail,
-  type JourneyTrailItem,
 } from "../../presentation/demo-journey";
 import { formatCurrency } from "../../presentation/format";
 import { DEMO_CASE_ACCESS, useDemoCase } from "../demo-case/demo-case-provider";
@@ -44,9 +43,10 @@ type JourneyView =
   | "MISSING_INFORMATION"
   | "REVIEW"
   | "COMPLAINT_REGISTERED"
-  | "FINANCIAL_TRAIL"
+  | "POST_REPORT_HANDOFF"
   | "MRM_REQUEST"
   | "MRM_SUBMITTED"
+  | "POST_MRM_HANDOFF"
   | "ANALYSIS_ERROR";
 
 type ReportingFor = "SELF" | "HELPING";
@@ -69,21 +69,6 @@ function StageLayout({
       </div>
     </section>
   );
-}
-
-function TrailState({ item }: { item: JourneyTrailItem }) {
-  switch (item.state) {
-    case "HELD":
-      return <>Held at {item.institutionName}</>;
-    case "RECEIVED":
-      return <>Received under interim custody</>;
-    case "EXITED":
-      return <>Cash withdrawal recorded</>;
-    case "NOT_SECURED":
-      return <>Not currently secured</>;
-    case "ATTRIBUTION_PENDING":
-      return <>Attribution pending</>;
-  }
 }
 
 async function compressScreenshot(file: File): Promise<File> {
@@ -142,16 +127,16 @@ export function DemoJourney() {
   const [isDemoIncident, setIsDemoIncident] = useState(false);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const recorderChunksRef = useRef<Blob[]>([]);
-  const trail = deriveJourneyTrail(caseData);
   const summary = deriveJourneyFinancialSummary(caseData);
 
   useEffect(() => {
     if (
       view === "REPORT_INPUT" ||
       view === "COMPLAINT_REGISTERED" ||
-      view === "FINANCIAL_TRAIL" ||
+      view === "POST_REPORT_HANDOFF" ||
       view === "MRM_REQUEST" ||
-      view === "MRM_SUBMITTED"
+      view === "MRM_SUBMITTED" ||
+      view === "POST_MRM_HANDOFF"
     ) {
       document.querySelector<HTMLElement>("#journey-stage-heading")?.focus();
     }
@@ -400,6 +385,9 @@ export function DemoJourney() {
     case "REPORT_START":
       content = (
         <StageLayout progress="REPORT">
+          <p className="service-stage-label">
+            {CITIZEN_MESSAGES.journey.existingNcrp.defaultMessage}
+          </p>
           <h1>Report a financial cyber fraud</h1>
           <fieldset className="reporting-for-fieldset">
             <legend>Who are you reporting for?</legend>
@@ -511,22 +499,22 @@ export function DemoJourney() {
 
     case "COMPLAINT_REGISTERED":
       content = (
-        <StageLayout progress="REVIEW">
+        <StageLayout progress="RESTORE">
+          <p className="service-stage-label">
+            {CITIZEN_MESSAGES.journey.existingNcrp.defaultMessage}
+          </p>
           <h1 id="journey-stage-heading" tabIndex={-1}>
-            Complaint registered
+            {CITIZEN_MESSAGES.journey.complaintRegistered.defaultMessage}
           </h1>
           <p className="journey-identifier">
             {caseData.complaint.acknowledgementId}
           </p>
-          <p>
-            Your report has entered the synthetic financial-fraud response
-            process.
-          </p>
+          <p>{CITIZEN_MESSAGES.journey.complaintResponse.defaultMessage}</p>
           <p>Keep your original evidence and transaction information.</p>
           <button
             className="primary-button"
             type="button"
-            onClick={() => setView("FINANCIAL_TRAIL")}
+            onClick={() => setView("POST_REPORT_HANDOFF")}
           >
             Continue
           </button>
@@ -534,32 +522,21 @@ export function DemoJourney() {
       );
       break;
 
-    case "FINANCIAL_TRAIL":
+    case "POST_REPORT_HANDOFF":
       content = (
         <StageLayout progress="RESTORE">
           <h1 id="journey-stage-heading" tabIndex={-1}>
-            Some of your money has been identified
+            {CITIZEN_MESSAGES.journey.afterReportingTitle.defaultMessage}
           </h1>
-          <div className="journey-trail-list">
-            {trail.map((item) => (
-              <div key={item.id} className="journey-trail-item">
-                <strong>{formatCurrency(item.amount)}</strong>
-                <span>
-                  <TrailState item={item} />
-                </span>
-              </div>
-            ))}
-          </div>
-          <p className="journey-held-note">
-            <strong>{formatCurrency(summary.activeAmount)}</strong> is currently
-            within an active financial process.
-          </p>
+          <p>{CITIZEN_MESSAGES.journey.afterReportingResponse.defaultMessage}</p>
+          <p>{CITIZEN_MESSAGES.journey.afterReportingRestoration.defaultMessage}</p>
+          <p>{CITIZEN_MESSAGES.journey.afterReportingDemo.defaultMessage}</p>
           <button
             className="primary-button"
             type="button"
             onClick={() => setView("MRM_REQUEST")}
           >
-            Continue
+            {CITIZEN_MESSAGES.journey.continueRestoration.defaultMessage}
           </button>
         </StageLayout>
       );
@@ -568,21 +545,31 @@ export function DemoJourney() {
     case "MRM_REQUEST":
       content = (
         <StageLayout progress="RESTORE">
+          <p className="service-stage-label">
+            {CITIZEN_MESSAGES.journey.existingRestoration.defaultMessage}
+          </p>
           <h1 id="journey-stage-heading" tabIndex={-1}>
-            Request money restoration
+            {CITIZEN_MESSAGES.journey.restorationTitle.defaultMessage}
           </h1>
+          <h2 className="journey-subheading">
+            {CITIZEN_MESSAGES.journey.restorationRequestTitle.defaultMessage}
+          </h2>
           <dl className="journey-facts">
             <div>
-              <dt>Eligible held amount</dt>
+              <dt>{CITIZEN_MESSAGES.journey.ncrpComplaint.defaultMessage}</dt>
+              <dd>{caseData.complaint.acknowledgementId}</dd>
+            </div>
+            <div>
+              <dt>{CITIZEN_MESSAGES.journey.heldEntering.defaultMessage}</dt>
               <dd>{formatCurrency(summary.activeAmount)}</dd>
             </div>
             <div>
-              <dt>Refund account</dt>
+              <dt>{CITIZEN_MESSAGES.journey.refundAccount.defaultMessage}</dt>
               <dd>{DEMO_REFUND_ACCOUNT}</dd>
             </div>
             <div>
-              <dt>Required information</dt>
-              <dd>Ready</dd>
+              <dt>{CITIZEN_MESSAGES.journey.documents.defaultMessage}</dt>
+              <dd>{CITIZEN_MESSAGES.journey.ready.defaultMessage}</dd>
             </div>
           </dl>
           <button
@@ -590,7 +577,7 @@ export function DemoJourney() {
             type="button"
             onClick={() => setView("MRM_SUBMITTED")}
           >
-            Submit synthetic restoration request
+            {CITIZEN_MESSAGES.journey.submitRestoration.defaultMessage}
           </button>
         </StageLayout>
       );
@@ -600,19 +587,42 @@ export function DemoJourney() {
       content = (
         <StageLayout progress="RESTORE">
           <h1 id="journey-stage-heading" tabIndex={-1}>
-            Restoration request submitted
+            {CITIZEN_MESSAGES.journey.restorationSubmitted.defaultMessage}
           </h1>
           <p className="journey-identifier">{DEMO_RESTORATION_REQUEST_ID}</p>
-          <p>
-            Your request will now move through the relevant police, bank and
-            legal steps.
+          <p>{CITIZEN_MESSAGES.journey.requestResponse.defaultMessage}</p>
+          <button
+            className="primary-button"
+            type="button"
+            onClick={() => setView("POST_MRM_HANDOFF")}
+          >
+            {CITIZEN_MESSAGES.journey.seeWhatHappens.defaultMessage}
+          </button>
+        </StageLayout>
+      );
+      break;
+
+    case "POST_MRM_HANDOFF":
+      content = (
+        <StageLayout progress="RESOLUTION">
+          <p className="service-stage-label">
+            {CITIZEN_MESSAGES.journey.proposedView.defaultMessage}
           </p>
+          <h1 id="journey-stage-heading" tabIndex={-1}>
+            {CITIZEN_MESSAGES.journey.afterRestoration.defaultMessage}
+          </h1>
+          <p>{CITIZEN_MESSAGES.journey.handoffIntro.defaultMessage}</p>
+          <ul className="journey-handoff-questions">
+            <li>{CITIZEN_MESSAGES.journey.handoffWhere.defaultMessage}</li>
+            <li>{CITIZEN_MESSAGES.journey.handoffWho.defaultMessage}</li>
+            <li>{CITIZEN_MESSAGES.journey.handoffAction.defaultMessage}</li>
+          </ul>
           <button
             className="primary-button"
             type="button"
             onClick={() => router.push("/case")}
           >
-            Track progress
+            {CITIZEN_MESSAGES.journey.openResolution.defaultMessage}
           </button>
         </StageLayout>
       );

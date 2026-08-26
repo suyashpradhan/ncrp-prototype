@@ -229,7 +229,7 @@ export const UI_MESSAGES = {
     ),
     conciseIntro: message(
       "about.conciseIntro",
-      "The prototype turns a plain-language account and synthetic evidence into structured complaint fields, then continues into the existing restoration and resolution journey.",
+      "The prototype redesigns how a citizen supplies structured NCRP complaint information, shows the existing Money Restoration Module as a simplified handoff, and proposes a clearer Financial Resolution experience afterwards.",
     ),
     noLiveSystem: message(
       "about.noLiveSystem",
@@ -422,7 +422,7 @@ export const CITIZEN_MESSAGES = {
     continue: message("journey.continue", "Continue"),
     existingNcrp: message(
       "journey.ncrp.existing",
-      "Existing NCRP stage — simplified for this synthetic demo",
+      "Existing NCRP service · redesigned citizen interaction",
     ),
     reportTitle: message("journey.ncrp.title", "Report financial cyber fraud"),
     amount: message("journey.amount", "Amount"),
@@ -444,7 +444,23 @@ export const CITIZEN_MESSAGES = {
     ),
     complaintResponse: message(
       "journey.ncrp.response",
-      "The financial complaint can now enter the NCRP/CFCFRMS response process.",
+      "Your financial cyber-fraud report has been registered in this synthetic demo.",
+    ),
+    afterReportingTitle: message(
+      "journey.afterReporting.title",
+      "What happens after reporting?",
+    ),
+    afterReportingResponse: message(
+      "journey.afterReporting.response",
+      "Banks and law-enforcement agencies may act on the financial trail connected to a financial cyber-fraud complaint.",
+    ),
+    afterReportingRestoration: message(
+      "journey.afterReporting.restoration",
+      "If money becomes eligible for restoration, the citizen may use the separate Money Restoration Module.",
+    ),
+    afterReportingDemo: message(
+      "journey.afterReporting.demo",
+      "For this prototype, we’ll move to a later synthetic stage where part of the reported money has been identified for restoration-related processing.",
     ),
     trailTitle: message(
       "journey.trail.title",
@@ -476,16 +492,20 @@ export const CITIZEN_MESSAGES = {
     ),
     existingRestoration: message(
       "journey.mrm.existing",
-      "Existing Money Restoration stage — simplified for this synthetic demo",
+      "Existing government stage · simplified for this prototype",
     ),
-    restorationTitle: message("journey.mrm.title", "Money Restoration request"),
+    restorationTitle: message("journey.mrm.title", "Money Restoration Module"),
+    restorationRequestTitle: message(
+      "journey.mrm.requestTitle",
+      "Restoration request",
+    ),
     ncrpComplaint: message("journey.mrm.complaint", "NCRP complaint"),
     heldEntering: message(
       "journey.mrm.heldEntering",
-      "Held amounts entering restoration-related processing",
+      "Amounts currently recorded as held",
     ),
     refundAccount: message("journey.mrm.refund", "Refund account"),
-    documents: message("journey.mrm.documents", "Required documents"),
+    documents: message("journey.mrm.documents", "Required information"),
     ready: message("journey.mrm.ready", "Ready"),
     submitRestoration: message(
       "journey.mrm.submit",
@@ -493,20 +513,24 @@ export const CITIZEN_MESSAGES = {
     ),
     restorationSubmitted: message(
       "journey.mrm.submitted",
-      "Money Restoration request submitted",
+      "Restoration request submitted",
     ),
     requestId: message("journey.mrm.requestId", "Request ID"),
     requestResponse: message(
       "journey.mrm.response",
-      "The request can now move through police, bank and other recorded procedural steps.",
+      "Your synthetic restoration request has been recorded. It can now move through police, banks and other recorded procedural steps.",
+    ),
+    seeWhatHappens: message(
+      "journey.mrm.next",
+      "See what happens next",
     ),
     afterRestoration: message(
       "journey.handoff.title",
-      "After the restoration request",
+      "After requesting restoration",
     ),
     handoffIntro: message(
       "journey.handoff.intro",
-      "The citizen still needs to understand:",
+      "A request number tells the citizen that the request exists. The underlying process can involve different banks, police actions and different portions of the reported money.",
     ),
     handoffWhere: message("journey.handoff.where", "Where is each amount now?"),
     handoffWho: message("journey.handoff.who", "Who needs to act?"),
@@ -516,15 +540,19 @@ export const CITIZEN_MESSAGES = {
     ),
     proposedView: message(
       "journey.handoff.proposed",
-      "Proposed Financial Resolution view",
+      "Proposed citizen experience",
     ),
     openResolution: message(
       "journey.handoff.open",
-      "Continue to Financial Resolution",
+      "See where my money stands",
     ),
   },
   case: {
-    eyebrow: message("case.eyebrow", "Your reported financial fraud"),
+    eyebrow: message("case.eyebrow", "Financial Resolution"),
+    resolutionQuestion: message(
+      "case.resolutionQuestion",
+      "Where does your reported money stand?",
+    ),
     reportedOn: message("case.reportedOn", "Reported"),
     context: message(
       "case.context",
@@ -560,7 +588,7 @@ export const CITIZEN_MESSAGES = {
     ),
     standingTitle: message(
       "case.standingTitle",
-      "What is happening to your money?",
+      "Where each amount stands",
     ),
     needToDo: message("case.needToDo", "You need to do"),
     seeDetails: message("case.seeDetails", "View details"),
@@ -571,16 +599,20 @@ export const CITIZEN_MESSAGES = {
     ),
     proposedView: message(
       "case.proposedView",
-      "Proposed Financial Resolution view",
+      "Proposed citizen experience",
     ),
     restorationRequest: message(
       "case.restorationRequest",
       "Money Restoration request",
     ),
-    active: message("case.active", "Currently in active processes"),
+    active: message(
+      "case.active",
+      "Currently recorded in active held/restoration processes",
+    ),
     received: message("case.received", "Received under interim custody"),
-    exited: message("case.exited", "Exited financial system"),
+    exited: message("case.exited", "Cash withdrawal recorded"),
     notHeld: message("case.notHeld", "Not currently secured"),
+    total: message("case.total", "Total"),
     signInPrompt: message(
       "case.signInPrompt",
       "Start the synthetic complaint journey to open this case.",
@@ -596,15 +628,15 @@ export const CITIZEN_MESSAGES = {
     bankTitle: message("amount.bankTitle", "Waiting on the bank"),
     bankExplanation: message(
       "amount.bankExplanation",
-      "The bank has received the recorded direction required to process this amount.",
+      "The bank has received the recorded restoration direction.",
     ),
     exitedTitle: message(
       "amount.exitedTitle",
-      "This money left the banking system",
+      "Cash withdrawal recorded",
     ),
     exitedExplanation: message(
       "amount.exitedExplanation",
-      "The synthetic case records a cash withdrawal.",
+      "This amount is no longer recorded inside the active bank-restoration process.",
     ),
     notHeldTitle: message("amount.notHeldTitle", "Not currently secured"),
     notHeldExplanation: message(
@@ -631,7 +663,7 @@ export const CITIZEN_MESSAGES = {
   detail: {
     whatsHappening: message(
       "citizenDetail.whatsHappening",
-      "Why am I waiting?",
+      "What is happening?",
     ),
     receivedQuestion: message(
       "citizenDetail.receivedQuestion",
@@ -645,7 +677,7 @@ export const CITIZEN_MESSAGES = {
     yes: message("citizenDetail.yes", "Yes."),
     noAction: message(
       "citizenDetail.noAction",
-      "No citizen action is currently recorded.",
+      "No action is currently required from you.",
     ),
     clockTitle: message(
       "citizenDetail.clockTitle",
@@ -691,7 +723,7 @@ export const CITIZEN_MESSAGES = {
     ),
     officialSummary: message(
       "citizenDetail.officialSummary",
-      "Official process details",
+      "View official process details",
     ),
     officialTitle: message(
       "citizenDetail.officialTitle",
@@ -755,31 +787,24 @@ export const CITIZEN_MESSAGES = {
     ),
     steps: [
       {
-        title: message("how.step1.title", "1. Report fraud"),
+        title: message("how.step1.title", "1. Report"),
         body: message(
           "how.step1.body",
-          "Share what happened by speaking, uploading synthetic evidence or typing. Urgent 1930 guidance appears early.",
+          "Existing NCRP service, with a redesigned citizen interaction: share what happened by speaking, uploading synthetic evidence or typing, then review the structured complaint information.",
         ),
       },
       {
-        title: message("how.step2.title", "2. Review & submit"),
+        title: message("how.step2.title", "2. Restoration"),
         body: message(
           "how.step2.body",
-          "The prototype organises the information, asks only for missing details and gives the citizen a short report to review.",
+          "The separate, existing Money Restoration Module is shown only as a simplified government-stage handoff in this prototype.",
         ),
       },
       {
-        title: message("how.step3.title", "3. Money restoration"),
+        title: message("how.step3.title", "3. Resolution"),
         body: message(
           "how.step3.body",
-          "The same synthetic case continues into a simplified Money Restoration request without asking for the same information again.",
-        ),
-      },
-      {
-        title: message("how.step4.title", "4. Track progress"),
-        body: message(
-          "how.step4.body",
-          "The service explains where each amount is, who needs to act and whether the citizen needs to do anything.",
+          "The proposed Financial Resolution experience explains where each amount stands, who needs to act and whether the citizen needs to do anything.",
         ),
       },
     ],

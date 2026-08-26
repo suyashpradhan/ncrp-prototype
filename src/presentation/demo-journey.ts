@@ -9,9 +9,10 @@ export type JourneyStage =
   | "FRAUD"
   | "NCRP_REPORT"
   | "COMPLAINT_REGISTERED"
-  | "FINANCIAL_TRAIL"
+  | "POST_REPORT_HANDOFF"
   | "MRM_REQUEST"
-  | "MRM_SUBMITTED";
+  | "MRM_SUBMITTED"
+  | "FINANCIAL_RESOLUTION";
 
 export type JourneyTrailState =
   | "HELD"

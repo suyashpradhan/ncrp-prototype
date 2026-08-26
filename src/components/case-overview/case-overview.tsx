@@ -30,31 +30,40 @@ export function CaseOverview({
       <section className="case-intro section-pad">
         <div className="shell reading-shell">
           <div className="case-lead">
-            <JourneyProgress current="TRACK" />
+            <JourneyProgress current="RESOLUTION" />
+            <p className="service-stage-label">
+              {CITIZEN_MESSAGES.case.proposedView.defaultMessage}
+            </p>
             <h1>{CITIZEN_MESSAGES.case.eyebrow.defaultMessage}</h1>
-            <p className="case-summary-line">
-              <strong>{formatCurrency(caseData.complaint.reportedAmount)}</strong>
-              <span aria-hidden="true"> · </span>
-              {FRAUD_TYPE_MESSAGES[caseData.fraudType].defaultMessage}
-            </p>
-            <p className="case-reported-date">
-              {CITIZEN_MESSAGES.case.reportedOn.defaultMessage} {formatIndiaShortDateWithYear(caseData.complaint.reportedAt)}
-            </p>
-            <p className="case-acknowledgement">{caseData.complaint.acknowledgementId}</p>
-            <p className="case-acknowledgement">
-              {CITIZEN_MESSAGES.case.restorationRequest.defaultMessage} · {DEMO_RESTORATION_REQUEST_ID}
-            </p>
-            <p className="case-context">{CITIZEN_MESSAGES.case.context.defaultMessage}</p>
-          </div>
+            <h2 className="case-resolution-question">
+              Where does your {formatCurrency(caseData.complaint.reportedAmount)} stand?
+            </h2>
 
-          <section
-            className="case-action-summary"
-            aria-labelledby="case-action-heading"
-          >
-            <h2 id="case-action-heading">{CITIZEN_MESSAGES.case.actionQuestion.defaultMessage}</h2>
-            <p className="case-action-answer">{caseAction.heading.defaultMessage}</p>
-            <p>{caseAction.explanation.defaultMessage}</p>
-          </section>
+            <section
+              className="case-action-summary"
+              aria-labelledby="case-action-heading"
+            >
+              <h2 id="case-action-heading">{CITIZEN_MESSAGES.case.actionQuestion.defaultMessage}</h2>
+              <p className="case-action-answer">{caseAction.heading.defaultMessage}</p>
+              <p>{caseAction.explanation.defaultMessage}</p>
+            </section>
+
+            <div className="case-reference-context">
+              <p className="case-summary-line">
+                <strong>{formatCurrency(caseData.complaint.reportedAmount)}</strong>
+                <span aria-hidden="true"> · </span>
+                {FRAUD_TYPE_MESSAGES[caseData.fraudType].defaultMessage}
+              </p>
+              <p className="case-reported-date">
+                {CITIZEN_MESSAGES.case.reportedOn.defaultMessage} {formatIndiaShortDateWithYear(caseData.complaint.reportedAt)}
+              </p>
+              <p className="case-acknowledgement">{caseData.complaint.acknowledgementId}</p>
+              <p className="case-acknowledgement">
+                {CITIZEN_MESSAGES.case.restorationRequest.defaultMessage} · {DEMO_RESTORATION_REQUEST_ID}
+              </p>
+              <p className="case-context">{CITIZEN_MESSAGES.case.context.defaultMessage}</p>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -77,6 +86,7 @@ export function CaseOverview({
             ) : null}
             <div><dt>{CITIZEN_MESSAGES.case.exited.defaultMessage}</dt><dd>{formatCurrency(reconciliation.byFinancialState.EXITED_FINANCIAL_SYSTEM)}</dd></div>
             <div><dt>{CITIZEN_MESSAGES.case.notHeld.defaultMessage}</dt><dd>{formatCurrency(reconciliation.byFinancialState.NOT_CURRENTLY_HELD)}</dd></div>
+            <div className="citizen-reconciliation-total"><dt>{CITIZEN_MESSAGES.case.total.defaultMessage}</dt><dd>{formatCurrency(reconciliation.allocatedAmount)}</dd></div>
           </dl>
 
           <details className="detail-disclosure case-history-details">

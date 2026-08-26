@@ -227,7 +227,7 @@ button:disabled { cursor: not-allowed; opacity: .55; }
   margin: 0 0 18px;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
   color: var(--metadata);
   font-size: 13px;
@@ -246,6 +246,12 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 }
 .journey-progress-current { color: var(--text); border-bottom-color: var(--link) !important; font-weight: 600; }
 .journey-progress-check { color: #23643f; font-weight: 700; }
+.service-stage-label {
+  margin: 0 0 10px;
+  color: var(--metadata);
+  font-size: 14px;
+  font-weight: 600;
+}
 .journey-stage-label { margin: 0 0 10px; font-weight: 600; }
 .journey-person { margin-bottom: 5px; }
 
@@ -315,6 +321,14 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .journey-handoff ul { margin: 8px 0 16px; padding-left: 22px; }
 .journey-handoff li { margin: 4px 0; font-weight: 600; }
 .journey-proposed-label { margin-bottom: 0; color: var(--text); font-weight: 600; }
+.journey-subheading { margin: 18px 0 6px; font-size: 21px; }
+.journey-handoff-questions {
+  margin: 16px 0;
+  padding: 14px 0;
+  border-block: 1px solid var(--border);
+  list-style: none;
+}
+.journey-handoff-questions li { margin: 5px 0; font-weight: 600; }
 
 .entry-actions {
   margin-top: 20px;
@@ -756,6 +770,13 @@ textarea::placeholder { color: #666; opacity: 1; }
 .case-lead h1 { margin-bottom: 12px; }
 .case-lead .journey-progress { margin-bottom: 8px; }
 .case-lead .journey-stage-label { margin-bottom: 7px; }
+.case-resolution-question {
+  max-width: 650px;
+  margin: 0;
+  font-size: 28px;
+  line-height: 1.25;
+}
+.case-reference-context { margin-top: 20px; }
 
 .case-summary-line { margin-bottom: 3px; font-size: 19px; }
 
@@ -816,6 +837,7 @@ textarea::placeholder { color: #666; opacity: 1; }
 .citizen-reconciliation :where(dt, dd) { margin: 0; }
 .citizen-reconciliation dt { color: var(--secondary); font-weight: 400; }
 .citizen-reconciliation dd { font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; }
+.citizen-reconciliation-total :where(dt, dd) { color: var(--text); font-weight: 700; }
 
 .money-detail-page { max-width: var(--reading-width); padding-block: 20px 32px; }
 .back-link { margin-bottom: 10px; }

@@ -19,7 +19,7 @@ describe("citizen detail presentation policy", () => {
     ]) {
       expect(deriveDetailPresentationPolicy(path)).toMatchObject({
         kind: "ACTIVE_PROCESS",
-        showCurrentActor: false,
+        showCurrentActor: true,
         showCitizenAction: true,
         showProcessClock: true,
         showNextStep: true,
