@@ -5,6 +5,7 @@ import { Analytics } from "@vercel/analytics/next";
 import { AppShell } from "../components/app-shell";
 import { DemoCaseProvider } from "../components/demo-case/demo-case-provider";
 import { DEMO_NOW, syntheticCase } from "../data/synthetic-case";
+import { I18nProvider } from "../i18n/i18n-provider";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -40,14 +41,13 @@ export default function RootLayout({
   return (
     <html lang="en" data-scroll-behavior="smooth">
       <body>
-        <a className="skip-link" href="#main-content">
-          Skip to main content
-        </a>
-        <AppShell>
-          <DemoCaseProvider initialCase={syntheticCase} initialNow={DEMO_NOW}>
-            {children}
-          </DemoCaseProvider>
-        </AppShell>
+        <I18nProvider>
+          <AppShell>
+            <DemoCaseProvider initialCase={syntheticCase} initialNow={DEMO_NOW}>
+              {children}
+            </DemoCaseProvider>
+          </AppShell>
+        </I18nProvider>
         <SpeedInsights />
         <Analytics />
       </body>

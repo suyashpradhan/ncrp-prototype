@@ -8,7 +8,12 @@ import {
   type ChangeEvent,
   type ReactNode,
 } from "react";
-import { DEMO_INCIDENT_DRAFT } from "../../incident/demo-incident";
+import {
+  DEMO_INCIDENT_DRAFT,
+  DEMO_NARRATIONS,
+  DEMO_TYPED_DESCRIPTION,
+  type DemoNarrationLanguage,
+} from "../../incident/demo-incident";
 import {
   buildSyntheticCaseFromComplaint,
   resolveReportedAmount,
@@ -27,6 +32,12 @@ import {
 import { normalizeIncidentDraft } from "../../incident/normalization";
 import { CITIZEN_MESSAGES } from "../../content/en";
 import {
+  createEmptyTestProfile,
+  SYNTHETIC_NCRP_PROFILE,
+  type ReporterProfile,
+} from "../../experience/profile";
+import { useI18n } from "../../i18n/i18n-provider";
+import {
   DEMO_REFUND_ACCOUNT,
   DEMO_RESTORATION_REQUEST_ID,
   deriveJourneyFinancialSummary,
@@ -41,6 +52,7 @@ import {
 } from "./report-workspace";
 
 type JourneyView =
+  | "ENTRY"
   | "REPORT_START"
   | "REPORT_INPUT"
   | "ANALYSING"
@@ -63,6 +75,7 @@ function StageLayout({
   completeCurrent?: boolean;
   children: ReactNode;
 }) {
+  const { locale } = useI18n();
   return (
     <section
       id={progress === "REPORT" ? "report-fraud" : undefined}
@@ -102,18 +115,27 @@ async function compressScreenshot(file: File): Promise<File> {
 }
 
 function UrgentMoneyGuidance() {
+  const { t } = useI18n();
   return (
     <p className="urgent-guidance">
-      Lost money recently? Call <a href="tel:1930">1930</a> as soon as possible
-      while you prepare the report.
+      {t("entry.urgent").split("1930")[0]}<a href="tel:1930">1930</a>{t("entry.urgent").split("1930")[1]}
     </p>
   );
 }
 
 export function DemoJourney() {
   const router = useRouter();
-  const { caseData, hydrateComplaintCase, resetDemo } = useDemoCase();
-  const [view, setView] = useState<JourneyView>("REPORT_START");
+  const { locale, m, t } = useI18n();
+  const {
+    caseData,
+    experienceMode,
+    reporterProfile,
+    beginExperience,
+    setReporterProfile,
+    hydrateComplaintCase,
+    resetDemo,
+  } = useDemoCase();
+  const [view, setView] = useState<JourneyView>("ENTRY");
   const [reportingFor, setReportingFor] = useState<ReportingFor | null>(null);
   const [reportMethod, setReportMethod] = useState<ReportMethod>("SPEAK");
   const [draft, setDraft] = useState<IncidentDraft | null>(null);
@@ -132,6 +154,9 @@ export function DemoJourney() {
     {},
   );
   const [isDemoIncident, setIsDemoIncident] = useState(false);
+  const [demoNarrationLanguage, setDemoNarrationLanguage] =
+    useState<DemoNarrationLanguage>("hi-IN");
+  const [testProfile, setTestProfile] = useState<ReporterProfile>(() => createEmptyTestProfile());
   const [selectedReportedAmount, setSelectedReportedAmount] = useState<number | null>(null);
   const [isTranscriptionError, setIsTranscriptionError] = useState(false);
   const recorderRef = useRef<MediaRecorder | null>(null);
@@ -173,26 +198,48 @@ export function DemoJourney() {
 
   function useDemoIncident() {
     resetDemo();
+    beginExperience("DEMO_CASE", SYNTHETIC_NCRP_PROFILE);
+    setReportingFor("SELF");
     setDraft(null);
-    setNarrative(
-      DEMO_INCIDENT_DRAFT.incident.narrative ??
-        DEMO_INCIDENT_DRAFT.citizenSummary.shortSummary,
-    );
+    setNarrative(DEMO_TYPED_DESCRIPTION);
     setScreenshots([]);
     setAudio(null);
-    setTranscription(null);
-    setRecordingSeconds(0);
+    setDemoNarrationLanguage("hi-IN");
+    setTranscription(DEMO_NARRATIONS["hi-IN"]);
+    setRecordingSeconds(DEMO_NARRATIONS["hi-IN"].durationSeconds);
     setFormError(null);
     setIsTranscriptionError(false);
     setSelectedReportedAmount(null);
     setMissingAnswers({});
     setIsDemoIncident(true);
-    setLoadingMessage("Organising your report…");
+    setLoadingMessage(t("workspace.organisingSample"));
     setView("ANALYSING");
     window.setTimeout(() => {
       setDraft(structuredClone(DEMO_INCIDENT_DRAFT));
       setView("ANALYSIS_RESULT");
     }, 850);
+  }
+
+  function startLiveTest() {
+    resetDemo();
+    beginExperience("LIVE_TEST", null);
+    setReportingFor(null);
+    setTestProfile(createEmptyTestProfile());
+    setDraft(null);
+    setNarrative("");
+    setScreenshots([]);
+    setAudio(null);
+    setTranscription(null);
+    setRecordingSeconds(0);
+    setIsDemoIncident(false);
+    setFormError(null);
+    setView("REPORT_START");
+  }
+
+  function chooseDemoNarration(language: DemoNarrationLanguage) {
+    setDemoNarrationLanguage(language);
+    setTranscription(DEMO_NARRATIONS[language]);
+    setRecordingSeconds(DEMO_NARRATIONS[language].durationSeconds);
   }
 
   async function startRecording() {
@@ -449,11 +496,12 @@ export function DemoJourney() {
     if (!draft) return;
     try {
       const submittedAt = isDemoIncident
-        ? "2026-08-12T09:30:00.000Z"
+        ? "2026-08-22T02:30:00.000Z"
         : new Date().toISOString();
+      const activeProfile = reporterProfile ?? testProfile;
       const built = buildSyntheticCaseFromComplaint({
         incidentDraft: draft,
-        syntheticCitizen: { displayName: "Asha Verma" },
+        syntheticCitizen: { displayName: activeProfile.displayName || "Synthetic tester" },
         acknowledgementId: DEMO_CASE_ACCESS.acknowledgementNumber,
         submittedAt,
         caseOrigin: isDemoIncident ? "DEMO_INCIDENT" : "LIVE_TEST",
@@ -471,15 +519,37 @@ export function DemoJourney() {
   let content: ReactNode;
 
   switch (view) {
+    case "ENTRY":
+      content = (
+        <section className="service-entry section-pad" data-journey-focus tabIndex={-1}>
+          <div className="shell reading-shell service-entry-inner">
+            <h1>{t("entry.heading")}</h1>
+            <p className="service-entry-support">{t("entry.support")}</p>
+            <div className="service-entry-actions">
+              <button className="primary-button" type="button" onClick={useDemoIncident}>
+                {t("entry.demo")}
+              </button>
+              <button className="secondary-button" type="button" onClick={startLiveTest}>
+                {t("entry.live")}
+              </button>
+            </div>
+            <p className="service-entry-no-login">{t("entry.noLogin")}</p>
+            <p className="service-disclosure">{t("entry.note")}</p>
+            <UrgentMoneyGuidance />
+          </div>
+        </section>
+      );
+      break;
+
     case "REPORT_START":
       content = (
         <StageLayout progress="REPORT">
           <p className="service-stage-label">
-            {CITIZEN_MESSAGES.journey.existingNcrp.defaultMessage}
+            {m(CITIZEN_MESSAGES.journey.existingNcrp)}
           </p>
-          <h1>Report a financial cyber fraud</h1>
+          <h1>{t("entry.heading")}</h1>
           <fieldset className="reporting-for-fieldset">
-            <legend>Who are you reporting for?</legend>
+            <legend>{t("report.forWhom")}</legend>
             <div className="choice-list">
               <label
                 className={
@@ -495,7 +565,7 @@ export function DemoJourney() {
                   checked={reportingFor === "SELF"}
                   onChange={() => setReportingFor("SELF")}
                 />
-                <span>Myself</span>
+                <span>{t("report.myself")}</span>
               </label>
               <label
                 className={
@@ -511,24 +581,77 @@ export function DemoJourney() {
                   checked={reportingFor === "HELPING"}
                   onChange={() => setReportingFor("HELPING")}
                 />
-                <span>Someone else</span>
+                <span>{t("report.someoneElse")}</span>
               </label>
             </div>
           </fieldset>
           {reportingFor === "HELPING" ? (
             <p className="form-hint">
-              The affected person should review the information before
-              submission.
+              {t("report.helpingHint")}
             </p>
           ) : null}
+          <section className="test-profile-section" aria-labelledby="test-profile-heading">
+            <div className="test-profile-heading-row">
+              <div>
+                <h2 id="test-profile-heading">{t("profile.heading")}</h2>
+                <p>{t("profile.support")}</p>
+              </div>
+              <button
+                className="secondary-button"
+                type="button"
+                onClick={() => {
+                  setTestProfile(SYNTHETIC_NCRP_PROFILE);
+                  setReporterProfile(SYNTHETIC_NCRP_PROFILE);
+                }}
+              >
+                {t("profile.useSynthetic")}
+              </button>
+            </div>
+            <div className="test-profile-fields">
+              <label>
+                <span>{t("profile.name")}</span>
+                <input
+                  value={testProfile.displayName}
+                  onChange={(event) => setTestProfile({ ...testProfile, displayName: event.target.value, source: "TEST_INPUT" })}
+                />
+              </label>
+              <label>
+                <span>{t("profile.state")}</span>
+                <input
+                  value={testProfile.state}
+                  onChange={(event) => setTestProfile({ ...testProfile, state: event.target.value, source: "TEST_INPUT" })}
+                />
+              </label>
+              <label>
+                <span>{t("profile.mobile")}</span>
+                <input
+                  value={testProfile.registeredMobile}
+                  onChange={(event) => setTestProfile({ ...testProfile, registeredMobile: event.target.value, source: "TEST_INPUT" })}
+                />
+              </label>
+            </div>
+            <p className="profile-source-label">
+              {testProfile.source === "SIMULATED_NCRP_PROFILE"
+                ? t("profile.fromSimulated")
+                : t("profile.fromTest")}
+            </p>
+          </section>
           <UrgentMoneyGuidance />
           <button
             className="primary-button"
             type="button"
-            disabled={!reportingFor}
-            onClick={() => setView("REPORT_INPUT")}
+            disabled={
+              !reportingFor ||
+              !testProfile.displayName.trim() ||
+              !testProfile.state.trim() ||
+              !testProfile.registeredMobile.trim()
+            }
+            onClick={() => {
+              setReporterProfile(testProfile);
+              setView("REPORT_INPUT");
+            }}
           >
-            Continue
+            {t("report.continue")}
           </button>
         </StageLayout>
       );
@@ -561,6 +684,9 @@ export function DemoJourney() {
           isRecording={isRecording}
           recordingSeconds={recordingSeconds}
           isDemoIncident={isDemoIncident}
+          experienceMode={experienceMode}
+          reporterProfile={reporterProfile ?? testProfile}
+          demoNarrationLanguage={demoNarrationLanguage}
           isTranscriptionError={isTranscriptionError}
           draft={draft}
           loadingMessage={loadingMessage}
@@ -581,6 +707,7 @@ export function DemoJourney() {
           onSaveMissingAnswer={saveMissingAnswer}
           onDraftChange={setDraft}
           onReportedAmountSelect={setSelectedReportedAmount}
+          onDemoNarrationLanguageChange={chooseDemoNarration}
           onReview={reviewReport}
           onBackToEdit={() => setView("ANALYSIS_RESULT")}
           onSubmit={submitComplaint}
@@ -593,24 +720,24 @@ export function DemoJourney() {
       content = (
         <StageLayout progress="REPORT" completeCurrent>
           <p className="service-stage-label">
-            {CITIZEN_MESSAGES.journey.existingNcrp.defaultMessage}
+            {m(CITIZEN_MESSAGES.journey.existingNcrp)}
           </p>
           <h1 id="journey-stage-heading" tabIndex={-1}>
-            {CITIZEN_MESSAGES.journey.complaintRegistered.defaultMessage}
+            {t("complaint.registered")}
           </h1>
           <p className="journey-identifier">
             {caseData.complaint.acknowledgementId}
           </p>
-          <p>{CITIZEN_MESSAGES.journey.complaintResponse.defaultMessage}</p>
-          <h2>What happens next?</h2>
-          <p>Banks and law-enforcement agencies may act on the financial trail connected to the complaint.</p>
-          <p>For this demo, we’ll move to a later stage where part of your reported amount is recorded as held and can enter the Money Restoration journey.</p>
+          <p>{t("complaint.response")}</p>
+          <h2>{t("complaint.next")}</h2>
+          <p>{t("complaint.nextBody")}</p>
+          <p>{t("complaint.demoAdvance")}</p>
           <button
             className="primary-button"
             type="button"
             onClick={() => setView("MRM_REQUEST")}
           >
-            {CITIZEN_MESSAGES.journey.continueRestoration.defaultMessage}
+            {t("complaint.continueRestoration")}
           </button>
         </StageLayout>
       );
@@ -620,34 +747,34 @@ export function DemoJourney() {
       content = (
         <StageLayout progress="RESTORE">
           <p className="service-stage-label">
-            {CITIZEN_MESSAGES.journey.existingRestoration.defaultMessage}
+            {t("mrm.existing")}
           </p>
           <h1 id="journey-stage-heading" tabIndex={-1}>
-            {CITIZEN_MESSAGES.journey.restorationTitle.defaultMessage}
+            {t("mrm.title")}
           </h1>
           <h2 className="journey-subheading">
-            {CITIZEN_MESSAGES.journey.restorationRequestTitle.defaultMessage}
+            {t("mrm.request")}
           </h2>
           <dl className="journey-facts">
             <div>
-              <dt>{CITIZEN_MESSAGES.journey.ncrpComplaint.defaultMessage}</dt>
+              <dt>{t("mrm.complaint")}</dt>
               <dd>{caseData.complaint.acknowledgementId}</dd>
             </div>
             <div>
-              <dt>Reported amount</dt>
+              <dt>{t("mrm.reported")}</dt>
               <dd>{formatCurrency(summary.reportedAmount)}</dd>
             </div>
             <div>
-              <dt>Amounts currently recorded as held</dt>
+              <dt>{t("mrm.held")}</dt>
               <dd>{formatCurrency(summary.activeAmount)}</dd>
             </div>
             <div>
-              <dt>{CITIZEN_MESSAGES.journey.refundAccount.defaultMessage}</dt>
+              <dt>{t("mrm.refund")}</dt>
               <dd>{DEMO_REFUND_ACCOUNT}</dd>
             </div>
             <div>
-              <dt>{CITIZEN_MESSAGES.journey.documents.defaultMessage}</dt>
-              <dd>{CITIZEN_MESSAGES.journey.ready.defaultMessage}</dd>
+              <dt>{t("mrm.documents")}</dt>
+              <dd>{t("mrm.ready")}</dd>
             </div>
           </dl>
           <button
@@ -655,7 +782,7 @@ export function DemoJourney() {
             type="button"
             onClick={() => setView("MRM_SUBMITTED")}
           >
-            {CITIZEN_MESSAGES.journey.submitRestoration.defaultMessage}
+            {t("mrm.submit")}
           </button>
         </StageLayout>
       );
@@ -665,24 +792,24 @@ export function DemoJourney() {
       content = (
         <StageLayout progress="RESTORE">
           <h1 id="journey-stage-heading" tabIndex={-1}>
-            {CITIZEN_MESSAGES.journey.restorationSubmitted.defaultMessage}
+            {t("mrm.submitted")}
           </h1>
           <p className="journey-identifier">{DEMO_RESTORATION_REQUEST_ID}</p>
-          <p>{CITIZEN_MESSAGES.journey.requestResponse.defaultMessage}</p>
-          <p>Different portions of the reported amount can now be in different recorded states across banks and police processes.</p>
-          <p>This prototype explores a clearer way to answer:</p>
+          <p>{t("mrm.response")}</p>
+          <p>{t("mrm.split")}</p>
+          <p>{t("mrm.questions")}</p>
           <ul className="journey-handoff-questions">
-            <li>{CITIZEN_MESSAGES.journey.handoffWhere.defaultMessage}</li>
-            <li>{CITIZEN_MESSAGES.journey.handoffWho.defaultMessage}</li>
-            <li>{CITIZEN_MESSAGES.journey.handoffAction.defaultMessage}</li>
+            <li>{t("mrm.where")}</li>
+            <li>{t("mrm.who")}</li>
+            <li>{t("mrm.action")}</li>
           </ul>
-          <p className="service-stage-label">Proposed Financial Resolution experience</p>
+          <p className="service-stage-label">{t("mrm.proposed")}</p>
           <button
             className="primary-button"
             type="button"
             onClick={() => router.push("/case")}
           >
-            {CITIZEN_MESSAGES.journey.openResolution.defaultMessage}
+            {t("mrm.open")}
           </button>
         </StageLayout>
       );

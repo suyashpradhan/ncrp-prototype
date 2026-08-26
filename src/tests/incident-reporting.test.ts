@@ -1,7 +1,9 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { syntheticCase } from "../data/synthetic-case";
-import { DEMO_INCIDENT_DRAFT, createUnknownIncidentDraft } from "../incident/demo-incident";
+import { DEMO_INCIDENT_DRAFT, DEMO_NARRATIONS, createUnknownIncidentDraft } from "../incident/demo-incident";
+import { buildSyntheticCaseFromComplaint } from "../incident/complaint-case";
+import { SYNTHETIC_NCRP_PROFILE } from "../experience/profile";
+import { textForLocale } from "../i18n/i18n-provider";
 import { applyMissingAnswer, deriveMissingQuestions } from "../incident/missing-information";
 import { generateNcrpFields, totalIncidentTransactionAmount } from "../incident/ncrp-mapping";
 import { IncidentDraftSchema } from "../incident/schema";
@@ -55,27 +57,20 @@ describe("AI-assisted incident reporting boundary", () => {
       incident: { ...DEMO_INCIDENT_DRAFT.incident, incidentDate: null },
       transactions: [
         { ...DEMO_INCIDENT_DRAFT.transactions[0], transactionIdOrUtr: null },
-        DEMO_INCIDENT_DRAFT.transactions[1],
       ],
     });
 
     expect(deriveMissingQuestions(partial).map((question) => question.field)).toEqual([
       "incidentDate",
-      "incidentApproximateTime",
       "transactionIdOrUtr",
     ]);
   });
 
-  it("asks for the one intentionally missing demo detail inline", () => {
-    expect(deriveMissingQuestions(DEMO_INCIDENT_DRAFT).map((question) => question.field)).toEqual([
-      "incidentApproximateTime",
-    ]);
+  it("keeps the canonical judge demo complete", () => {
+    expect(deriveMissingQuestions(DEMO_INCIDENT_DRAFT)).toEqual([]);
 
     const completion = deriveReportCompletion(DEMO_INCIDENT_DRAFT);
-    expect(completion).toEqual({ ready: 3, total: 4, missing: 1 });
-
-    const completed = applyMissingAnswer(DEMO_INCIDENT_DRAFT, "incidentApproximateTime", "09:10");
-    expect(deriveReportCompletion(completed)).toEqual({ ready: 4, total: 4, missing: 0 });
+    expect(completion).toEqual({ ready: 4, total: 4, missing: 0 });
   });
 
   it("keeps a day and month unresolved until the citizen confirms the year", () => {
@@ -148,20 +143,64 @@ describe("AI-assisted incident reporting boundary", () => {
       "Your details",
     ]);
     expect(visibleValues).toEqual(expect.arrayContaining([
-      "Online Financial Fraud",
-      "UPI Related Frauds",
-      "₹1,00,000",
-      "₹2,00,000",
-      "WhatsApp",
-      "UTR-DEMO-120826-01",
-      "+91 90000 00124",
+      "Financial Fraud",
+      "Internet Banking Related Fraud",
+      "₹40,000",
+      "SMS / chat message",
+      "DEMO-UTR-40000-220826",
+      "https://demo.invalid/kyc",
       "Asha Verma",
     ]));
   });
 
-  it("reconciles demo transactions to the same downstream ₹2,00,000 case", () => {
-    expect(totalIncidentTransactionAmount(DEMO_INCIDENT_DRAFT)).toBe(200_000);
-    expect(syntheticCase.complaint.reportedAmount).toBe(200_000);
+  it("reconciles the canonical demo transaction to the same downstream ₹40,000 case", () => {
+    const built = buildSyntheticCaseFromComplaint({
+      incidentDraft: DEMO_INCIDENT_DRAFT,
+      syntheticCitizen: { displayName: SYNTHETIC_NCRP_PROFILE.displayName },
+      acknowledgementId: "NCRP-DEMO-2026-00124",
+      submittedAt: "2026-08-22T02:30:00.000Z",
+      caseOrigin: "DEMO_INCIDENT",
+    });
+
+    expect(totalIncidentTransactionAmount(DEMO_INCIDENT_DRAFT)).toBe(40_000);
+    expect(built.caseData.complaint.reportedAmount).toBe(40_000);
+    expect(built.caseData.moneyPaths.reduce((sum, path) => sum + path.amount, 0)).toBe(40_000);
+  });
+
+  it("keeps Hindi, Marathi and English sample narration on one canonical incident", () => {
+    expect(Object.keys(DEMO_NARRATIONS)).toEqual(["hi-IN", "mr-IN", "en-IN"]);
+    expect(new Set(Object.values(DEMO_NARRATIONS).map((item) => item.englishTranscript)).size).toBe(1);
+    expect(DEMO_INCIDENT_DRAFT.incident.reportedAmount).toBe(40_000);
+
+    for (const narration of Object.values(DEMO_NARRATIONS)) {
+      expect(narration.audioPath.startsWith("/demo/audio/")).toBe(true);
+      expect(existsSync(new URL(`../../public${narration.audioPath}`, import.meta.url))).toBe(true);
+    }
+  });
+
+  it("keeps reporter identity separate from the narrated incident", () => {
+    const testProfile = {
+      displayName: "Synthetic Tester",
+      state: "Goa",
+      registeredMobile: "••••••1122",
+      source: "TEST_INPUT" as const,
+    };
+    const reporterFields = deriveReportGroups(DEMO_INCIDENT_DRAFT, { profile: testProfile })
+      .find((group) => group.id === "REPORTER")
+      ?.sections.flatMap((section) => section.fields);
+
+    expect(reporterFields).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: "reporter-name", value: "Synthetic Tester" }),
+      expect.objectContaining({ id: "reporter-state", value: "Goa" }),
+      expect.objectContaining({ id: "reporter-mobile", value: "••••••1122" }),
+    ]));
+    expect(DEMO_INCIDENT_DRAFT.incident.narrative).not.toContain("Synthetic Tester");
+  });
+
+  it("renders important interface copy independently in English and Hindi", () => {
+    expect(textForLocale("en", "entry.demo")).toBe("Try demo case");
+    expect(textForLocale("hi", "entry.demo")).toBe("डेमो केस देखें");
+    expect(textForLocale("hi", "workspace.reviewContinue")).toBe("जाँचें और आगे बढ़ें");
   });
 
   it("keeps the local demo fallback visible and API secrets out of the client component", () => {
@@ -176,13 +215,20 @@ describe("AI-assisted incident reporting boundary", () => {
     expect(clientSource).not.toContain("SARVAM_API_KEY");
     expect(clientSource).not.toContain("process.env");
 
+    const demoHandler = clientSource.slice(
+      clientSource.indexOf("function useDemoIncident()"),
+      clientSource.indexOf("function startLiveTest()"),
+    );
+    expect(demoHandler).not.toContain("fetch(");
+    expect(demoHandler).not.toContain("getUserMedia");
+
     const workspaceSource = readFileSync(
       new URL("../components/demo-journey/report-workspace.tsx", import.meta.url),
       "utf8",
     );
-    expect(workspaceSource).toContain("Information for your NCRP report");
-    expect(workspaceSource).toContain("Use demo incident");
-    expect(workspaceSource).toContain("Needs your input");
+    expect(workspaceSource).toContain('t("workspace.reportInfo")');
+    expect(workspaceSource).toContain('t("workspace.useDemo")');
+    expect(workspaceSource).toContain('t("field.needsInput")');
     expect(workspaceSource).not.toContain("AI analysis");
     expect(workspaceSource).not.toContain("fraud probability");
   });

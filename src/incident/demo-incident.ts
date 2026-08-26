@@ -1,73 +1,114 @@
-import type { IncidentDraft } from "./schema";
+import { IncidentDraftSchema, type IncidentDraft, type TranscriptionResult } from "./schema";
+
+export type DemoNarrationLanguage = "hi-IN" | "mr-IN" | "en-IN";
+
+export type DemoNarration = TranscriptionResult & {
+  label: string;
+  nativeLabel: string;
+  audioPath: string;
+  durationSeconds: number;
+};
+
+export const DEMO_NARRATIONS: Record<DemoNarrationLanguage, DemoNarration> = {
+  "hi-IN": {
+    label: "Hindi",
+    nativeLabel: "हिन्दी",
+    audioPath: "/demo/audio/kyc-fraud-hi.mp3",
+    durationSeconds: 25,
+    languageCode: "hi-IN",
+    originalTranscript:
+      "मुझे एसबीआई केवाईसी अपडेट करने का एक मैसेज आया था। मैंने उसमें दिए लिंक को खोला और ऐप के निर्देश माने। इसके बाद 22 अगस्त की सुबह लगभग सात बजे मेरे खाते से चालीस हजार रुपये निकल गए। बाद में मैंने उस नंबर पर संपर्क करने की कोशिश की, लेकिन कोई जवाब नहीं मिला।",
+    englishTranscript:
+      "I received a message asking me to update my SBI KYC. I opened the link and followed the app instructions. At about 7 AM on 22 August, ₹40,000 was transferred from my account. I tried contacting the number afterward but received no response.",
+  },
+  "mr-IN": {
+    label: "Marathi",
+    nativeLabel: "मराठी",
+    audioPath: "/demo/audio/kyc-fraud-mr.mp3",
+    durationSeconds: 25,
+    languageCode: "mr-IN",
+    originalTranscript:
+      "मला एसबीआय केवायसी अपडेट करण्यासाठी एक मेसेज आला होता. मी त्यातील लिंक उघडली आणि अॅपमधील सूचना पाळल्या. त्यानंतर 22 ऑगस्ट रोजी सकाळी सुमारे सात वाजता माझ्या खात्यातून चाळीस हजार रुपये गेले. नंतर त्या नंबरवर संपर्क करण्याचा प्रयत्न केला, पण उत्तर मिळाले नाही.",
+    englishTranscript:
+      "I received a message asking me to update my SBI KYC. I opened the link and followed the app instructions. At about 7 AM on 22 August, ₹40,000 was transferred from my account. I tried contacting the number afterward but received no response.",
+  },
+  "en-IN": {
+    label: "English",
+    nativeLabel: "English",
+    audioPath: "/demo/audio/kyc-fraud-en.mp3",
+    durationSeconds: 24,
+    languageCode: "en-IN",
+    originalTranscript:
+      "I received a message asking me to update my SBI KYC. I opened the link and followed the app instructions. At about 7 AM on 22 August, ₹40,000 was transferred from my account. I tried contacting the number afterward but received no response.",
+    englishTranscript:
+      "I received a message asking me to update my SBI KYC. I opened the link and followed the app instructions. At about 7 AM on 22 August, ₹40,000 was transferred from my account. I tried contacting the number afterward but received no response.",
+  },
+};
+
+export const DEMO_TYPED_DESCRIPTION =
+  "I received a message claiming my SBI KYC needed to be updated. I followed the instructions and later ₹40,000 was transferred from my account.";
 
 export const DEMO_INCIDENT_DRAFT = {
   citizenSummary: {
-    incidentLabel: "Investment scam",
+    incidentLabel: "KYC-related banking fraud",
     shortSummary:
-      "Asha was contacted on WhatsApp about an investment opportunity and made two payments before realising the offer was not genuine.",
+      "Asha received a synthetic SBI KYC message, followed its instructions and later found that ₹40,000 had been transferred from her account.",
   },
   officialMapping: {
     category: "FINANCIAL_FRAUD",
-    categoryLabel: "Online Financial Fraud",
-    subCategoryLabel: "UPI Related Frauds",
+    categoryLabel: "Financial Fraud",
+    subCategoryLabel: "Internet Banking Related Fraud",
     mappingConfidence: "HIGH",
   },
   incident: {
     moneyLost: true,
-    reportedAmount: 200_000,
-    incidentDate: "2026-08-12",
+    reportedAmount: 40_000,
+    incidentDate: "2026-08-22",
     incidentDateWithoutYear: null,
-    approximateTime: null,
+    approximateTime: "07:00",
     delayInReporting: false,
     delayReason: null,
-    occurredOn: "WhatsApp",
+    occurredOn: "SMS / chat message",
     narrative:
-      "Asha received WhatsApp messages offering an investment opportunity. She made two payments of ₹1,00,000 using UPI / bank transfer. After the payments, the contact stopped responding.",
+      "Asha received a message claiming that the KYC for her SBI account needed to be updated. She opened the supplied link and followed the app instructions. At about 7:05 AM on 22 August 2026, ₹40,000 was transferred from her account. She later tried to contact the sender but received no response.",
   },
   transactions: [
     {
-      institution: "Demo Bank",
-      accountOrUpiId: "asha.demo@upi",
-      transactionIdOrUtr: "UTR-DEMO-120826-01",
-      amount: 100_000,
-      transactionDate: "2026-08-12",
-      approximateTime: "09:18",
-      referenceNumber: "REF-DEMO-001",
-    },
-    {
-      institution: "Demo Bank",
-      accountOrUpiId: "asha.demo@upi",
-      transactionIdOrUtr: "UTR-DEMO-120826-02",
-      amount: 100_000,
-      transactionDate: "2026-08-12",
-      approximateTime: "09:42",
-      referenceNumber: "REF-DEMO-002",
+      institution: "SBI",
+      accountOrUpiId: "Synthetic SBI account ending 0024",
+      transactionIdOrUtr: "DEMO-UTR-40000-220826",
+      amount: 40_000,
+      transactionDate: "2026-08-22",
+      approximateTime: "07:05",
+      referenceNumber: "DEMO-TXN-220826-0705",
     },
   ],
   suspectIdentifiers: [
-    { type: "PHONE", value: "+91 90000 00124" },
+    { type: "URL", value: "https://demo.invalid/kyc" },
   ],
   evidence: [
     {
       type: "CHAT_SCREENSHOT",
       extractedFacts: [
-        "WhatsApp conversation",
-        "Investment opportunity was discussed",
-        "Contact number +91 90000 00124",
+        "Synthetic KYC message",
+        "SBI KYC update was claimed",
+        "Safe non-resolving demo link",
       ],
     },
     {
       type: "TRANSACTION_SCREENSHOT",
       extractedFacts: [
-        "Two payments of ₹1,00,000",
-        "Payments dated 12 August 2026",
-        "Transaction references are visible",
+        "One synthetic transaction of ₹40,000",
+        "Transaction dated 22 August 2026 at about 7:05 AM",
+        "Synthetic transaction reference is visible",
       ],
     },
   ],
   missingRequiredFields: [],
   warnings: [],
 } as const satisfies IncidentDraft;
+
+IncidentDraftSchema.parse(DEMO_INCIDENT_DRAFT);
 
 export function createUnknownIncidentDraft(): IncidentDraft {
   return {

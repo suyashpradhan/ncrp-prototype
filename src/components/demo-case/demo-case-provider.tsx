@@ -11,6 +11,7 @@ import {
 import type { Case } from "../../domain/case";
 import { advanceSyntheticDateByOneDay } from "../../domain/demo-time";
 import type { ProcessEventType } from "../../domain/events";
+import type { ExperienceMode, ReporterProfile } from "../../experience/profile";
 import {
   getNextSyntheticMilestoneEventType,
   getNextSyntheticEventType,
@@ -33,6 +34,10 @@ type DemoCaseContextValue = {
   now: string;
   lastUpdate: LastSimulatedUpdate | null;
   isDemoAuthenticated: boolean;
+  experienceMode: ExperienceMode | null;
+  reporterProfile: ReporterProfile | null;
+  beginExperience: (mode: ExperienceMode, profile: ReporterProfile | null) => void;
+  setReporterProfile: (profile: ReporterProfile) => void;
   authenticateDemo: (acknowledgementNumber: string, registeredMobile: string) => boolean;
   hydrateComplaintCase: (caseData: Case, now: string) => void;
   simulateNextUpdate: (moneyPathId: string) => void;
@@ -52,6 +57,8 @@ type DemoState = {
   now: string;
   lastUpdate: LastSimulatedUpdate | null;
   isDemoAuthenticated: boolean;
+  experienceMode: ExperienceMode | null;
+  reporterProfile: ReporterProfile | null;
 };
 
 export function DemoCaseProvider({ children, initialCase, initialNow }: DemoCaseProviderProps) {
@@ -60,7 +67,20 @@ export function DemoCaseProvider({ children, initialCase, initialNow }: DemoCase
     now: initialNow,
     lastUpdate: null,
     isDemoAuthenticated: false,
+    experienceMode: null,
+    reporterProfile: null,
   }));
+
+  const beginExperience = useCallback(
+    (experienceMode: ExperienceMode, reporterProfile: ReporterProfile | null) => {
+      setState((current) => ({ ...current, experienceMode, reporterProfile }));
+    },
+    [],
+  );
+
+  const setReporterProfile = useCallback((reporterProfile: ReporterProfile) => {
+    setState((current) => ({ ...current, reporterProfile }));
+  }, []);
 
   const authenticateDemo = useCallback((acknowledgementNumber: string, registeredMobile: string) => {
     const matches =
@@ -117,8 +137,10 @@ export function DemoCaseProvider({ children, initialCase, initialNow }: DemoCase
       now,
       lastUpdate: null,
       isDemoAuthenticated: true,
+      experienceMode: state.experienceMode,
+      reporterProfile: state.reporterProfile,
     });
-  }, []);
+  }, [state.experienceMode, state.reporterProfile]);
 
   const resetDemo = useCallback(() => {
     setState({
@@ -126,6 +148,8 @@ export function DemoCaseProvider({ children, initialCase, initialNow }: DemoCase
       now: initialNow,
       lastUpdate: null,
       isDemoAuthenticated: false,
+      experienceMode: null,
+      reporterProfile: null,
     });
   }, [initialCase, initialNow]);
 
@@ -133,11 +157,13 @@ export function DemoCaseProvider({ children, initialCase, initialNow }: DemoCase
     () => ({
       ...state,
       authenticateDemo,
+      beginExperience,
+      setReporterProfile,
       hydrateComplaintCase,
       simulateNextUpdate,
       resetDemo,
     }),
-    [state, authenticateDemo, hydrateComplaintCase, simulateNextUpdate, resetDemo],
+    [state, authenticateDemo, beginExperience, setReporterProfile, hydrateComplaintCase, simulateNextUpdate, resetDemo],
   );
 
   return <DemoCaseContext value={value}>{children}</DemoCaseContext>;

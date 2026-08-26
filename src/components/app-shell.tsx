@@ -1,29 +1,46 @@
+"use client";
+
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { UI_MESSAGES } from "../content/en";
+import { useI18n } from "../i18n/i18n-provider";
 
 type AppShellProps = {
   children: ReactNode;
 };
 
 export function AppShell({ children }: AppShellProps) {
+  const { locale, setLocale, m, t } = useI18n();
+
   return (
     <>
+      <a className="skip-link" href="#main-content">
+        {t("skip.main")}
+      </a>
       <header className="site-header">
         <div className="shell">
           <div className="header-inner">
             <Link
               className="brand"
               href="/"
-              aria-label={UI_MESSAGES.brand.name.defaultMessage}
+              aria-label={m(UI_MESSAGES.brand.name)}
             >
               <span className="brand-name">
-                {UI_MESSAGES.brand.name.defaultMessage}
+                {m(UI_MESSAGES.brand.name)}
               </span>
               <span className="brand-description">
-                {UI_MESSAGES.brand.eyebrow.defaultMessage}
+                {m(UI_MESSAGES.brand.eyebrow)}
               </span>
             </Link>
+            <div className="language-switch" role="group" aria-label={t("header.languageLabel")}>
+              <button type="button" aria-pressed={locale === "en"} onClick={() => setLocale("en")}>
+                {t("language.english")}
+              </button>
+              <span aria-hidden="true">|</span>
+              <button type="button" aria-pressed={locale === "hi"} onClick={() => setLocale("hi")}>
+                {t("language.hindi")}
+              </button>
+            </div>
           </div>
         </div>
       </header>
@@ -33,16 +50,16 @@ export function AppShell({ children }: AppShellProps) {
       <footer className="site-footer">
         <div className="shell footer-inner">
           <div className="footer-disclosure">
-            <p>{UI_MESSAGES.footer.guardrail.defaultMessage}</p>
-            <nav className="footer-links" aria-label="Secondary navigation">
+            <p>{m(UI_MESSAGES.footer.guardrail)}</p>
+            <nav className="footer-links" aria-label={t("header.secondaryNavigation")}>
               <Link className="footer-link" href="/about">
-                {UI_MESSAGES.footer.aboutLink.defaultMessage}
+                {m(UI_MESSAGES.footer.aboutLink)}
               </Link>
               <Link className="footer-link" href="/how-it-works">
-                {UI_MESSAGES.footer.howLink.defaultMessage}
+                {m(UI_MESSAGES.footer.howLink)}
               </Link>
               <Link className="footer-link" href="/about#sources">
-                {UI_MESSAGES.footer.sourcesLink.defaultMessage}
+                {m(UI_MESSAGES.footer.sourcesLink)}
               </Link>
             </nav>
           </div>

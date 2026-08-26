@@ -1,7 +1,11 @@
+"use client";
+
 import type { MoneyPath } from "../../domain/case";
 import { deriveApplicableSopClock, deriveOverdueState } from "../../sop/selectors";
+import { useI18n } from "../../i18n/i18n-provider";
 
 export function SopClockView({ path, now }: { path: MoneyPath; now: string }) {
+  const { t } = useI18n();
   const clock = deriveApplicableSopClock(path);
   const overdue = deriveOverdueState(path, now);
 
@@ -19,13 +23,13 @@ export function SopClockView({ path, now }: { path: MoneyPath; now: string }) {
     >
       <p id={clockLabelId}>
         {clock.stage === "BANK_INTERIM_CUSTODY"
-          ? `The recorded bank process requires action within ${overdue.durationDays} calendar days after receiving the direction.`
-          : <>Recorded process window: <strong>{overdue.durationDays} calendar days</strong></>}
+          ? t("detail.bankClock", { days: overdue.durationDays })
+          : t("detail.processClock", { days: overdue.durationDays })}
       </p>
-      <p className="clock-primary">Current synthetic case: <strong>Day {overdue.elapsedDays}</strong></p>
+      <p className="clock-primary">{t("detail.currentCase", { day: t("detail.day", { day: overdue.elapsedDays }) })}</p>
       {overdue.isOverdue ? (
         <p className="clock-context">
-          This step is currently {overdue.daysOverdue} {overdue.daysOverdue === 1 ? "day" : "days"} beyond its recorded process window.
+          {t("detail.overdue", { days: overdue.daysOverdue })}
         </p>
       ) : null}
     </div>

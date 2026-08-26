@@ -4,8 +4,10 @@ import { useRouter } from "next/navigation";
 import { EVENT_MESSAGES, UI_MESSAGES } from "../../content/en";
 import { getNextSyntheticMilestoneEventType } from "../../domain/money-path";
 import { useDemoCase } from "./demo-case-provider";
+import { useI18n } from "../../i18n/i18n-provider";
 
 export function PrototypeDemoControl({ moneyPathId }: { moneyPathId: string }) {
+  const { m } = useI18n();
   const router = useRouter();
   const { caseData, lastUpdate, simulateNextUpdate, resetDemo } = useDemoCase();
   const path = caseData.moneyPaths.find((item) => item.id === moneyPathId);
@@ -19,9 +21,9 @@ export function PrototypeDemoControl({ moneyPathId }: { moneyPathId: string }) {
 
   return (
     <details className="detail-disclosure prototype-demo-control">
-      <summary id={headingId}>{UI_MESSAGES.demo.title.defaultMessage}</summary>
+      <summary id={headingId}>{m(UI_MESSAGES.demo.title)}</summary>
       <div className="detail-disclosure-content">
-        <p id={descriptionId}>{UI_MESSAGES.demo.description.defaultMessage}</p>
+        <p id={descriptionId}>{m(UI_MESSAGES.demo.description)}</p>
 
         <div className="prototype-demo-actions">
           {nextEvent ? (
@@ -31,20 +33,20 @@ export function PrototypeDemoControl({ moneyPathId }: { moneyPathId: string }) {
               aria-describedby={descriptionId}
               onClick={() => simulateNextUpdate(moneyPathId)}
             >
-              {UI_MESSAGES.demo.simulate.defaultMessage}
+              {m(UI_MESSAGES.demo.simulate)}
             </button>
           ) : null}
           <button className="secondary-button" type="button" onClick={() => { resetDemo(); router.push("/"); }}>
-            {UI_MESSAGES.demo.reset.defaultMessage}
+            {m(UI_MESSAGES.demo.reset)}
           </button>
         </div>
 
         <p className="prototype-demo-update" role="status" aria-live="polite" aria-atomic="true">
           {latestForPath
-            ? `${UI_MESSAGES.demo.latestUpdate.defaultMessage}: ${EVENT_MESSAGES[latestForPath.eventType].defaultMessage}`
+            ? `${m(UI_MESSAGES.demo.latestUpdate)}: ${m(EVENT_MESSAGES[latestForPath.eventType])}`
             : nextEvent
-              ? UI_MESSAGES.demo.noUpdate.defaultMessage
-              : UI_MESSAGES.demo.complete.defaultMessage}
+              ? m(UI_MESSAGES.demo.noUpdate)
+              : m(UI_MESSAGES.demo.complete)}
         </p>
       </div>
     </details>

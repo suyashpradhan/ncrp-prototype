@@ -13,9 +13,9 @@ import { JOURNEY_STEPS } from "../components/demo-journey/journey-progress";
 describe("continuous synthetic citizen journey", () => {
   it("presents reporting, restoration and resolution as one chronological journey", () => {
     expect(JOURNEY_STEPS).toEqual([
-      { id: "REPORT", label: "Report" },
-      { id: "RESTORE", label: "Restoration" },
-      { id: "RESOLUTION", label: "Resolution" },
+      { id: "REPORT", labelKey: "journey.report" },
+      { id: "RESTORE", labelKey: "journey.restoration" },
+      { id: "RESOLUTION", labelKey: "journey.resolution" },
     ]);
   });
 
@@ -84,7 +84,7 @@ describe("continuous synthetic citizen journey", () => {
     expect(journeySource).not.toContain('"POST_REPORT_HANDOFF"');
     expect(journeySource).not.toContain('"POST_MRM_HANDOFF"');
     expect(journeySource).toContain("buildSyntheticCaseFromComplaint");
-    expect(journeySource).toContain("Amounts currently recorded as held");
+    expect(journeySource).toContain('t("mrm.held")');
     expect(journeySource).not.toContain("FINANCIAL_TRAIL");
     expect(journeySource).not.toContain("Track progress");
     expect(caseSource).toContain('current="RESOLUTION"');
