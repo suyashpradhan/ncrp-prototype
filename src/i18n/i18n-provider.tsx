@@ -37,7 +37,7 @@ const EN_TEXT: Record<string, string> = {
   "entry.heroPreventHi": "साइबर अपराध और धोखाधड़ी से बचाव की जगह",
   "entry.heroUnderstandHi": "साइबर अपराध और धोखाधड़ी को समझने की जगह",
   "entry.demo": "Try demo",
-  "entry.live": "Report cyber fraud",
+  "entry.live": "Report cyber crime",
   "entry.note": "Uses synthetic information. No personal data required.",
   "entry.urgent": "Money lost recently? Call 1930 now.",
   "entry.urgentQuestion": "Money lost recently?",

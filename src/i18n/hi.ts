@@ -217,7 +217,7 @@ export const HI_TEXT: Record<string, string> = {
   "entry.heroPreventHi": "साइबर अपराध और धोखाधड़ी से बचाव की जगह",
   "entry.heroUnderstandHi": "साइबर अपराध और धोखाधड़ी को समझने की जगह",
   "entry.demo": "डेमो देखें",
-  "entry.live": "साइबर धोखाधड़ी की रिपोर्ट करें",
+  "entry.live": "साइबर अपराध की रिपोर्ट करें",
   "entry.note": "काल्पनिक जानकारी का उपयोग होता है। निजी जानकारी की जरूरत नहीं है।",
   "entry.urgent": "हाल ही में पैसे खोए हैं? अभी 1930 पर कॉल करें।",
   "entry.urgentQuestion": "क्या हाल ही में पैसे गए हैं?",

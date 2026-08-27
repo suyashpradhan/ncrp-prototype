@@ -10,6 +10,17 @@ import {
 } from "react";
 import { appName } from "../../config/brand";
 import {
+  classifyReportDescription,
+  requirementsByReportType,
+  type ReportDefinition,
+  type RoutingSuggestion,
+} from "../../incident/report-types";
+import {
+  OTHER_CYBER_DEMO,
+  WOMEN_CHILDREN_DEMO,
+  type RouteSpecificDraft,
+} from "../../incident/route-demos";
+import {
   DEMO_INCIDENT_DRAFT,
   DEMO_NARRATIONS,
   DEMO_TYPED_DESCRIPTION,
@@ -56,9 +67,15 @@ import {
   type ReportMethod,
   type ReportWorkspaceMode,
 } from "./report-workspace";
+import { RouteSpecificWorkspace } from "./route-specific-workspace";
 
 type JourneyView =
   | "ENTRY"
+  | "REPORT_TYPE_SELECTION"
+  | "DEMO_SELECTION"
+  | "SMART_ROUTING"
+  | "ROUTE_SPECIFIC"
+  | "ROUTE_SPECIFIC_SUCCESS"
   | "REPORT_START"
   | "REPORT_INPUT"
   | "ANALYSING"
@@ -178,6 +195,17 @@ export function DemoJourney() {
     useState(false);
   const [heroIndex, setHeroIndex] = useState(0);
   const [reduceHeroMotion, setReduceHeroMotion] = useState(false);
+  const [selectedReportType, setSelectedReportType] = useState<
+    ReportDefinition["id"] | null
+  >(null);
+  const [routeDraft, setRouteDraft] = useState<RouteSpecificDraft | null>(null);
+  const [routeIsDemo, setRouteIsDemo] = useState(false);
+  const [routingDescription, setRoutingDescription] = useState("");
+  const [routingSuggestion, setRoutingSuggestion] =
+    useState<RoutingSuggestion | null>(null);
+  const [isRouting, setIsRouting] = useState(false);
+  const [routeReference, setRouteReference] = useState("");
+  const [routeShowReview, setRouteShowReview] = useState(false);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const recorderChunksRef = useRef<Blob[]>([]);
   const recordingStartedAtRef = useRef<number | null>(null);
@@ -185,6 +213,19 @@ export function DemoJourney() {
   const amountResolution = draft
     ? resolveReportedAmount(draft, selectedReportedAmount)
     : null;
+  const copy = (english: string, hindi: string) =>
+    locale === "hi" ? hindi : english;
+  const reportTypeLabel = (type: ReportDefinition["id"]) => {
+    const labels: Record<ReportDefinition["id"], [string, string]> = {
+      FINANCIAL_FRAUD: ["Financial fraud", "वित्तीय धोखाधड़ी"],
+      OTHER_CYBER_CRIME: ["Other cyber crime", "अन्य साइबर अपराध"],
+      WOMEN_CHILDREN_RELATED_CRIME: [
+        "Women / children related crime",
+        "महिला / बच्चों से जुड़ा अपराध",
+      ],
+    };
+    return copy(...labels[type]);
+  };
 
   useEffect(() => {
     if (
@@ -273,6 +314,48 @@ export function DemoJourney() {
     setIdentityDocumentProvided(false);
     setFormError(null);
     setView("REPORT_START");
+  }
+
+  function openRoute(
+    reportType: ReportDefinition["id"],
+    options: { demo: boolean; description?: string } = { demo: false },
+  ) {
+    setSelectedReportType(reportType);
+    setRouteShowReview(false);
+    setRoutingSuggestion(null);
+    if (reportType === "FINANCIAL_FRAUD") {
+      if (options.demo) useDemoIncident();
+      else startLiveTest();
+      return;
+    }
+    setRouteDraft(
+      reportType === "OTHER_CYBER_CRIME"
+        ? structuredClone(OTHER_CYBER_DEMO)
+        : structuredClone(WOMEN_CHILDREN_DEMO),
+    );
+    setRouteIsDemo(options.demo);
+    setRoutingDescription(options.description ?? "");
+    setView("ROUTE_SPECIFIC");
+  }
+
+  async function suggestReportType() {
+    if (!routingDescription.trim()) return;
+    setIsRouting(true);
+    setFormError(null);
+    const fallback = classifyReportDescription(routingDescription);
+    try {
+      const response = await fetch("/api/suggest-report-type", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ description: routingDescription }),
+      });
+      const result = (await response.json()) as RoutingSuggestion;
+      setRoutingSuggestion(response.ok ? result : fallback);
+    } catch {
+      setRoutingSuggestion(fallback);
+    } finally {
+      setIsRouting(false);
+    }
   }
 
   function chooseDemoNarration(language: DemoNarrationLanguage) {
@@ -659,14 +742,14 @@ export function DemoJourney() {
               <button
                 className="primary-button"
                 type="button"
-                onClick={startLiveTest}
+                onClick={() => setView("REPORT_TYPE_SELECTION")}
               >
                 {t("entry.live")}
               </button>
               <button
                 className="secondary-button"
                 type="button"
-                onClick={useDemoIncident}
+                onClick={() => setView("DEMO_SELECTION")}
               >
                 {t("entry.demo")}
               </button>
@@ -689,6 +772,186 @@ export function DemoJourney() {
       );
       break;
     }
+
+    case "REPORT_TYPE_SELECTION":
+      content = (
+        <StageLayout progress="REPORT">
+          <button className="text-button" type="button" onClick={() => setView("ENTRY")}>
+            ← {copy("Back", "वापस")}
+          </button>
+          <p className="service-stage-label">{copy("Start a report", "रिपोर्ट शुरू करें")}</p>
+          <h1>{copy("What do you want to report?", "आप क्या रिपोर्ट करना चाहते हैं?")}</h1>
+          <p>{copy("Choose the option that best matches what happened. The information we ask for will change with your choice.", "जो हुआ उससे सबसे अधिक मिलता विकल्प चुनें। आपके चुनाव के अनुसार पूछी जाने वाली जानकारी बदलेगी।")}</p>
+          <div className="route-choice-grid route-type-grid">
+            {Object.values(requirementsByReportType).map((definition) => {
+              const descriptions: Record<ReportDefinition["id"], [string, string]> = {
+                FINANCIAL_FRAUD: ["Money was lost through a transfer, payment, card, UPI, investment or similar fraud.", "ट्रांसफर, भुगतान, कार्ड, यूपीआई, निवेश या ऐसी धोखाधड़ी में पैसे गए।"],
+                OTHER_CYBER_CRIME: ["An online account, social profile, email, device or files were compromised.", "ऑनलाइन अकाउंट, सोशल प्रोफ़ाइल, ईमेल, डिवाइस या फ़ाइलों पर कब्ज़ा हुआ।"],
+                WOMEN_CHILDREN_RELATED_CRIME: ["Report sensitive online abuse or content involving a woman or child.", "महिला या बच्चे से जुड़े संवेदनशील ऑनलाइन उत्पीड़न या सामग्री की रिपोर्ट करें।"],
+              };
+              return (
+                <button className="route-choice" type="button" key={definition.id} onClick={() => openRoute(definition.id)}>
+                  <strong>{reportTypeLabel(definition.id)}</strong>
+                  <span>{copy(...descriptions[definition.id])}</span>
+                  <small>{copy("Continue →", "आगे बढ़ें →")}</small>
+                </button>
+              );
+            })}
+          </div>
+          <button className="route-unsure-button" type="button" onClick={() => {
+            setRoutingDescription("");
+            setRoutingSuggestion(null);
+            setView("SMART_ROUTING");
+          }}>
+            <strong>{copy("Not sure? Tell us what happened", "समझ नहीं आ रहा? हमें बताएं कि क्या हुआ")}</strong>
+            <span>{copy("We will suggest a reporting path for you to confirm.", "हम पुष्टि के लिए एक रिपोर्टिंग रास्ता सुझाएंगे।")}</span>
+          </button>
+        </StageLayout>
+      );
+      break;
+
+    case "DEMO_SELECTION":
+      content = (
+        <StageLayout progress="REPORT">
+          <button className="text-button" type="button" onClick={() => setView("ENTRY")}>
+            ← {copy("Back", "वापस")}
+          </button>
+          <p className="service-stage-label">{copy("Synthetic demonstrations", "काल्पनिक डेमो")}</p>
+          <h1>{copy("Choose a demo report", "डेमो रिपोर्ट चुनें")}</h1>
+          <p>{copy("Each demo follows a different reporting journey. All information is synthetic and no personal information is required.", "हर डेमो एक अलग रिपोर्टिंग यात्रा दिखाता है। सारी जानकारी काल्पनिक है और किसी निजी जानकारी की जरूरत नहीं है।")}</p>
+          <div className="route-choice-grid route-type-grid">
+            <button className="route-choice" type="button" onClick={() => openRoute("FINANCIAL_FRAUD", { demo: true })}>
+              <strong>{copy("₹40,000 KYC fraud", "₹40,000 की केवाईसी धोखाधड़ी")}</strong>
+              <span>{copy("Financial Fraud · Hindi narration · synthetic transaction evidence", "वित्तीय धोखाधड़ी · हिंदी विवरण · काल्पनिक लेन-देन सबूत")}</span>
+              <small>{copy("Try demo →", "डेमो देखें →")}</small>
+            </button>
+            <button className="route-choice" type="button" onClick={() => openRoute("OTHER_CYBER_CRIME", { demo: true })}>
+              <strong>{copy("Instagram account takeover", "इंस्टाग्राम अकाउंट पर कब्ज़ा")}</strong>
+              <span>{copy("An account cannot be accessed after its recovery email changes.", "रिकवरी ईमेल बदलने के बाद अकाउंट में प्रवेश नहीं हो रहा।")}</span>
+              <small>{copy("Try demo →", "डेमो देखें →")}</small>
+            </button>
+            <button className="route-choice" type="button" onClick={() => openRoute("WOMEN_CHILDREN_RELATED_CRIME", { demo: true })}>
+              <strong>{copy("Sensitive online-content report", "संवेदनशील ऑनलाइन सामग्री की रिपोर्ट")}</strong>
+              <span>{copy("A safe, non-graphic example with an anonymous reporting choice.", "गुमनाम रिपोर्ट के विकल्प वाला सुरक्षित, गैर-स्पष्ट उदाहरण।")}</span>
+              <small>{copy("Try demo →", "डेमो देखें →")}</small>
+            </button>
+          </div>
+        </StageLayout>
+      );
+      break;
+
+    case "SMART_ROUTING": {
+      const plausible = routingSuggestion?.plausibleReportTypes ?? [];
+      const hasConfirmedSuggestion = routingSuggestion && routingSuggestion.reportType !== "OUT_OF_SCOPE_OR_UNCLEAR";
+      content = (
+        <StageLayout progress="REPORT">
+          <button className="text-button" type="button" onClick={() => setView("REPORT_TYPE_SELECTION")}>
+            ← {copy("Choose a report type", "रिपोर्ट का प्रकार चुनें")}
+          </button>
+          <p className="service-stage-label">{copy("Find the right reporting path", "सही रिपोर्टिंग रास्ता खोजें")}</p>
+          <h1>{copy("Tell us briefly what happened", "संक्षेप में बताएं कि क्या हुआ")}</h1>
+          <label className="routing-description-field">
+            <span>{copy("Do not include passwords, OTPs or account PINs.", "पासवर्ड, ओटीपी या अकाउंट पिन शामिल न करें।")}</span>
+            <textarea rows={7} value={routingDescription} onChange={(event) => {
+              setRoutingDescription(event.target.value);
+              setRoutingSuggestion(null);
+            }} placeholder={copy("For example: My Instagram account was hacked and I cannot log in…", "उदाहरण: मेरा इंस्टाग्राम अकाउंट हैक हो गया और मैं लॉग इन नहीं कर पा रहा…")} />
+          </label>
+          <button className="primary-button" type="button" disabled={!routingDescription.trim() || isRouting} onClick={() => void suggestReportType()}>
+            {isRouting ? copy("Checking…", "जाँच हो रही है…") : copy("Suggest a reporting path", "रिपोर्टिंग रास्ता सुझाएं")}
+          </button>
+          {routingSuggestion ? (
+            <section className="routing-result" aria-live="polite">
+              {plausible.length > 1 ? (
+                <>
+                  <h2>{copy("This may fit more than one reporting path", "यह एक से अधिक रिपोर्टिंग रास्तों में आ सकता है")}</h2>
+                  <p>{copy("Choose the option that best reflects the main harm. We will not choose silently for you.", "मुख्य नुकसान से सबसे अधिक मिलता विकल्प चुनें। हम आपकी जगह चुपचाप चुनाव नहीं करेंगे।")}</p>
+                  <div className="routing-result-actions">
+                    {plausible.map((type) => (
+                      <button key={type} className="secondary-button" type="button" onClick={() => openRoute(type, { demo: false, description: routingDescription })}>{reportTypeLabel(type)}</button>
+                    ))}
+                  </div>
+                </>
+              ) : hasConfirmedSuggestion ? (
+                <>
+                  <p className="service-stage-label">{copy("Suggested path", "सुझाया गया रास्ता")}</p>
+                  <h2>{reportTypeLabel(routingSuggestion.reportType as ReportDefinition["id"])}</h2>
+                  {routingSuggestion.suggestedSubCategory ? (
+                    <p>{routingSuggestion.reportType === "OTHER_CYBER_CRIME"
+                      ? copy("Online and Social Media Related Crime", "ऑनलाइन और सोशल मीडिया से जुड़ा अपराध")
+                      : routingSuggestion.reportType === "WOMEN_CHILDREN_RELATED_CRIME"
+                        ? copy("Sexually abusive content", "यौन उत्पीड़न से जुड़ी सामग्री")
+                        : copy("Online financial fraud", "ऑनलाइन वित्तीय धोखाधड़ी")}</p>
+                  ) : null}
+                  <p>{copy("This suggestion is based on the incident you described. Please confirm before continuing.", "यह सुझाव आपके बताए घटना-विवरण पर आधारित है। आगे बढ़ने से पहले पुष्टि करें।")}</p>
+                  <div className="routing-result-actions">
+                    <button className="primary-button" type="button" onClick={() => openRoute(routingSuggestion.reportType as ReportDefinition["id"], { demo: false, description: routingDescription })}>{copy("Confirm & continue", "पुष्टि करें और आगे बढ़ें")}</button>
+                    <button className="text-button" type="button" onClick={() => setView("REPORT_TYPE_SELECTION")}>{copy("Choose another path", "दूसरा रास्ता चुनें")}</button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <h2>{copy("We could not identify a clear cyber-reporting path", "हम स्पष्ट साइबर रिपोर्टिंग रास्ता नहीं पहचान पाए")}</h2>
+                  <p>{copy("The incident may not include an online or digital element, or it may need more detail. If anyone is in immediate danger, contact local emergency services.", "घटना में ऑनलाइन या डिजिटल पहलू स्पष्ट नहीं है, या अधिक जानकारी चाहिए। यदि किसी को तुरंत खतरा है, तो स्थानीय आपातकालीन सेवा से संपर्क करें।")}</p>
+                  <button className="secondary-button" type="button" onClick={() => setView("REPORT_TYPE_SELECTION")}>{copy("Choose a report type yourself", "रिपोर्ट का प्रकार स्वयं चुनें")}</button>
+                </>
+              )}
+            </section>
+          ) : null}
+        </StageLayout>
+      );
+      break;
+    }
+
+    case "ROUTE_SPECIFIC":
+      content = routeDraft ? (
+        <RouteSpecificWorkspace
+          key={`${routeDraft.id}-${routeIsDemo ? "demo" : "live"}`}
+          draft={routeDraft}
+          isDemo={routeIsDemo}
+          initialDescription={routingDescription}
+          initialReview={routeShowReview}
+          onBack={() => setView(routeIsDemo ? "DEMO_SELECTION" : "REPORT_TYPE_SELECTION")}
+          onComplete={(reference) => {
+            setRouteReference(reference);
+            setView("ROUTE_SPECIFIC_SUCCESS");
+          }}
+        />
+      ) : null;
+      break;
+
+    case "ROUTE_SPECIFIC_SUCCESS":
+      content = (
+        <section className="journey-stage section-pad" data-journey-focus tabIndex={-1}>
+          <div className="shell reading-shell">
+            <ol className="journey-progress" aria-label={copy("Report progress", "रिपोर्ट की प्रगति")}>
+              {[copy("Tell us", "बताएं"), copy("Review", "जाँचें"), copy("Submit", "जमा करें")].map((label) => (
+                <li key={label}><span>{label}</span><span className="journey-progress-check" aria-label={copy("Completed", "पूरा")}>✓</span></li>
+              ))}
+            </ol>
+            <div className="complaint-success-content">
+            <p className="success-mark" aria-hidden="true">✓</p>
+            <h1>{copy("Synthetic report submitted", "काल्पनिक रिपोर्ट जमा हो गई")}</h1>
+            <p className="journey-identifier">{routeReference}</p>
+            <p>{selectedReportType ? reportTypeLabel(selectedReportType) : null}</p>
+            <p>{copy("This prototype prepared and submitted the information required for this reporting path. No live government system was contacted.", "इस प्रोटोटाइप ने इस रिपोर्टिंग रास्ते के लिए जरूरी जानकारी तैयार और जमा की। किसी वास्तविक सरकारी प्रणाली से संपर्क नहीं किया गया।")}</p>
+            <div className="entry-actions">
+              <button className="primary-button" type="button" onClick={() => {
+                setRouteDraft(null);
+                setSelectedReportType(null);
+                setRouteReference("");
+                setView("DEMO_SELECTION");
+              }}>{copy("Try another demo", "दूसरा डेमो देखें")}</button>
+              <button className="secondary-button" type="button" onClick={() => {
+                setRouteShowReview(true);
+                setView("ROUTE_SPECIFIC");
+              }}>{copy("View prepared report", "तैयार रिपोर्ट देखें")}</button>
+            </div>
+            </div>
+          </div>
+        </section>
+      );
+      break;
 
     case "REPORT_START":
       content = (
