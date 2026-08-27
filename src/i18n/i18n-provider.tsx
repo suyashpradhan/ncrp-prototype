@@ -74,9 +74,9 @@ const EN_TEXT: Record<string, string> = {
   "profile.required":
     "Complete the test profile or use the synthetic profile to continue.",
   "workspace.tell": "Tell us what happened",
-  "workspace.yourInformation": "Your information",
+  "workspace.yourInformation": "What you shared",
   "workspace.intro":
-    "Speak, upload evidence or type. Use whichever is easiest.",
+    "Describe the fraud in your own words. You can speak, type, or add evidence you already have.",
   "workspace.reviewIntro":
     "The statement and evidence used to prepare this report.",
   "workspace.speak": "Speak",
@@ -98,7 +98,7 @@ const EN_TEXT: Record<string, string> = {
   "workspace.whatHappened": "What happened?",
   "workspace.placeholder":
     "I received a message asking me to update my SBI KYC…",
-  "workspace.organise": "Organise report",
+  "workspace.organise": "Prepare my report",
   "workspace.informationShared": "Information you shared",
   "workspace.sampleStatement": "Sample statement",
   "workspace.yourStatement": "Your statement",
@@ -122,9 +122,9 @@ const EN_TEXT: Record<string, string> = {
   "workspace.syntheticEvidence": "Synthetic demo evidence",
   "workspace.approxSeconds": "approximately {seconds} seconds",
   "workspace.changeLanguage": "Change sample narration language",
-  "workspace.reportInfo": "Information for your NCRP report",
+  "workspace.reportInfo": "Report prepared",
   "workspace.reportInfoSupport":
-    "We’ll organise what you share into the details required for the complaint.",
+    "We used what you shared to prepare the structured information below.",
   "workspace.organisingSample":
     "Organising the information from the sample incident…",
   "workspace.readingEvidence": "Reading your evidence…",
@@ -151,13 +151,13 @@ const EN_TEXT: Record<string, string> = {
   "workspace.reviewContinue": "Review & continue",
   "workspace.reviewSubmit": "Review your report",
   "workspace.reviewSupport":
-    "Check the information before submitting this synthetic complaint.",
+    "Check the information below before continuing.",
   "workspace.submitSynthetic": "Submit synthetic complaint",
   "workspace.backEdit": "Back to edit",
   "workspace.noSubmit":
     "This does not submit information to NCRP or any government system.",
-  "workspace.coverage": "NCRP field coverage",
-  "workspace.coverageAction": "View coverage →",
+  "workspace.coverage": "Technical details",
+  "workspace.coverageAction": "View details →",
   "workspace.coverageIntroShort":
     "See how the prepared report maps to the supported NCRP information.",
   "workspace.coverageHeading": "NCRP reporting information",
@@ -167,14 +167,13 @@ const EN_TEXT: Record<string, string> = {
   "workspace.coverageStatus": "Status",
   "workspace.coverageSource": "Source",
   "workspace.structureLabel": "NCRP-compatible prototype complaint structure",
-  "workspace.declaration":
-    "I have reviewed this synthetic complaint and confirm the information shown is correct for the demo.",
+  "workspace.declaration": "I have reviewed this information.",
   "workspace.evidenceMessageType": "Message evidence",
   "workspace.evidenceTransactionType": "Transaction evidence",
   "workspace.view": "View →",
   "workspace.sampleLanguage": "Language",
   "workspace.fullProfile": "View full profile details",
-  "workspace.officialDetails": "View official complaint details",
+  "workspace.officialDetails": "View all prepared information",
   "workspace.informationFound": "Information found",
   "workspace.claimedIssue": "Claimed issue",
   "workspace.transactionFound": "Transaction",
@@ -182,6 +181,7 @@ const EN_TEXT: Record<string, string> = {
   "workspace.fullEvidenceDetails": "View extracted evidence details",
   "workspace.declarationRequired":
     "Confirm the declaration before submitting this synthetic complaint.",
+  "field.remove": "Remove",
   "workspace.whatShared": "What you shared",
   "workspace.reportDetails": "Report details",
   "workspace.saved": "Your statement has been saved.",
@@ -269,7 +269,7 @@ const EN_TEXT: Record<string, string> = {
   "field.needsInput": "Needs your input",
   "field.syntheticSbiAccount": "Synthetic SBI account ending 0024",
   "field.demoNarrative":
-    "Suyash received a message claiming that the KYC for his SBI account needed to be updated. He opened the supplied link and followed the app instructions. At about 7:05 AM on 22 August 2026, ₹40,000 was transferred from his account. He later tried to contact the sender but received no response.",
+    "Asha received a message claiming that the KYC for her SBI account needed to be updated. She opened the supplied link and followed the app instructions. At about 7:05 AM on 22 August 2026, ₹40,000 was transferred from her account. She later tried to contact the sender but received no response.",
   "complaint.registered": "Complaint prepared and registered",
   "complaint.response":
     "This demo shows how a citizen’s voice and evidence can be turned into a structured complaint while keeping the citizen in control of the final review.",

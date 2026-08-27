@@ -26,7 +26,6 @@ import {
   deriveReportCompletion,
   deriveReportGroups,
   type ReportFieldView,
-  type ReportGroupId,
   type ReportGroupView,
 } from "../../presentation/report-details";
 import { formatCurrency } from "../../presentation/format";
@@ -87,6 +86,7 @@ type ReportWorkspaceProps = {
   onStopRecording: () => void;
   onRecordAgain: () => void;
   onScreenshotsChange: (event: ChangeEvent<HTMLInputElement>) => void;
+  onRemoveScreenshot: (index: number) => void;
   onOrganizeReport: () => void;
   onUseDemoIncident: () => void;
   onMissingAnswerChange: (
@@ -117,10 +117,12 @@ function languageLabel(languageCode: string): string {
 function EvidenceRows({
   screenshots,
   isDemoIncident,
+  onRemoveScreenshot,
   compact = false,
 }: {
   screenshots: File[];
   isDemoIncident: boolean;
+  onRemoveScreenshot: (index: number) => void;
   compact?: boolean;
 }) {
   const { t } = useI18n();
@@ -163,13 +165,21 @@ function EvidenceRows({
               </button>
             </li>
           ))
-        : screenshots.map((file) => (
+        : screenshots.map((file, index) => (
             <li
               className="report-source-file-row"
               key={`${file.name}-${file.lastModified}`}
             >
-              <span>{file.name}</span>
-              <strong>{t("workspace.added")}</strong>
+              <span className="evidence-file-icon" aria-hidden="true">▧</span>
+              <span className="evidence-row-copy">
+                <strong>{file.name}</strong>
+                <small>{file.type.replace("image/", "").toUpperCase()}</small>
+              </span>
+              {!compact ? (
+                <button className="text-button" type="button" onClick={() => onRemoveScreenshot(index)}>
+                  {t("field.remove")}
+                </button>
+              ) : null}
             </li>
           ))}
     </ul>
@@ -237,6 +247,7 @@ function SourceSummary({
   recordingSeconds,
   demoNarrationLanguage,
   onDemoNarrationLanguageChange,
+  onRemoveScreenshot,
   compact = false,
 }: Pick<
   ReportWorkspaceProps,
@@ -247,6 +258,7 @@ function SourceSummary({
   | "recordingSeconds"
   | "demoNarrationLanguage"
   | "onDemoNarrationLanguageChange"
+  | "onRemoveScreenshot"
 > & { compact?: boolean }) {
   const { locale, t } = useI18n();
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -399,6 +411,7 @@ function SourceSummary({
       <EvidenceRows
         screenshots={screenshots}
         isDemoIncident={isDemoIncident}
+        onRemoveScreenshot={onRemoveScreenshot}
         compact={compact}
       />
     </div>
@@ -424,159 +437,61 @@ function ReportInputPane(props: ReportWorkspaceProps) {
       </p>
 
       {props.mode !== "REVIEW" && props.experienceMode !== "DEMO_CASE" ? (
-        <>
-          <div
-            className="report-tabs"
-            role="group"
-            aria-label={t("workspace.shareWays")}
-          >
-            {(
-              [
-                ["SPEAK", t("workspace.speak")],
-                ["UPLOAD", t("workspace.upload")],
-                ["TYPE", t("workspace.type")],
-              ] as const
-            ).map(([method, label]) => (
-              <button
-                key={method}
-                id={`report-tab-${method.toLowerCase()}`}
-                className="report-tab"
-                type="button"
-                aria-pressed={props.reportMethod === method}
-                disabled={processing}
-                onClick={() => props.onReportMethodChange(method)}
-              >
-                {label}
-              </button>
-            ))}
+        <div className="incident-composer">
+          <label className="visually-hidden" htmlFor="incident-narrative">
+            {t("workspace.whatHappened")}
+          </label>
+          <textarea
+            id="incident-narrative"
+            rows={8}
+            value={props.narrative}
+            disabled={processing}
+            onChange={(event) => props.onNarrativeChange(event.target.value)}
+            placeholder={t("workspace.placeholder")}
+            maxLength={8000}
+          />
+          <div className="composer-actions">
+            <button
+              className={props.isRecording ? "recording-button recording-button-active" : "recording-button"}
+              type="button"
+              disabled={processing}
+              onClick={props.isRecording ? props.onStopRecording : props.hasAudio ? props.onRecordAgain : props.onStartRecording}
+            >
+              <span aria-hidden="true">●</span>
+              {props.isRecording
+                ? t("workspace.stopRecording")
+                : props.hasAudio
+                  ? t("workspace.recordAgain")
+                  : t("workspace.speak")}
+            </button>
+            <label className="evidence-add-button" htmlFor="incident-screenshots">
+              <span aria-hidden="true">＋</span> {t("workspace.addEvidence")}
+            </label>
+            <input
+              id="incident-screenshots"
+              className="visually-hidden"
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              multiple
+              disabled={processing}
+              onChange={props.onScreenshotsChange}
+            />
+            {props.isRecording || props.hasAudio ? (
+              <span className="recording-time" aria-live="polite">
+                {Math.floor(props.recordingSeconds / 60)}:{String(props.recordingSeconds % 60).padStart(2, "0")} / 2:00
+              </span>
+            ) : null}
           </div>
-
-          {props.reportMethod === "SPEAK" ? (
-            <section
-              className="report-method-panel"
-              aria-labelledby="speak-heading"
-            >
-              <h2 id="speak-heading">{t("workspace.speakLanguage")}</h2>
-              <p>{t("workspace.describeNaturally")}</p>
-              {!props.hasAudio ? (
-                <div className="recording-control">
-                  <button
-                    className={
-                      props.isRecording ? "secondary-button" : "primary-button"
-                    }
-                    type="button"
-                    disabled={processing}
-                    onClick={
-                      props.isRecording
-                        ? props.onStopRecording
-                        : props.onStartRecording
-                    }
-                  >
-                    {props.isRecording ? t("workspace.stopRecording") : t("workspace.startRecording")}
-                  </button>
-                  <span className="recording-time" aria-live="polite">
-                    {Math.floor(props.recordingSeconds / 60)}:
-                    {String(props.recordingSeconds % 60).padStart(2, "0")} /
-                    2:00
-                  </span>
-                  {props.isRecording && props.recordingSeconds >= 105 ? (
-                    <span className="recording-remaining">
-                      {120 - props.recordingSeconds} seconds remaining
-                    </span>
-                  ) : null}
-                </div>
-              ) : (
-                <div className="source-actions">
-                  <button
-                    className="text-button"
-                    type="button"
-                    disabled={processing}
-                    onClick={props.onRecordAgain}
-                  >
-                    {t("workspace.recordAgain")}
-                  </button>
-                  <button
-                    className="text-button"
-                    type="button"
-                    disabled={processing}
-                    onClick={() => props.onReportMethodChange("UPLOAD")}
-                  >
-                    {t("workspace.addEvidence")}
-                  </button>
-                </div>
-              )}
-              <button
-                className="text-button demo-incident-button"
-                type="button"
-                disabled={processing}
-                onClick={props.onUseDemoIncident}
-              >
-                {t("workspace.useDemo")}
-              </button>
-            </section>
-          ) : null}
-
-          {props.reportMethod === "UPLOAD" ? (
-            <section
-              className="report-method-panel"
-              aria-labelledby="upload-heading"
-            >
-              <h2 id="upload-heading">{t("workspace.addEvidence")}</h2>
-              <p>
-                {t("workspace.upload")}: {t("workspace.evidence")}
-              </p>
-              <label className="file-button" htmlFor="incident-screenshots">
-                {t("workspace.chooseScreenshots")}
-              </label>
-              <input
-                id="incident-screenshots"
-                className="visually-hidden"
-                type="file"
-                accept="image/png,image/jpeg,image/webp"
-                multiple
-                disabled={processing}
-                onChange={props.onScreenshotsChange}
-              />
-              <p className="form-hint">{t("workspace.maxImages")}</p>
-              <div className="safety-notice">
-                <p>
-                  {t("workspace.safety")}
-                </p>
-              </div>
-            </section>
-          ) : null}
-
-          {props.reportMethod === "TYPE" ? (
-            <section
-              className="report-method-panel"
-              aria-labelledby="type-heading"
-            >
-              <h2 id="type-heading">{t("workspace.describe")}</h2>
-              <label className="visually-hidden" htmlFor="incident-narrative">
-                {t("workspace.whatHappened")}
-              </label>
-              <textarea
-                id="incident-narrative"
-                rows={7}
-                value={props.narrative}
-                disabled={processing}
-                onChange={(event) =>
-                  props.onNarrativeChange(event.target.value)
-                }
-                placeholder={t("workspace.placeholder")}
-                maxLength={8000}
-              />
-              <button
-                className="primary-button"
-                type="button"
-                disabled={processing || !props.narrative.trim()}
-                onClick={props.onOrganizeReport}
-              >
-                {t("workspace.organise")}
-              </button>
-            </section>
-          ) : null}
-        </>
+          <p className="composer-safety">{t("workspace.safety")}</p>
+          <button
+            className="primary-button prepare-report-button"
+            type="button"
+            disabled={processing || (!props.narrative.trim() && !props.hasAudio && props.screenshots.length === 0)}
+            onClick={props.onOrganizeReport}
+          >
+            {t("workspace.organise")}
+          </button>
+        </div>
       ) : props.mode === "REVIEW" ? (
         <p className="review-source-intro">
           {t("workspace.reviewIntro")}
@@ -591,25 +506,9 @@ function ReportInputPane(props: ReportWorkspaceProps) {
         recordingSeconds={props.recordingSeconds}
         demoNarrationLanguage={props.demoNarrationLanguage}
         onDemoNarrationLanguageChange={props.onDemoNarrationLanguageChange}
+        onRemoveScreenshot={props.onRemoveScreenshot}
         compact={props.mode === "REVIEW"}
       />
-      {props.mode === "REVIEW" && props.identityDocumentProvided ? (
-        <details className="report-source-block compact-source-disclosure identity-document-disclosure">
-          <summary>
-            <span>{t("field.identityDocument")}</span>
-            <strong>✓ {t("field.syntheticIdentity")}</strong>
-          </summary>
-          <Image
-            src="/demo/profile/synthetic-national-id.png"
-            alt={t("field.syntheticIdentity")}
-            width={480}
-            height={480}
-            sizes="(max-width: 800px) calc(100vw - 72px), 380px"
-          />
-          <p className="form-hint">{t("field.fromProfile")}</p>
-        </details>
-      ) : null}
-
       {props.formError && props.mode !== "ERROR" ? (
         <p className="form-error" role="alert">
           {props.formError}
@@ -737,8 +636,6 @@ function ReportFieldRow({
   missingValue,
   onMissingValueChange,
   onSaveMissing,
-  categoryEditing,
-  onCategoryEdit,
   narrativeEditing,
   onNarrativeEdit,
 }: {
@@ -746,8 +643,6 @@ function ReportFieldRow({
   missingValue: string;
   onMissingValueChange: (value: string) => void;
   onSaveMissing: (fallback?: string) => void;
-  categoryEditing: boolean;
-  onCategoryEdit: () => void;
   narrativeEditing: boolean;
   onNarrativeEdit: () => void;
 }) {
@@ -788,15 +683,6 @@ function ReportFieldRow({
       {field.source && showSource ? (
         <p className="report-field-source">{field.source}</p>
       ) : null}
-      {field.id === "category" && !categoryEditing ? (
-        <button
-          className="text-button field-edit-button"
-          type="button"
-          onClick={onCategoryEdit}
-        >
-          {t("field.change")}
-        </button>
-      ) : null}
       {field.kind === "NARRATIVE" && !narrativeEditing ? (
         <button
           className="text-button field-edit-button"
@@ -806,57 +692,6 @@ function ReportFieldRow({
           {t("field.edit")}
         </button>
       ) : null}
-    </div>
-  );
-}
-
-function CategoryEditor({
-  draft,
-  onSave,
-  onCancel,
-}: {
-  draft: IncidentDraft;
-  onSave: (category: string, subcategory: string) => void;
-  onCancel: () => void;
-}) {
-  const { locale, t } = useI18n();
-  const [category, setCategory] = useState(
-    draft.officialMapping.categoryLabel ?? "",
-  );
-  const [subcategory, setSubcategory] = useState(
-    draft.officialMapping.subCategoryLabel ?? "",
-  );
-
-  return (
-    <div className="report-inline-edit" aria-label={locale === "hi" ? "रिपोर्ट की श्रेणी बदलें" : "Change reporting category"}>
-      <div className="form-field">
-        <label htmlFor="category-label">{t("field.category")}</label>
-        <input
-          id="category-label"
-          value={category}
-          onChange={(event) => setCategory(event.target.value)}
-        />
-      </div>
-      <div className="form-field">
-        <label htmlFor="subcategory-label">{t("field.subcategory")}</label>
-        <input
-          id="subcategory-label"
-          value={subcategory}
-          onChange={(event) => setSubcategory(event.target.value)}
-        />
-      </div>
-      <div className="inline-field-actions">
-        <button
-          className="secondary-button"
-          type="button"
-          onClick={() => onSave(category, subcategory)}
-        >
-          {t("field.save")}
-        </button>
-        <button className="text-button" type="button" onClick={onCancel}>
-          {t("field.cancel")}
-        </button>
-      </div>
     </div>
   );
 }
@@ -916,7 +751,6 @@ function ReportGroup({
   onDraftChange: ReportWorkspaceProps["onDraftChange"];
 }) {
   const { locale, t } = useI18n();
-  const [categoryEditing, setCategoryEditing] = useState(false);
   const [narrativeEditing, setNarrativeEditing] = useState(false);
 
   const renderField = (item: ReportFieldView) => (
@@ -936,8 +770,6 @@ function ReportGroup({
         if (item.missingQuestion)
           onSaveMissingAnswer(item.missingQuestion, fallback);
       }}
-      categoryEditing={categoryEditing}
-      onCategoryEdit={() => setCategoryEditing(true)}
       narrativeEditing={narrativeEditing}
       onNarrativeEdit={() => setNarrativeEditing(true)}
     />
@@ -948,24 +780,6 @@ function ReportGroup({
 
   const editors = (
     <>
-      {categoryEditing && group.id === "INCIDENT" ? (
-        <CategoryEditor
-          draft={draft}
-          onCancel={() => setCategoryEditing(false)}
-          onSave={(categoryLabel, subCategoryLabel) => {
-            onDraftChange({
-              ...draft,
-              officialMapping: {
-                ...draft.officialMapping,
-                categoryLabel,
-                subCategoryLabel,
-              },
-            });
-            setCategoryEditing(false);
-          }}
-        />
-      ) : null}
-
       {narrativeEditing && group.id === "INCIDENT" ? (
         <NarrativeEditor
           value={draft.incident.narrative ?? ""}
@@ -1305,6 +1119,7 @@ function ReportReview(props: ReportWorkspaceProps) {
           {t("workspace.backEdit")}
         </button>
       </div>
+      <p className="prototype-submit-note">{t("workspace.noSubmit")}</p>
       {!declarationAccepted ? <p className="form-hint">{t("workspace.declarationRequired")}</p> : null}
     </>
   );
@@ -1315,7 +1130,6 @@ function ReportDetailsPane({
   ...props
 }: ReportWorkspaceProps & { onShowDetails: () => void }) {
   const { locale, t } = useI18n();
-  const [activeGroup, setActiveGroup] = useState<ReportGroupId>("INCIDENT");
   const [pendingMissingFocus, setPendingMissingFocus] =
     useState<MissingQuestion["field"] | null>(null);
   const groups = props.draft
@@ -1348,8 +1162,6 @@ function ReportDetailsPane({
     !props.amountResolution.selectedAmount,
   );
   const requiredMissing = contractMissing.length + (amountConflictMissing ? 1 : 0);
-  const currentGroup =
-    groups.find((group) => group.id === activeGroup) ?? groups[0];
   const firstMissingQuestion = props.draft
     ? deriveMissingQuestions(props.draft)[0]
     : null;
@@ -1386,7 +1198,7 @@ function ReportDetailsPane({
     editor.scrollIntoView({ behavior: "smooth", block: "center" });
     editor.querySelector<HTMLElement>("input, button")?.focus();
     setPendingMissingFocus(null);
-  }, [activeGroup, pendingMissingFocus]);
+  }, [pendingMissingFocus]);
 
   function goToMissingDetail() {
     if (amountConflictMissing) {
@@ -1400,21 +1212,11 @@ function ReportDetailsPane({
       return;
     }
     if (evidenceMissing && !firstMissingQuestion) {
-      props.onReportMethodChange("UPLOAD");
-      document.querySelector<HTMLElement>("#report-tab-upload")?.focus();
+      document.querySelector<HTMLElement>("#incident-screenshots")?.focus();
       return;
     }
     if (!firstMissingQuestion) return;
     onShowDetails();
-    const groupByField: Record<MissingQuestion["field"], ReportGroupId> = {
-      incidentDate: "INCIDENT",
-      incidentDateYear: "INCIDENT",
-      incidentApproximateTime: "INCIDENT",
-      occurredOn: "INCIDENT",
-      institution: "TRANSACTIONS",
-      transactionIdOrUtr: "TRANSACTIONS",
-    };
-    setActiveGroup(groupByField[firstMissingQuestion.field]);
     setPendingMissingFocus(firstMissingQuestion.field);
   }
 
@@ -1516,7 +1318,7 @@ function ReportDetailsPane({
         </div>
       ) : null}
 
-      {props.mode === "READY" && props.draft && completion && currentGroup ? (
+      {props.mode === "READY" && props.draft && completion ? (
         <>
           <div className="report-completion" role="status" aria-live="polite">
             <p>
@@ -1541,36 +1343,24 @@ function ReportDetailsPane({
             ) : null}
           </div>
 
-          <div
-            className="report-detail-tabs"
-            role="group"
-            aria-label={t("workspace.reportInfo")}
-          >
+          <div className="prepared-report-groups">
             {groups.map((group) => (
-              <button
-                key={group.id}
-                type="button"
-                aria-pressed={group.id === currentGroup.id}
-                onClick={() => setActiveGroup(group.id)}
-              >
-                <span>{group.label}</span>
-                <small>
-                  {group.missingCount > 0
-                      ? `${group.missingCount} ${t("workspace.actionNeeded")}`
-                      : `✓ ${t("workspace.complete")}`}
-                </small>
-              </button>
+              <section className="prepared-report-section" key={group.id}>
+                <div className="prepared-section-heading">
+                  <h3>{group.label}</h3>
+                  <span>{group.missingCount > 0 ? `${group.missingCount} ${t("workspace.actionNeeded")}` : `✓ ${t("workspace.complete")}`}</span>
+                </div>
+                <ReportGroup
+                  group={group}
+                  draft={props.draft!}
+                  missingAnswers={props.missingAnswers}
+                  onMissingAnswerChange={props.onMissingAnswerChange}
+                  onSaveMissingAnswer={props.onSaveMissingAnswer}
+                  onDraftChange={props.onDraftChange}
+                />
+              </section>
             ))}
           </div>
-
-          <ReportGroup
-            group={currentGroup}
-            draft={props.draft}
-            missingAnswers={props.missingAnswers}
-            onMissingAnswerChange={props.onMissingAnswerChange}
-            onSaveMissingAnswer={props.onSaveMissingAnswer}
-            onDraftChange={props.onDraftChange}
-          />
 
           {props.amountResolution?.hasConflict ? (
             <section
@@ -1655,24 +1445,6 @@ function ReportDetailsPane({
 }
 
 export function ReportWorkspace(props: ReportWorkspaceProps) {
-  const { t } = useI18n();
-  const [mobilePane, setMobilePane] = useState<"SHARED" | "DETAILS">("SHARED");
-  const [showSavedMessage, setShowSavedMessage] = useState(false);
-
-  useEffect(() => {
-    if (props.draft && props.mode === "READY") {
-      setMobilePane("DETAILS");
-      setShowSavedMessage(true);
-    } else if (
-      props.mode === "PROCESSING" ||
-      props.mode === "ERROR" ||
-      props.mode === "REVIEW"
-    ) {
-      setMobilePane("DETAILS");
-      setShowSavedMessage(false);
-    }
-  }, [props.draft, props.mode]);
-
   return (
     <section
       className="report-workspace-stage section-pad"
@@ -1682,43 +1454,12 @@ export function ReportWorkspace(props: ReportWorkspaceProps) {
       <div className="report-workspace-shell">
         <JourneyProgress current={props.mode === "REVIEW" ? "RESTORE" : "REPORT"} />
         <div
-          className="mobile-report-switch"
-          role="group"
-          aria-label={t("workspace.reportingView")}
-        >
-          <button
-            type="button"
-            aria-pressed={mobilePane === "SHARED"}
-            onClick={() => {
-              setMobilePane("SHARED");
-              setShowSavedMessage(false);
-            }}
-          >
-            {t("workspace.whatShared")}
-          </button>
-          <button
-            type="button"
-            aria-pressed={mobilePane === "DETAILS"}
-            onClick={() => setMobilePane("DETAILS")}
-          >
-            {t("workspace.reportDetails")}
-          </button>
-        </div>
-        {showSavedMessage && mobilePane === "DETAILS" ? (
-          <p className="mobile-saved-message" role="status">
-            {t("workspace.saved")}
-          </p>
-        ) : null}
-        <div
-          className={`report-workspace report-workspace-${props.mode.toLowerCase()} mobile-pane-${mobilePane.toLowerCase()}`}
+          className={`report-workspace report-workspace-${props.mode.toLowerCase()}`}
         >
           <ReportInputPane {...props} />
           <ReportDetailsPane
             {...props}
-            onShowDetails={() => {
-              setMobilePane("DETAILS");
-              setShowSavedMessage(false);
-            }}
+            onShowDetails={() => undefined}
           />
         </div>
       </div>

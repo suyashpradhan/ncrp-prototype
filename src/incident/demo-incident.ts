@@ -41,7 +41,7 @@ export const DEMO_INCIDENT_DRAFT = {
   citizenSummary: {
     incidentLabel: "KYC-related banking fraud",
     shortSummary:
-      "Suyash received a synthetic SBI KYC message, followed its instructions and later found that ₹40,000 had been transferred from his account.",
+      "Asha received a synthetic SBI KYC message, followed its instructions and later found that ₹40,000 had been transferred from her account.",
   },
   officialMapping: {
     category: "FINANCIAL_FRAUD",
@@ -59,7 +59,7 @@ export const DEMO_INCIDENT_DRAFT = {
     delayReason: null,
     occurredOn: "SMS / chat message",
     narrative:
-      "Suyash received a message claiming that the KYC for his SBI account needed to be updated. He opened the supplied link and followed the app instructions. At about 7:05 AM on 22 August 2026, ₹40,000 was transferred from his account. He later tried to contact the sender but received no response.",
+      "Asha received a message claiming that the KYC for her SBI account needed to be updated. She opened the supplied link and followed the app instructions. At about 7:05 AM on 22 August 2026, ₹40,000 was transferred from her account. She later tried to contact the sender but received no response.",
   },
   transactions: [
     {

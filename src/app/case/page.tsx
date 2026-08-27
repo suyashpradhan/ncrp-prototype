@@ -1,10 +1,5 @@
-import type { Metadata } from "next";
-import { CaseOverviewScreen } from "../../components/demo-case/case-overview-screen";
+import { redirect } from "next/navigation";
 
-export const metadata: Metadata = {
-  title: "Financial Resolution",
-};
-
-export default function CasePage() {
-  return <CaseOverviewScreen />;
+export default function RetiredCasePage() {
+  redirect("/");
 }

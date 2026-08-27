@@ -14,12 +14,12 @@ const PROCESS_1_PROVENANCE: Provenance = {
 export const syntheticCase: Case = {
   id: "case-synthetic-investment-001",
   caseOrigin: "DEMO_INCIDENT",
-  syntheticCitizen: { displayName: "Suyash Pradhan" },
+  syntheticCitizen: { displayName: "Asha Verma" },
   fraudType: "INVESTMENT_SCAM",
   reportedIncident: {
     citizenLabel: "Investment scam",
     description:
-      "Suyash received WhatsApp messages offering an investment opportunity and made two payments before the contact stopped responding.",
+      "Asha received WhatsApp messages offering an investment opportunity and made two payments before the contact stopped responding.",
     officialCategoryLabel: "Online Financial Fraud",
     officialSubCategoryLabel: "UPI Related Frauds",
     incidentDate: "2026-08-12",

@@ -61,6 +61,6 @@ export function generateNcrpFields(draft: IncidentDraft): GeneratedNcrpField[] {
       label: "Suspect identifiers",
       value: draft.suspectIdentifiers.map((item) => `${item.type}: ${item.value}`).join("; ") || "Not provided",
     },
-    { label: "Complainant information", value: "Suyash Pradhan · Karnataka · ••••••0024" },
+    { label: "Complainant information", value: "Asha Verma · Karnataka · ••••••0024" },
   ];
 }

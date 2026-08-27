@@ -12,7 +12,7 @@ export default function NotFound() {
         <p className="eyebrow">{m(UI_MESSAGES.notFound.eyebrow)}</p>
         <h1>{m(UI_MESSAGES.notFound.title)}</h1>
         <p>{m(UI_MESSAGES.notFound.body)}</p>
-        <Link className="button-link" href="/case">{m(UI_MESSAGES.common.backToOverview)}</Link>
+        <Link className="button-link" href="/">{m(UI_MESSAGES.common.backToOverview)}</Link>
       </div>
     </section>
   );

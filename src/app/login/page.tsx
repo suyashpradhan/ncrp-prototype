@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
 
-export default function LoginPage() {
-  redirect("/#check-case");
+export default function RetiredLoginPage() {
+  redirect("/");
 }
