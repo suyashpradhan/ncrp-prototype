@@ -157,7 +157,7 @@ describe("AI-assisted incident reporting boundary", () => {
       "DEMO-UTR-40000-220826",
       "98XX XX1234",
       "https://kyc-demo.invalid/update",
-      "Asha Verma",
+      "Suyash Pradhan",
     ]));
   });
 

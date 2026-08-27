@@ -409,7 +409,7 @@ export const CITIZEN_MESSAGES = {
     alreadyCase: message("journey.alreadyCase", "Already have a case?"),
     checkCase: message("journey.checkCase", "Check case"),
     note: message("journey.note", "Independent prototype · Synthetic data"),
-    victim: message("journey.victim", "Asha Verma — synthetic"),
+    victim: message("journey.victim", "Suyash Pradhan — synthetic"),
     progressReport: message("journey.progress.report", "Report"),
     progressTrace: message("journey.progress.trace", "Trace"),
     progressRestore: message("journey.progress.restore", "Restore"),
@@ -418,7 +418,7 @@ export const CITIZEN_MESSAGES = {
     fraudLost: message("journey.fraud.lost", "lost"),
     fraudReported: message(
       "journey.fraud.reported",
-      "Asha reports the financial fraud through NCRP / 1930.",
+      "Suyash reports the financial fraud through NCRP / 1930.",
     ),
     continue: message("journey.continue", "Continue"),
     existingNcrp: message(

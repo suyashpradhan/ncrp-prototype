@@ -368,7 +368,7 @@ export function deriveReportGroups(
           id: "personal-details",
           title: copy("field.personalDetails"),
           fields: [
-            makeField("reporter-name", copy("field.name"), locale === "hi" && profile.displayName === "Asha Verma" ? "आशा वर्मा" : profile.displayName, { source: copy("field.fromProfile") }),
+            makeField("reporter-name", copy("field.name"), profile.displayName, { source: copy("field.fromProfile") }),
             makeField("reporter-mobile", copy("field.registeredMobile"), profile.registeredMobile, { source: copy("field.fromProfile") }),
             makeField("reporter-gender", copy("field.gender"), locale === "hi" && profile.gender === "Female" ? "महिला" : profile.gender, { source: copy("field.fromProfile") }),
             makeField("reporter-dob", copy("field.dateOfBirth"), formatDate(profile.dateOfBirth, locale), { source: copy("field.fromProfile") }),

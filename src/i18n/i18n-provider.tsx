@@ -269,7 +269,7 @@ const EN_TEXT: Record<string, string> = {
   "field.needsInput": "Needs your input",
   "field.syntheticSbiAccount": "Synthetic SBI account ending 0024",
   "field.demoNarrative":
-    "Asha received a message claiming that the KYC for her SBI account needed to be updated. She opened the supplied link and followed the app instructions. At about 7:05 AM on 22 August 2026, ₹40,000 was transferred from her account. She later tried to contact the sender but received no response.",
+    "Suyash received a message claiming that the KYC for his SBI account needed to be updated. He opened the supplied link and followed the app instructions. At about 7:05 AM on 22 August 2026, ₹40,000 was transferred from his account. He later tried to contact the sender but received no response.",
   "complaint.registered": "Complaint prepared and registered",
   "complaint.response":
     "This demo shows how a citizen’s voice and evidence can be turned into a structured complaint while keeping the citizen in control of the final review.",

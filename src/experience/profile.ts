@@ -27,13 +27,13 @@ export type ReporterProfile = {
 
 export const SYNTHETIC_NCRP_PROFILE: ReporterProfile = {
   title: "Ms",
-  displayName: "Asha Verma",
+  displayName: "Suyash Pradhan",
   registeredMobile: "••••••0024",
   gender: "Female",
   dateOfBirth: "1992-04-18",
   parentOrSpouseRelationship: "Father",
   parentOrSpouseName: "Synthetic Parent",
-  email: "asha.demo@example.invalid",
+  email: "suyash.demo@example.invalid",
   relationshipWithVictim: "Self",
   houseNumber: "Demo 24",
   street: "Synthetic Service Road",

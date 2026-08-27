@@ -54,7 +54,7 @@ describe("complaint-to-resolution continuity", () => {
       const submittedAt = "2026-08-26T10:00:00.000Z";
       const built = buildSyntheticCaseFromComplaint({
         incidentDraft: liveDraft(amount),
-        syntheticCitizen: { displayName: "Asha Verma" },
+        syntheticCitizen: { displayName: "Suyash Pradhan" },
         acknowledgementId: "NCRP-DEMO-2026-00124",
         submittedAt,
         caseOrigin: "LIVE_TEST",
