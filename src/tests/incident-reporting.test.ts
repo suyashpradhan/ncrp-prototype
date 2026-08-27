@@ -249,8 +249,8 @@ describe("AI-assisted incident reporting boundary", () => {
   });
 
   it("renders important interface copy independently in English and Hindi", () => {
-    expect(textForLocale("en", "entry.demo")).toBe("Try demo case");
-    expect(textForLocale("hi", "entry.demo")).toBe("डेमो केस देखें");
+    expect(textForLocale("en", "entry.demo")).toBe("Try demo");
+    expect(textForLocale("hi", "entry.demo")).toBe("डेमो देखें");
     expect(textForLocale("hi", "workspace.reviewContinue")).toBe("जाँचें और आगे बढ़ें");
   });
 

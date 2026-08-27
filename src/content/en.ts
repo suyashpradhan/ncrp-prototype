@@ -1,4 +1,5 @@
 import type { FinancialState, LegalOutcomeState } from "../domain/outcomes";
+import { APP_NAME } from "../config/brand";
 import type { ProcessEventType } from "../domain/events";
 import type { FraudType } from "../domain/case";
 import type { Message } from "../domain/messages";
@@ -23,7 +24,7 @@ export const UI_MESSAGES = {
   },
   brand: {
     eyebrow: message("brand.eyebrow", "Independent NCRP experience prototype"),
-    name: message("brand.name", "Financial Cyber Fraud Reporting"),
+    name: message("brand.name", APP_NAME),
   },
   navigation: {
     label: message("navigation.label", "Primary navigation"),

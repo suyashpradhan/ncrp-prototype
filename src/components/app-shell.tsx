@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { appName } from "../config/brand";
 import { UI_MESSAGES } from "../content/en";
 import { useI18n } from "../i18n/i18n-provider";
 
@@ -23,26 +24,41 @@ export function AppShell({ children }: AppShellProps) {
             <Link
               className="brand"
               href="/"
-              aria-label={m(UI_MESSAGES.brand.name)}
+              aria-label={appName(locale)}
             >
-              <span className="brand-mark" aria-hidden="true"><span /></span>
+              <span className="brand-mark" aria-hidden="true">
+                <span />
+              </span>
               <span>
-                <span className="brand-name">{m(UI_MESSAGES.brand.name)}</span>
-                <span className="brand-description">{m(UI_MESSAGES.brand.eyebrow)}</span>
+                <span className="brand-name">{appName(locale)}</span>
+                <span className="brand-description">{t("brand.description")}</span>
+                <span className="brand-support">{t("brand.prototype")}</span>
               </span>
             </Link>
             <div className="header-actions">
-              <div className="language-switch" role="group" aria-label={t("header.languageLabel")}>
-                <button type="button" aria-pressed={locale === "en"} onClick={() => setLocale("en")}>
+              <div
+                className="language-switch"
+                role="group"
+                aria-label={t("header.languageLabel")}
+              >
+                <button
+                  type="button"
+                  aria-pressed={locale === "en"}
+                  onClick={() => setLocale("en")}
+                >
                   {t("language.english")}
                 </button>
                 <span aria-hidden="true">|</span>
-                <button type="button" aria-pressed={locale === "hi"} onClick={() => setLocale("hi")}>
+                <button
+                  type="button"
+                  aria-pressed={locale === "hi"}
+                  onClick={() => setLocale("hi")}
+                >
                   {t("language.hindi")}
                 </button>
               </div>
-              <a className="helpline-block" href="tel:1930" aria-label={`${t("header.helpline")}: 1930`}>
-                <span><strong>1930</strong><small>{t("header.helpline")}<br />{t("header.official")}</small></span>
+              <a className="header-helpline" href="tel:1930" aria-label={`${t("header.helpline")}: 1930`}>
+                1930
               </a>
             </div>
           </div>
@@ -54,8 +70,12 @@ export function AppShell({ children }: AppShellProps) {
       <footer className="site-footer">
         <div className="shell footer-inner">
           <div className="footer-disclosure">
+            <span className="footer-brand">{appName(locale)}</span>
             <p>{m(UI_MESSAGES.footer.guardrail)}</p>
-            <nav className="footer-links" aria-label={t("header.secondaryNavigation")}>
+            <nav
+              className="footer-links"
+              aria-label={t("header.secondaryNavigation")}
+            >
               <Link className="footer-link" href="/about">
                 {m(UI_MESSAGES.footer.aboutLink)}
               </Link>
