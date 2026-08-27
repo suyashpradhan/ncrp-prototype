@@ -85,7 +85,11 @@ function UrgentMoneyGuidance() {
   const { locale } = useI18n();
   return (
     <a className="landing-helpline" href="tel:1930">
-      <span>{locale === "hi" ? "क्या हाल ही में पैसे गए हैं?" : "Lost money recently?"}</span>
+      <span>
+        {locale === "hi"
+          ? "क्या हाल ही में पैसे गए हैं?"
+          : "Lost money recently?"}
+      </span>
       <strong>{locale === "hi" ? "अभी 1930 पर कॉल करें" : "Call 1930"}</strong>
     </a>
   );
@@ -111,13 +115,19 @@ export function DemoJourney() {
   const [audio, setAudio] = useState<Blob | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
-  const [loadingMessage, setLoadingMessage] = useState("workspace.readingEvidence");
+  const [loadingMessage, setLoadingMessage] = useState(
+    "workspace.readingEvidence",
+  );
   const [formError, setFormError] = useState<string | null>(null);
-  const [missingAnswers, setMissingAnswers] = useState<Record<string, string>>({});
+  const [missingAnswers, setMissingAnswers] = useState<Record<string, string>>(
+    {},
+  );
   const [isDemoIncident, setIsDemoIncident] = useState(false);
   const [demoNarrationLanguage, setDemoNarrationLanguage] =
     useState<DemoNarrationLanguage>("hi-IN");
-  const [selectedReportedAmount, setSelectedReportedAmount] = useState<number | null>(null);
+  const [selectedReportedAmount, setSelectedReportedAmount] = useState<
+    number | null
+  >(null);
   const [isTranscriptionError, setIsTranscriptionError] = useState(false);
   const [submittedReference, setSubmittedReference] = useState<string>(
     DEMO_CASE_ACCESS.acknowledgementNumber,
@@ -125,13 +135,19 @@ export function DemoJourney() {
   const recorderRef = useRef<MediaRecorder | null>(null);
   const recorderChunksRef = useRef<Blob[]>([]);
   const recordingStartedAtRef = useRef<number | null>(null);
-  const amountResolution = draft?.classification.reportFamily === "FINANCIAL_FRAUD"
-    ? resolveReportedAmount(draft, selectedReportedAmount)
-    : null;
+  const amountResolution =
+    draft?.classification.reportFamily === "FINANCIAL_FRAUD"
+      ? resolveReportedAmount(draft, selectedReportedAmount)
+      : null;
   const baseProfile = reporterProfile ?? SYNTHETIC_NCRP_PROFILE;
-  const activeProfile = experienceMode === "LIVE_TEST"
-    ? { ...baseProfile, displayName: reporterName.trim(), source: "TEST_INPUT" as const }
-    : baseProfile;
+  const activeProfile =
+    experienceMode === "LIVE_TEST"
+      ? {
+          ...baseProfile,
+          displayName: reporterName.trim(),
+          source: "TEST_INPUT" as const,
+        }
+      : baseProfile;
 
   useEffect(() => {
     if (view !== "ENTRY") {
@@ -146,7 +162,9 @@ export function DemoJourney() {
         const next = current + 1;
         if (next >= 120 && recorderRef.current?.state === "recording") {
           recorderRef.current.stop();
-          recorderRef.current.stream.getTracks().forEach((track) => track.stop());
+          recorderRef.current.stream
+            .getTracks()
+            .forEach((track) => track.stop());
           setIsRecording(false);
         }
         return Math.min(next, 120);
@@ -202,7 +220,9 @@ export function DemoJourney() {
     setFormError(null);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const preferredType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+      const preferredType = MediaRecorder.isTypeSupported(
+        "audio/webm;codecs=opus",
+      )
         ? "audio/webm;codecs=opus"
         : "audio/webm";
       const recorder = new MediaRecorder(stream, { mimeType: preferredType });
@@ -215,7 +235,10 @@ export function DemoJourney() {
           type: recorder.mimeType,
         });
         const startedAt = recordingStartedAtRef.current ?? Date.now();
-        const duration = Math.min(120, Math.max(1, Math.round((Date.now() - startedAt) / 1000)));
+        const duration = Math.min(
+          120,
+          Math.max(1, Math.round((Date.now() - startedAt) / 1000)),
+        );
         recordingStartedAtRef.current = null;
         setRecordingSeconds(duration);
         setAudio(recording);
@@ -254,17 +277,34 @@ export function DemoJourney() {
     setFormError(null);
     const selected = Array.from(event.target.files ?? []);
     if (selected.length + screenshots.length > 2) {
-      setFormError(locale === "hi" ? "अधिकतम दो स्क्रीनशॉट जोड़ें।" : "Add no more than two screenshots.");
+      setFormError(
+        locale === "hi"
+          ? "अधिकतम दो स्क्रीनशॉट जोड़ें।"
+          : "Add no more than two screenshots.",
+      );
       event.target.value = "";
       return;
     }
-    if (selected.some((file) => !["image/png", "image/jpeg", "image/webp"].includes(file.type))) {
-      setFormError(locale === "hi" ? "PNG, JPEG या WebP चित्र जोड़ें।" : "Screenshots must be PNG, JPEG or WebP images.");
+    if (
+      selected.some(
+        (file) =>
+          !["image/png", "image/jpeg", "image/webp"].includes(file.type),
+      )
+    ) {
+      setFormError(
+        locale === "hi"
+          ? "PNG, JPEG या WebP चित्र जोड़ें।"
+          : "Screenshots must be PNG, JPEG or WebP images.",
+      );
       event.target.value = "";
       return;
     }
     if (selected.some((file) => file.size > 8 * 1024 * 1024)) {
-      setFormError(locale === "hi" ? "हर चित्र 8 MB से छोटा होना चाहिए।" : "Each screenshot must be under 8 MB before compression.");
+      setFormError(
+        locale === "hi"
+          ? "हर चित्र 8 MB से छोटा होना चाहिए।"
+          : "Each screenshot must be under 8 MB before compression.",
+      );
       event.target.value = "";
       return;
     }
@@ -289,7 +329,12 @@ export function DemoJourney() {
         body: data,
       });
       const startResult: unknown = await startResponse.json().catch(() => null);
-      if (!startResponse.ok || !startResult || typeof startResult !== "object" || !("jobId" in startResult)) {
+      if (
+        !startResponse.ok ||
+        !startResult ||
+        typeof startResult !== "object" ||
+        !("jobId" in startResult)
+      ) {
         throw new Error("We couldn't transcribe this recording.");
       }
 
@@ -300,12 +345,20 @@ export function DemoJourney() {
           `/api/transcribe-long/status?jobId=${encodeURIComponent(jobId)}`,
           { cache: "no-store" },
         );
-        const statusResult: unknown = await statusResponse.json().catch(() => null);
-        if (!statusResponse.ok || !statusResult || typeof statusResult !== "object") {
+        const statusResult: unknown = await statusResponse
+          .json()
+          .catch(() => null);
+        if (
+          !statusResponse.ok ||
+          !statusResult ||
+          typeof statusResult !== "object"
+        ) {
           throw new Error("We couldn't transcribe this recording.");
         }
-        const status = "status" in statusResult ? String(statusResult.status) : "FAILED";
-        if (status === "FAILED") throw new Error("We couldn't transcribe this recording.");
+        const status =
+          "status" in statusResult ? String(statusResult.status) : "FAILED";
+        if (status === "FAILED")
+          throw new Error("We couldn't transcribe this recording.");
         if (status === "COMPLETED") {
           const resultResponse = await fetch("/api/transcribe-long/result", {
             method: "POST",
@@ -313,14 +366,18 @@ export function DemoJourney() {
             body: JSON.stringify({ jobId }),
           });
           const result: unknown = await resultResponse.json().catch(() => null);
-          if (!resultResponse.ok) throw new Error("We couldn't transcribe this recording.");
+          if (!resultResponse.ok)
+            throw new Error("We couldn't transcribe this recording.");
           return TranscriptionResultSchema.parse(result);
         }
       }
       throw new Error("We couldn't transcribe this recording.");
     }
 
-    const response = await fetch("/api/transcribe", { method: "POST", body: data });
+    const response = await fetch("/api/transcribe", {
+      method: "POST",
+      body: data,
+    });
     const result: unknown = await response.json();
     if (!response.ok) {
       throw new Error(
@@ -342,7 +399,12 @@ export function DemoJourney() {
       document.querySelector<HTMLInputElement>("#reporter-name")?.focus();
       return;
     }
-    if (!narrative.trim() && screenshots.length === 0 && !transcription && !audio) {
+    if (
+      !narrative.trim() &&
+      screenshots.length === 0 &&
+      !transcription &&
+      !audio
+    ) {
       setFormError(
         locale === "hi"
           ? "आगे बढ़ने से पहले बोलें, लिखें या सबूत जोड़ें।"
@@ -353,28 +415,50 @@ export function DemoJourney() {
 
     setFormError(null);
     setIsTranscriptionError(false);
-    setLoadingMessage(audio && !transcription ? "workspace.readingStatement" : "workspace.organisingReport");
+    setLoadingMessage(
+      audio && !transcription
+        ? "workspace.readingStatement"
+        : "workspace.organisingReport",
+    );
     setView("ANALYSING");
     try {
       let preparedTranscription = transcription;
       if (audio && !preparedTranscription) {
-        preparedTranscription = await transcribeRecording(audio, recordingSeconds);
+        preparedTranscription = await transcribeRecording(
+          audio,
+          recordingSeconds,
+        );
         setTranscription(preparedTranscription);
       }
 
       setLoadingMessage("workspace.organisingReport");
       const data = new FormData();
       data.append("narrative", narrative);
-      data.append("englishTranscript", preparedTranscription?.englishTranscript ?? "");
+      data.append(
+        "englishTranscript",
+        preparedTranscription?.englishTranscript ?? "",
+      );
       data.append("reportingFor", "SELF");
-      screenshots.forEach((file) => data.append("screenshots", file, file.name));
-      const response = await fetch("/api/analyze-incident", { method: "POST", body: data });
+      screenshots.forEach((file) =>
+        data.append("screenshots", file, file.name),
+      );
+      const response = await fetch("/api/analyze-incident", {
+        method: "POST",
+        body: data,
+      });
       const result: unknown = await response.json().catch(() => null);
       if (!response.ok) {
-        const serviceMessage = result && typeof result === "object" && "error" in result && typeof result.error === "string"
-          ? result.error
-          : null;
-        throw new Error(serviceMessage ?? "We couldn’t prepare the report. Everything you shared is still here.");
+        const serviceMessage =
+          result &&
+          typeof result === "object" &&
+          "error" in result &&
+          typeof result.error === "string"
+            ? result.error
+            : null;
+        throw new Error(
+          serviceMessage ??
+            "We couldn’t prepare the report. Everything you shared is still here.",
+        );
       }
       setDraft(normalizeIncidentDraft(IncidentDraftSchema.parse(result)));
       setSelectedReportedAmount(null);
@@ -390,7 +474,11 @@ export function DemoJourney() {
     if (!draft) return;
     const answer = fallback ?? missingAnswers[question.field] ?? "";
     if (!answer.trim()) {
-      setFormError(locale === "hi" ? "जानकारी लिखें या बताएं कि यह आपके पास नहीं है।" : "Enter the detail, or choose that you do not have it.");
+      setFormError(
+        locale === "hi"
+          ? "जानकारी लिखें या बताएं कि यह आपके पास नहीं है।"
+          : "Enter the detail, or choose that you do not have it.",
+      );
       return;
     }
     setDraft(applyMissingAnswer(draft, question.field, answer));
@@ -407,7 +495,10 @@ export function DemoJourney() {
           typedNarrative: narrative,
           isDemoIncident,
           screenshotNames: isDemoIncident
-            ? ["Synthetic KYC message screenshot", "Synthetic bank transaction screenshot"]
+            ? [
+                "Synthetic KYC message screenshot",
+                "Synthetic bank transaction screenshot",
+              ]
             : screenshots.map((file) => file.name),
           identityDocumentProvided: true,
         })
@@ -418,7 +509,8 @@ export function DemoJourney() {
       (amountResolution?.hasConflict && !amountResolution.selectedAmount) ||
       !complaint ||
       !requiredComplaintFieldsReady(complaint)
-    ) return;
+    )
+      return;
     setFormError(null);
     setView("REVIEW");
   }
@@ -428,7 +520,10 @@ export function DemoJourney() {
   ) {
     setDraft((current) => {
       if (!current) return current;
-      const classification = applyReportFamily(reportFamily, current.classification);
+      const classification = applyReportFamily(
+        reportFamily,
+        current.classification,
+      );
       return normalizeIncidentDraft({
         ...current,
         classification,
@@ -450,7 +545,9 @@ export function DemoJourney() {
         setView("SUCCESS");
         return;
       }
-      const submittedAt = isDemoIncident ? "2026-08-22T02:30:00.000Z" : new Date().toISOString();
+      const submittedAt = isDemoIncident
+        ? "2026-08-22T02:30:00.000Z"
+        : new Date().toISOString();
       const built = buildSyntheticCaseFromComplaint({
         incidentDraft: draft,
         syntheticCitizen: { displayName: activeProfile.displayName },
@@ -464,7 +561,11 @@ export function DemoJourney() {
       setFormError(null);
       setView("SUCCESS");
     } catch (error) {
-      setFormError(error instanceof Error ? error.message : "Check the report before submitting.");
+      setFormError(
+        error instanceof Error
+          ? error.message
+          : "Check the report before submitting.",
+      );
       setView("ANALYSIS_RESULT");
     }
   }
@@ -478,7 +579,7 @@ export function DemoJourney() {
           <h1>
             {locale === "hi"
               ? "वित्तीय साइबर धोखाधड़ी की रिपोर्ट करें—हर जानकारी खुद भरे बिना।"
-              : "Report financial cyber fraud, without filling everything yourself."}
+              : "Report cyber fraud, without filling everything yourself."}
           </h1>
           <p className="service-entry-support">
             {locale === "hi"
@@ -486,10 +587,18 @@ export function DemoJourney() {
               : "Tell us what happened. We’ll prepare the report for you to review."}
           </p>
           <div className="service-entry-actions">
-            <button className="primary-button" type="button" onClick={startReport}>
+            <button
+              className="primary-button"
+              type="button"
+              onClick={startReport}
+            >
               {locale === "hi" ? "रिपोर्ट शुरू करें" : "Start a report"}
             </button>
-            <button className="secondary-button" type="button" onClick={useDemoIncident}>
+            <button
+              className="secondary-button"
+              type="button"
+              onClick={useDemoIncident}
+            >
               {locale === "hi" ? "डेमो देखें" : "Try demo"}
             </button>
           </div>
@@ -548,10 +657,16 @@ export function DemoJourney() {
         onStopRecording={stopRecording}
         onRecordAgain={recordAgain}
         onScreenshotsChange={(event) => void handleScreenshots(event)}
-        onRemoveScreenshot={(index) => setScreenshots((current) => current.filter((_, itemIndex) => itemIndex !== index))}
+        onRemoveScreenshot={(index) =>
+          setScreenshots((current) =>
+            current.filter((_, itemIndex) => itemIndex !== index),
+          )
+        }
         onOrganizeReport={() => void buildComplaint()}
         onUseDemoIncident={useDemoIncident}
-        onMissingAnswerChange={(field, value) => setMissingAnswers((current) => ({ ...current, [field]: value }))}
+        onMissingAnswerChange={(field, value) =>
+          setMissingAnswers((current) => ({ ...current, [field]: value }))
+        }
         onSaveMissingAnswer={saveMissingAnswer}
         onDraftChange={setDraft}
         onReportedAmountSelect={setSelectedReportedAmount}
@@ -564,21 +679,43 @@ export function DemoJourney() {
     );
   } else {
     content = (
-      <section className="journey-stage section-pad" data-journey-focus tabIndex={-1}>
+      <section
+        className="journey-stage section-pad"
+        data-journey-focus
+        tabIndex={-1}
+      >
         <div className="shell reading-shell complaint-success-content">
-          <span className="success-mark" aria-hidden="true">✓</span>
-          <h1>{locale === "hi" ? "रिपोर्ट सफलतापूर्वक तैयार हुई" : "Report prepared successfully"}</h1>
+          <span className="success-mark" aria-hidden="true">
+            ✓
+          </span>
+          <h1>
+            {locale === "hi"
+              ? "रिपोर्ट सफलतापूर्वक तैयार हुई"
+              : "Report prepared successfully"}
+          </h1>
           <p className="journey-identifier">{submittedReference}</p>
-          <p>{locale === "hi" ? "यह डेमो शिकायत किसी सरकारी सेवा को नहीं भेजी गई।" : "This demo complaint was not sent to a government service."}</p>
+          <p>
+            {locale === "hi"
+              ? "यह डेमो शिकायत किसी सरकारी सेवा को नहीं भेजी गई।"
+              : "This demo complaint was not sent to a government service."}
+          </p>
           <div className="entry-actions">
-            <button className="primary-button" type="button" onClick={() => setView("REVIEW")}>
+            <button
+              className="primary-button"
+              type="button"
+              onClick={() => setView("REVIEW")}
+            >
               {locale === "hi" ? "रिपोर्ट देखें" : "View report"}
             </button>
-            <button className="secondary-button" type="button" onClick={() => {
-              resetDemo();
-              resetInputs();
-              setView("ENTRY");
-            }}>
+            <button
+              className="secondary-button"
+              type="button"
+              onClick={() => {
+                resetDemo();
+                resetInputs();
+                setView("ENTRY");
+              }}
+            >
               {locale === "hi" ? "फिर से शुरू करें" : "Start again"}
             </button>
           </div>

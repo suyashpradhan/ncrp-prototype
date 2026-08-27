@@ -772,7 +772,7 @@ export const CITIZEN_MESSAGES = {
     title: message("how.title", "How this works"),
     intro: message(
       "how.intro",
-      "This prototype helps a citizen report financial cyber fraud, review the information and understand what happens to the money afterwards.",
+      "This prototype helps a citizen report cyber fraud, review the information and understand what happens to the money afterwards.",
     ),
     steps: [
       {
