@@ -108,7 +108,6 @@ function languageLabel(languageCode: string): string {
     "hi-IN": "Hindi",
     "bn-IN": "Bengali",
     "kn-IN": "Kannada",
-    "mr-IN": "Marathi",
     "ta-IN": "Tamil",
     "te-IN": "Telugu",
   };
@@ -1311,9 +1310,14 @@ function ReportReview(props: ReportWorkspaceProps) {
   );
 }
 
-function ReportDetailsPane(props: ReportWorkspaceProps) {
+function ReportDetailsPane({
+  onShowDetails,
+  ...props
+}: ReportWorkspaceProps & { onShowDetails: () => void }) {
   const { locale, t } = useI18n();
   const [activeGroup, setActiveGroup] = useState<ReportGroupId>("INCIDENT");
+  const [pendingMissingFocus, setPendingMissingFocus] =
+    useState<MissingQuestion["field"] | null>(null);
   const groups = props.draft
     ? deriveReportGroups(props.draft, {
         locale,
@@ -1373,8 +1377,20 @@ function ReportDetailsPane(props: ReportWorkspaceProps) {
         ? (locale === "hi" ? `${firstMissingLabel} जोड़ें` : `Add ${firstMissingLabel.toLowerCase()}`)
         : (locale === "hi" ? "बाकी जानकारी पर जाएँ" : "Go to missing detail");
 
+  useEffect(() => {
+    if (!pendingMissingFocus) return;
+    const editor = document.querySelector<HTMLElement>(
+      `[data-missing-field="${pendingMissingFocus}"]`,
+    );
+    if (!editor) return;
+    editor.scrollIntoView({ behavior: "smooth", block: "center" });
+    editor.querySelector<HTMLElement>("input, button")?.focus();
+    setPendingMissingFocus(null);
+  }, [activeGroup, pendingMissingFocus]);
+
   function goToMissingDetail() {
     if (amountConflictMissing) {
+      onShowDetails();
       document
         .querySelector<HTMLElement>("[data-amount-conflict] button")
         ?.focus();
@@ -1389,6 +1405,7 @@ function ReportDetailsPane(props: ReportWorkspaceProps) {
       return;
     }
     if (!firstMissingQuestion) return;
+    onShowDetails();
     const groupByField: Record<MissingQuestion["field"], ReportGroupId> = {
       incidentDate: "INCIDENT",
       incidentDateYear: "INCIDENT",
@@ -1398,13 +1415,7 @@ function ReportDetailsPane(props: ReportWorkspaceProps) {
       transactionIdOrUtr: "TRANSACTIONS",
     };
     setActiveGroup(groupByField[firstMissingQuestion.field]);
-    window.requestAnimationFrame(() => {
-      const editor = document.querySelector<HTMLElement>(
-        `[data-missing-field="${firstMissingQuestion.field}"]`,
-      );
-      editor?.scrollIntoView({ block: "center" });
-      editor?.querySelector<HTMLElement>("input, button")?.focus();
-    });
+    setPendingMissingFocus(firstMissingQuestion.field);
   }
 
   if (props.mode === "REVIEW") {
@@ -1447,7 +1458,7 @@ function ReportDetailsPane(props: ReportWorkspaceProps) {
         >
           <span className="loading-marker" aria-hidden="true" />
           <p>
-            <strong>{props.experienceMode === "DEMO_CASE" ? t("workspace.organisingSample") : props.loadingMessage}</strong>
+            <strong>{props.experienceMode === "DEMO_CASE" ? t("workspace.organisingSample") : t(props.loadingMessage)}</strong>
           </p>
           <div className="report-skeleton" aria-hidden="true">
             <span />
@@ -1702,7 +1713,13 @@ export function ReportWorkspace(props: ReportWorkspaceProps) {
           className={`report-workspace report-workspace-${props.mode.toLowerCase()} mobile-pane-${mobilePane.toLowerCase()}`}
         >
           <ReportInputPane {...props} />
-          <ReportDetailsPane {...props} />
+          <ReportDetailsPane
+            {...props}
+            onShowDetails={() => {
+              setMobilePane("DETAILS");
+              setShowSavedMessage(false);
+            }}
+          />
         </div>
       </div>
     </section>

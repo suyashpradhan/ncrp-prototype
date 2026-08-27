@@ -12,7 +12,7 @@ Financial cyber fraud is stressful and time-sensitive. A reporting experience sh
 
 ## Product structure
 
-The primary Phase 1 journey is deliberately small:
+The primary journey is deliberately small:
 
 1. **Tell us** — speak, upload evidence, or type what happened.
 2. **Review** — inspect the prepared incident, transaction, evidence, and profile information.

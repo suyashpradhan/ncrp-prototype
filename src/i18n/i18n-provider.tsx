@@ -21,8 +21,8 @@ const EN_TEXT: Record<string, string> = {
   "language.hindi": "हिन्दी",
   "header.languageLabel": "Interface language",
   "header.secondaryNavigation": "Secondary navigation",
-  "brand.description": "Financial cyber-fraud reporting",
-  "brand.prototype": "Independent prototype",
+  "brand.description": "National Cyber Reporting Portal",
+  "brand.prototype": "Rethinking NCRP Journey",
   "skip.main": "Skip to main content",
   "entry.context": "Financial cyber fraud reporting",
   "entry.heading": "Start your report",
@@ -47,7 +47,8 @@ const EN_TEXT: Record<string, string> = {
   "entry.stepSpeak": "Speak in your language",
   "entry.stepEvidence": "Upload existing evidence",
   "entry.stepReview": "Type what happened",
-  "entry.principle": "The information needed for the complaint stays structured. You review everything before submission.",
+  "entry.principle":
+    "The information needed for the complaint stays structured. You review everything before submission.",
   "header.helpline": "Cyber fraud helpline",
   "header.official": "Official helpline",
   "journey.report": "Tell us",
@@ -58,21 +59,26 @@ const EN_TEXT: Record<string, string> = {
   "report.forWhom": "Who are you reporting for?",
   "report.myself": "Myself",
   "report.someoneElse": "Someone else",
-  "report.helpingHint": "The affected person should review the information before submission. Keep the person preparing the report separate from the person affected.",
+  "report.helpingHint":
+    "The affected person should review the information before submission. Keep the person preparing the report separate from the person affected.",
   "report.continue": "Continue",
   "profile.heading": "Test profile information",
-  "profile.support": "Use test information only. Do not enter a real identity or mobile number.",
+  "profile.support":
+    "Use test information only. Do not enter a real identity or mobile number.",
   "profile.useSynthetic": "Use synthetic profile",
   "profile.fromSimulated": "From simulated NCRP profile",
   "profile.fromTest": "Test information",
   "profile.name": "Name",
   "profile.state": "State",
   "profile.mobile": "Mobile",
-  "profile.required": "Complete the test profile or use the synthetic profile to continue.",
+  "profile.required":
+    "Complete the test profile or use the synthetic profile to continue.",
   "workspace.tell": "Tell us what happened",
   "workspace.yourInformation": "Your information",
-  "workspace.intro": "Speak, upload evidence or type. Use whichever is easiest.",
-  "workspace.reviewIntro": "The statement and evidence used to prepare this report.",
+  "workspace.intro":
+    "Speak, upload evidence or type. Use whichever is easiest.",
+  "workspace.reviewIntro":
+    "The statement and evidence used to prepare this report.",
   "workspace.speak": "Speak",
   "workspace.upload": "Upload evidence",
   "workspace.type": "Type",
@@ -86,10 +92,12 @@ const EN_TEXT: Record<string, string> = {
   "workspace.useDemo": "Try demo case",
   "workspace.chooseScreenshots": "Choose screenshots",
   "workspace.maxImages": "Maximum 2 images.",
-  "workspace.safety": "Use test information only. Do not upload OTPs, PINs, passwords or CVVs.",
+  "workspace.safety":
+    "Use test information only. Do not upload OTPs, PINs, passwords or CVVs.",
   "workspace.describe": "Describe what happened",
   "workspace.whatHappened": "What happened?",
-  "workspace.placeholder": "I received a message asking me to update my SBI KYC…",
+  "workspace.placeholder":
+    "I received a message asking me to update my SBI KYC…",
   "workspace.organise": "Organise report",
   "workspace.informationShared": "Information you shared",
   "workspace.sampleStatement": "Sample statement",
@@ -115,37 +123,52 @@ const EN_TEXT: Record<string, string> = {
   "workspace.approxSeconds": "approximately {seconds} seconds",
   "workspace.changeLanguage": "Change sample narration language",
   "workspace.reportInfo": "Information for your NCRP report",
-  "workspace.reportInfoSupport": "We’ll organise what you share into the details required for the complaint.",
-  "workspace.organisingSample": "Organising the information from the sample incident…",
-  "workspace.emptyStrong": "Start by speaking, uploading evidence or typing what happened.",
+  "workspace.reportInfoSupport":
+    "We’ll organise what you share into the details required for the complaint.",
+  "workspace.organisingSample":
+    "Organising the information from the sample incident…",
+  "workspace.readingEvidence": "Reading your evidence…",
+  "workspace.readingStatement": "Reading your statement…",
+  "workspace.transcribingLong":
+    "Transcribing your statement… This may take a little longer for longer recordings.",
+  "workspace.organisingReport": "Organising your report…",
+  "workspace.emptyStrong":
+    "Start by speaking, uploading evidence or typing what happened.",
   "workspace.emptyBody": "The required report details will appear here.",
   "workspace.errorHeading": "We couldn’t organise the information",
-  "workspace.inputPreserved": "Your statement and evidence are still available on the left.",
+  "workspace.inputPreserved":
+    "Your statement and evidence are still available on the left.",
   "workspace.tryAgain": "Try again",
   "workspace.shorter": "Record a shorter statement",
   "workspace.typeInstead": "Type instead",
   "workspace.ready": "Report information ready",
-  "workspace.preparedReuse": "Information from your statement, evidence and simulated profile has been reused below.",
+  "workspace.preparedReuse":
+    "Information from your statement, evidence and simulated profile has been reused below.",
   "workspace.detailNeeded": "{count} required details still needed",
   "workspace.fromProfile": "From profile",
   "workspace.complete": "Complete",
   "workspace.actionNeeded": "action needed",
   "workspace.reviewContinue": "Review & continue",
   "workspace.reviewSubmit": "Review your report",
-  "workspace.reviewSupport": "Check the information before submitting this synthetic complaint.",
+  "workspace.reviewSupport":
+    "Check the information before submitting this synthetic complaint.",
   "workspace.submitSynthetic": "Submit synthetic complaint",
   "workspace.backEdit": "Back to edit",
-  "workspace.noSubmit": "This does not submit information to NCRP or any government system.",
+  "workspace.noSubmit":
+    "This does not submit information to NCRP or any government system.",
   "workspace.coverage": "NCRP field coverage",
   "workspace.coverageAction": "View coverage →",
-  "workspace.coverageIntroShort": "See how the prepared report maps to the supported NCRP information.",
+  "workspace.coverageIntroShort":
+    "See how the prepared report maps to the supported NCRP information.",
   "workspace.coverageHeading": "NCRP reporting information",
-  "workspace.coverageIntro": "Required information prepared for this supported prototype complaint path.",
+  "workspace.coverageIntro":
+    "Required information prepared for this supported prototype complaint path.",
   "workspace.coverageInformation": "Required information",
   "workspace.coverageStatus": "Status",
   "workspace.coverageSource": "Source",
   "workspace.structureLabel": "NCRP-compatible prototype complaint structure",
-  "workspace.declaration": "I have reviewed this synthetic complaint and confirm the information shown is correct for the demo.",
+  "workspace.declaration":
+    "I have reviewed this synthetic complaint and confirm the information shown is correct for the demo.",
   "workspace.evidenceMessageType": "Message evidence",
   "workspace.evidenceTransactionType": "Transaction evidence",
   "workspace.view": "View →",
@@ -157,7 +180,8 @@ const EN_TEXT: Record<string, string> = {
   "workspace.transactionFound": "Transaction",
   "workspace.evidenceItems": "{count} synthetic evidence items",
   "workspace.fullEvidenceDetails": "View extracted evidence details",
-  "workspace.declarationRequired": "Confirm the declaration before submitting this synthetic complaint.",
+  "workspace.declarationRequired":
+    "Confirm the declaration before submitting this synthetic complaint.",
   "workspace.whatShared": "What you shared",
   "workspace.reportDetails": "Report details",
   "workspace.saved": "Your statement has been saved.",
@@ -244,15 +268,20 @@ const EN_TEXT: Record<string, string> = {
   "field.ready": "Ready",
   "field.needsInput": "Needs your input",
   "field.syntheticSbiAccount": "Synthetic SBI account ending 0024",
-  "field.demoNarrative": "Asha received a message claiming that the KYC for her SBI account needed to be updated. She opened the supplied link and followed the app instructions. At about 7:05 AM on 22 August 2026, ₹40,000 was transferred from her account. She later tried to contact the sender but received no response.",
+  "field.demoNarrative":
+    "Asha received a message claiming that the KYC for her SBI account needed to be updated. She opened the supplied link and followed the app instructions. At about 7:05 AM on 22 August 2026, ₹40,000 was transferred from her account. She later tried to contact the sender but received no response.",
   "complaint.registered": "Complaint prepared and registered",
-  "complaint.response": "This demo shows how a citizen’s voice and evidence can be turned into a structured complaint while keeping the citizen in control of the final review.",
-  "complaint.noGovernment": "No government system is connected. All information is synthetic.",
+  "complaint.response":
+    "This demo shows how a citizen’s voice and evidence can be turned into a structured complaint while keeping the citizen in control of the final review.",
+  "complaint.noGovernment":
+    "No government system is connected. All information is synthetic.",
   "complaint.startAnother": "Start another demo",
   "complaint.viewPrepared": "View how the report was prepared",
   "complaint.next": "What happens next?",
-  "complaint.nextBody": "Banks and law-enforcement agencies may act on the financial trail connected to the complaint.",
-  "complaint.demoAdvance": "For this demo, we’ll move to a later stage where part of the reported amount is recorded as held and can enter the Money Restoration journey.",
+  "complaint.nextBody":
+    "Banks and law-enforcement agencies may act on the financial trail connected to the complaint.",
+  "complaint.demoAdvance":
+    "For this demo, we’ll move to a later stage where part of the reported amount is recorded as held and can enter the Money Restoration journey.",
   "complaint.continueRestoration": "Continue to Money Restoration",
   "mrm.existing": "Existing government stage · simplified for this prototype",
   "mrm.title": "Money Restoration Module",
@@ -265,8 +294,10 @@ const EN_TEXT: Record<string, string> = {
   "mrm.ready": "Ready",
   "mrm.submit": "Submit synthetic restoration request",
   "mrm.submitted": "Restoration request submitted",
-  "mrm.response": "This synthetic request represents the existing government restoration stage in simplified form.",
-  "mrm.split": "Different portions of the reported amount can now be in different recorded states across banks and police processes.",
+  "mrm.response":
+    "This synthetic request represents the existing government restoration stage in simplified form.",
+  "mrm.split":
+    "Different portions of the reported amount can now be in different recorded states across banks and police processes.",
   "mrm.questions": "This prototype explores a clearer way to answer:",
   "mrm.where": "Where is my money?",
   "mrm.who": "Who needs to act next?",
@@ -281,19 +312,24 @@ const EN_TEXT: Record<string, string> = {
   "case.cash": "Cash withdrawal recorded",
   "case.notSecured": "Not currently secured",
   "detail.primaryCash": "A cash withdrawal is recorded.",
-  "detail.primaryNotHeld": "This amount is not currently recorded as held by a financial institution.",
-  "detail.primaryReceived": "The amount has been credited under the recorded process.",
-  "detail.primaryBank": "The required direction has already been received by the bank.",
+  "detail.primaryNotHeld":
+    "This amount is not currently recorded as held by a financial institution.",
+  "detail.primaryReceived":
+    "The amount has been credited under the recorded process.",
+  "detail.primaryBank":
+    "The required direction has already been received by the bank.",
   "detail.account": "Synthetic account",
   "detail.outcomes": "Recorded outcomes",
   "detail.received": "{amount} received",
   "detail.cashHeld": "{amount} put on hold",
   "detail.cashWithdrawal": "Cash withdrawal recorded",
   "detail.day": "Day {day}",
-  "detail.bankClock": "The recorded bank process requires action within {days} calendar days after receiving the direction.",
+  "detail.bankClock":
+    "The recorded bank process requires action within {days} calendar days after receiving the direction.",
   "detail.processClock": "Recorded process window: {days} calendar days",
   "detail.currentCase": "Current synthetic case: {day}",
-  "detail.overdue": "This step is currently {days} days beyond its recorded process window.",
+  "detail.overdue":
+    "This step is currently {days} days beyond its recorded process window.",
   "detail.currentActorIo": "Investigating Officer",
   "detail.currentActorBank": "Bank",
   "detail.currentActorPolice": "Police",
@@ -305,17 +341,23 @@ const EN_TEXT: Record<string, string> = {
   "history.current": "Current",
   "demo.control": "Demo mode",
   "demo.reset": "Reset demo",
-  "about.profile": "In a live NCRP implementation, verified citizen details could come from the existing authenticated NCRP profile. This prototype uses synthetic profile information and does not authenticate users.",
-  "about.phase1Title": "Phase 1 scope",
-  "about.phase1Body": "Phase 1 focuses on the NCRP reporting experience. Financial response and Money Restoration are separate downstream government processes and are outside this submission’s primary reporting flow.",
-  "about.phase1Principle": "The prototype preserves the need for structured and complete information while exploring a lower-effort way for citizens to provide it.",
+  "about.profile":
+    "In a live NCRP implementation, verified citizen details could come from the existing authenticated NCRP profile. This prototype uses synthetic profile information and does not authenticate users.",
+  "about.phase1Title": "Scope",
+  "about.phase1Body":
+    "The prototype focuses on the NCRP reporting experience. Financial response and Money Restoration are separate downstream government processes and are outside this submission’s primary reporting flow.",
+  "about.phase1Principle":
+    "The prototype preserves the need for structured and complete information while exploring a lower-effort way for citizens to provide it.",
   "how.title": "How this works",
   "how.oneTitle": "1. Share what happened",
-  "how.oneBody": "The citizen speaks, adds synthetic evidence or types a description in the redesigned reporting workspace.",
+  "how.oneBody":
+    "The citizen speaks, adds synthetic evidence or types a description in the redesigned reporting workspace.",
   "how.twoTitle": "2. Prepare the NCRP reporting information",
-  "how.twoBody": "The prototype structures supported information and asks the citizen only for required details that are still missing.",
+  "how.twoBody":
+    "The prototype structures supported information and asks the citizen only for required details that are still missing.",
   "how.threeTitle": "3. Verify the complete complaint",
-  "how.threeBody": "The citizen reviews the NCRP-compatible prototype complaint structure, inspects field coverage and accepts the synthetic declaration before submission.",
+  "how.threeBody":
+    "The citizen reviews the NCRP-compatible prototype complaint structure, inspects field coverage and accepts the synthetic declaration before submission.",
 };
 
 export function textForLocale(
@@ -337,10 +379,15 @@ type I18nContextValue = {
 
 const I18nContext = createContext<I18nContextValue | null>(null);
 
-function interpolate(template: string, values?: Record<string, I18nValue>): string {
+function interpolate(
+  template: string,
+  values?: Record<string, I18nValue>,
+): string {
   if (!values) return template;
   return template.replace(/\{([^}]+)\}/g, (_, key: string) =>
-    Object.prototype.hasOwnProperty.call(values, key) ? String(values[key]) : `{${key}}`,
+    Object.prototype.hasOwnProperty.call(values, key)
+      ? String(values[key])
+      : `{${key}}`,
   );
 }
 
@@ -377,7 +424,10 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     [locale],
   );
 
-  const value = useMemo(() => ({ locale, setLocale, t, m }), [locale, setLocale, t, m]);
+  const value = useMemo(
+    () => ({ locale, setLocale, t, m }),
+    [locale, setLocale, t, m],
+  );
   return <I18nContext value={value}>{children}</I18nContext>;
 }
 

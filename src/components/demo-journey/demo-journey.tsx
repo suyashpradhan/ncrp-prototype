@@ -158,7 +158,7 @@ export function DemoJourney() {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [loadingMessage, setLoadingMessage] = useState(
-    "Reading your evidence…",
+    "workspace.readingEvidence",
   );
   const [formError, setFormError] = useState<string | null>(null);
   const [missingAnswers, setMissingAnswers] = useState<Record<string, string>>(
@@ -250,7 +250,7 @@ export function DemoJourney() {
     setMissingAnswers({});
     setIsDemoIncident(true);
     setIdentityDocumentProvided(true);
-    setLoadingMessage(t("workspace.organisingSample"));
+    setLoadingMessage("workspace.organisingSample");
     setView("ANALYSING");
     window.setTimeout(() => {
       setDraft(structuredClone(DEMO_INCIDENT_DRAFT));
@@ -378,7 +378,7 @@ export function DemoJourney() {
 
     if (durationSeconds > 30) {
       setLoadingMessage(
-        "Transcribing your statement… This may take a little longer for longer recordings.",
+        "workspace.transcribingLong",
       );
       const startResponse = await fetch("/api/transcribe-long/start", {
         method: "POST",
@@ -470,8 +470,8 @@ export function DemoJourney() {
     setIsDemoIncident(false);
     setLoadingMessage(
       recording && !transcription
-        ? "Reading your statement…"
-        : "Organising your report…",
+        ? "workspace.readingStatement"
+        : "workspace.organisingReport",
     );
     setView("ANALYSING");
     try {
@@ -484,7 +484,7 @@ export function DemoJourney() {
         setTranscription(preparedTranscription);
       }
 
-      setLoadingMessage("Organising your report…");
+      setLoadingMessage("workspace.organisingReport");
       const data = new FormData();
       data.append("narrative", narrative);
       data.append(

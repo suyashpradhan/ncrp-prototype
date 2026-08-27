@@ -175,8 +175,8 @@ describe("AI-assisted incident reporting boundary", () => {
     expect(built.caseData.moneyPaths.reduce((sum, path) => sum + path.amount, 0)).toBe(40_000);
   });
 
-  it("keeps Hindi, Marathi and English sample narration on one canonical incident", () => {
-    expect(Object.keys(DEMO_NARRATIONS)).toEqual(["hi-IN", "mr-IN", "en-IN"]);
+  it("keeps Hindi and English sample narration on one canonical incident", () => {
+    expect(Object.keys(DEMO_NARRATIONS)).toEqual(["hi-IN", "en-IN"]);
     expect(new Set(Object.values(DEMO_NARRATIONS).map((item) => item.englishTranscript)).size).toBe(1);
     expect(DEMO_INCIDENT_DRAFT.incident.reportedAmount).toBe(40_000);
 

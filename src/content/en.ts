@@ -230,7 +230,7 @@ export const UI_MESSAGES = {
     ),
     conciseIntro: message(
       "about.conciseIntro",
-      "This Phase 1 prototype explores a simpler way for a citizen to prepare, review and submit structured financial-cyber-fraud complaint information.",
+      "This prototype explores a simpler way for a citizen to prepare, review and submit structured financial-cyber-fraud complaint information.",
     ),
     noLiveSystem: message(
       "about.noLiveSystem",
@@ -521,10 +521,7 @@ export const CITIZEN_MESSAGES = {
       "journey.mrm.response",
       "Your synthetic restoration request has been recorded. It can now move through police, banks and other recorded procedural steps.",
     ),
-    seeWhatHappens: message(
-      "journey.mrm.next",
-      "See what happens next",
-    ),
+    seeWhatHappens: message("journey.mrm.next", "See what happens next"),
     afterRestoration: message(
       "journey.handoff.title",
       "After requesting restoration",
@@ -587,10 +584,7 @@ export const CITIZEN_MESSAGES = {
       "case.nowIntro",
       "Different portions of your reported amount are currently in different situations.",
     ),
-    standingTitle: message(
-      "case.standingTitle",
-      "Where each amount stands",
-    ),
+    standingTitle: message("case.standingTitle", "Where each amount stands"),
     needToDo: message("case.needToDo", "You need to do"),
     seeDetails: message("case.seeDetails", "View details"),
     whatMeans: message("case.whatMeans", "What does this mean?"),
@@ -598,10 +592,7 @@ export const CITIZEN_MESSAGES = {
       "case.reconciliationLabel",
       "Where your money stands",
     ),
-    proposedView: message(
-      "case.proposedView",
-      "Proposed citizen experience",
-    ),
+    proposedView: message("case.proposedView", "Proposed citizen experience"),
     restorationRequest: message(
       "case.restorationRequest",
       "Money Restoration request",
@@ -631,10 +622,7 @@ export const CITIZEN_MESSAGES = {
       "amount.bankExplanation",
       "The bank has received the recorded restoration direction.",
     ),
-    exitedTitle: message(
-      "amount.exitedTitle",
-      "Cash withdrawal recorded",
-    ),
+    exitedTitle: message("amount.exitedTitle", "Cash withdrawal recorded"),
     exitedExplanation: message(
       "amount.exitedExplanation",
       "This amount is no longer recorded inside the active bank-restoration process.",

@@ -1,6 +1,6 @@
 import { IncidentDraftSchema, type IncidentDraft, type TranscriptionResult } from "./schema";
 
-export type DemoNarrationLanguage = "hi-IN" | "mr-IN" | "en-IN";
+export type DemoNarrationLanguage = "hi-IN" | "en-IN";
 
 export type DemoNarration = TranscriptionResult & {
   label: string;
@@ -18,17 +18,6 @@ export const DEMO_NARRATIONS: Record<DemoNarrationLanguage, DemoNarration> = {
     languageCode: "hi-IN",
     originalTranscript:
       "मुझे एसबीआई केवाईसी अपडेट करने का एक मैसेज आया था। मैंने उसमें दिए लिंक को खोला और ऐप के निर्देश माने। इसके बाद 22 अगस्त की सुबह लगभग सात बजे मेरे खाते से चालीस हजार रुपये निकल गए। बाद में मैंने उस नंबर पर संपर्क करने की कोशिश की, लेकिन कोई जवाब नहीं मिला।",
-    englishTranscript:
-      "I received a message asking me to update my SBI KYC. I opened the link and followed the app instructions. At about 7 AM on 22 August, ₹40,000 was transferred from my account. I tried contacting the number afterward but received no response.",
-  },
-  "mr-IN": {
-    label: "Marathi",
-    nativeLabel: "मराठी",
-    audioPath: "/demo/audio/kyc-fraud-mr.mp3",
-    durationSeconds: 25,
-    languageCode: "mr-IN",
-    originalTranscript:
-      "मला एसबीआय केवायसी अपडेट करण्यासाठी एक मेसेज आला होता. मी त्यातील लिंक उघडली आणि अॅपमधील सूचना पाळल्या. त्यानंतर 22 ऑगस्ट रोजी सकाळी सुमारे सात वाजता माझ्या खात्यातून चाळीस हजार रुपये गेले. नंतर त्या नंबरवर संपर्क करण्याचा प्रयत्न केला, पण उत्तर मिळाले नाही.",
     englishTranscript:
       "I received a message asking me to update my SBI KYC. I opened the link and followed the app instructions. At about 7 AM on 22 August, ₹40,000 was transferred from my account. I tried contacting the number afterward but received no response.",
   },
