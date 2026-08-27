@@ -125,6 +125,22 @@ describe("AI-assisted incident reporting boundary", () => {
     );
   });
 
+  it("renders a focusable missing editor for a missing transaction date", () => {
+    const missingDate = IncidentDraftSchema.parse({
+      ...DEMO_INCIDENT_DRAFT,
+      transactions: [
+        { ...DEMO_INCIDENT_DRAFT.transactions[0], transactionDate: null },
+      ],
+    });
+    const dateField = deriveReportGroups(missingDate)
+      .find((group) => group.id === "TRANSACTIONS")
+      ?.sections.flatMap((section) => section.fields)
+      .find((field) => field.id === "transaction-0-date");
+
+    expect(deriveMissingQuestions(missingDate).map((question) => question.field)).toContain("transactionDate");
+    expect(dateField?.missingQuestion?.field).toBe("transactionDate");
+  });
+
   it("normalizes the structured incident channel without copying long evidence text", () => {
     const draft = IncidentDraftSchema.parse({
       ...DEMO_INCIDENT_DRAFT,

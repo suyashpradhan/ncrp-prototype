@@ -36,7 +36,10 @@ import {
   type TranscriptionResult,
 } from "../../incident/schema";
 import { applyReportFamily } from "../../incident/classification";
-import { SYNTHETIC_NCRP_PROFILE } from "../../experience/profile";
+import {
+  SYNTHETIC_NCRP_PROFILE,
+  createEmptyTestProfile,
+} from "../../experience/profile";
 import { useI18n } from "../../i18n/i18n-provider";
 import { DEMO_CASE_ACCESS, useDemoCase } from "../demo-case/demo-case-provider";
 import {
@@ -101,6 +104,7 @@ export function DemoJourney() {
   const [reportMethod, setReportMethod] = useState<ReportMethod>("TYPE");
   const [draft, setDraft] = useState<IncidentDraft | null>(null);
   const [narrative, setNarrative] = useState("");
+  const [reporterName, setReporterName] = useState("");
   const [screenshots, setScreenshots] = useState<File[]>([]);
   const [transcription, setTranscription] =
     useState<TranscriptionResult | null>(null);
@@ -124,7 +128,10 @@ export function DemoJourney() {
   const amountResolution = draft?.classification.reportFamily === "FINANCIAL_FRAUD"
     ? resolveReportedAmount(draft, selectedReportedAmount)
     : null;
-  const activeProfile = reporterProfile ?? SYNTHETIC_NCRP_PROFILE;
+  const baseProfile = reporterProfile ?? SYNTHETIC_NCRP_PROFILE;
+  const activeProfile = experienceMode === "LIVE_TEST"
+    ? { ...baseProfile, displayName: reporterName.trim(), source: "TEST_INPUT" as const }
+    : baseProfile;
 
   useEffect(() => {
     if (view !== "ENTRY") {
@@ -151,6 +158,7 @@ export function DemoJourney() {
   function resetInputs() {
     setDraft(null);
     setNarrative("");
+    setReporterName("");
     setScreenshots([]);
     setAudio(null);
     setTranscription(null);
@@ -167,7 +175,7 @@ export function DemoJourney() {
   function startReport() {
     resetDemo();
     resetInputs();
-    beginExperience("LIVE_TEST", SYNTHETIC_NCRP_PROFILE);
+    beginExperience("LIVE_TEST", createEmptyTestProfile());
     setView("REPORT_INPUT");
   }
 
@@ -325,6 +333,15 @@ export function DemoJourney() {
   }
 
   async function buildComplaint() {
+    if (experienceMode === "LIVE_TEST" && !reporterName.trim()) {
+      setFormError(
+        locale === "hi"
+          ? "आगे बढ़ने से पहले अपना टेस्ट नाम लिखें।"
+          : "Enter your test name before continuing.",
+      );
+      document.querySelector<HTMLInputElement>("#reporter-name")?.focus();
+      return;
+    }
     if (!narrative.trim() && screenshots.length === 0 && !transcription && !audio) {
       setFormError(
         locale === "hi"
@@ -507,6 +524,7 @@ export function DemoJourney() {
         mode={mode}
         reportMethod={reportMethod}
         narrative={narrative}
+        reporterName={reporterName}
         screenshots={screenshots}
         transcription={transcription}
         hasAudio={Boolean(audio)}
@@ -525,6 +543,7 @@ export function DemoJourney() {
         amountResolution={amountResolution}
         onReportMethodChange={setReportMethod}
         onNarrativeChange={setNarrative}
+        onReporterNameChange={setReporterName}
         onStartRecording={() => void startRecording()}
         onStopRecording={stopRecording}
         onRecordAgain={recordAgain}

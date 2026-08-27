@@ -42,6 +42,16 @@ describe("frozen Sachet reporting journey", () => {
     expect(source).toContain("Report prepared successfully");
   });
 
+  it("asks for a test name on live reports while keeping Asha in the demo", () => {
+    const source = readFileSync(
+      new URL("../components/demo-journey/demo-journey.tsx", import.meta.url),
+      "utf8",
+    );
+    expect(source).toContain('beginExperience("LIVE_TEST", createEmptyTestProfile())');
+    expect(source).toContain('beginExperience("DEMO_CASE", SYNTHETIC_NCRP_PROFILE)');
+    expect(source).toContain("reporterName={reporterName}");
+  });
+
   it("redirects retired public routes to the reporting entry", () => {
     for (const path of [
       "../app/case/page.tsx",

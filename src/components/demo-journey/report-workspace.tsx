@@ -6,7 +6,11 @@ import {
   deriveMissingQuestions,
   type MissingQuestion,
 } from "../../incident/missing-information";
-import type { IncidentDraft, ReportFamily, TranscriptionResult } from "../../incident/schema";
+import type {
+  IncidentDraft,
+  ReportFamily,
+  TranscriptionResult,
+} from "../../incident/schema";
 import {
   DEMO_NARRATIONS,
   type DemoNarrationLanguage,
@@ -65,6 +69,7 @@ type ReportWorkspaceProps = {
   mode: ReportWorkspaceMode;
   reportMethod: ReportMethod;
   narrative: string;
+  reporterName: string;
   screenshots: File[];
   transcription: TranscriptionResult | null;
   hasAudio: boolean;
@@ -83,6 +88,7 @@ type ReportWorkspaceProps = {
   amountResolution: ReportedAmountResolution | null;
   onReportMethodChange: (method: ReportMethod) => void;
   onNarrativeChange: (value: string) => void;
+  onReporterNameChange: (value: string) => void;
   onStartRecording: () => void;
   onStopRecording: () => void;
   onRecordAgain: () => void;
@@ -130,7 +136,9 @@ function EvidenceRows({
   compact?: boolean;
 }) {
   const { t } = useI18n();
-  const [activeDemoEvidence, setActiveDemoEvidence] = useState<(typeof DEMO_EVIDENCE)[number] | null>(null);
+  const [activeDemoEvidence, setActiveDemoEvidence] = useState<
+    (typeof DEMO_EVIDENCE)[number] | null
+  >(null);
   const dialogRef = useRef<HTMLDialogElement | null>(null);
 
   useEffect(() => {
@@ -160,12 +168,20 @@ function EvidenceRows({
                 aria-label={`${t("workspace.openEvidence")}: ${t(item.labelKey)}`}
                 onClick={() => setActiveDemoEvidence(item)}
               >
-                <Image src={item.src} alt="" width={72} height={54} sizes="72px" />
+                <Image
+                  src={item.src}
+                  alt=""
+                  width={72}
+                  height={54}
+                  sizes="72px"
+                />
                 <span className="evidence-row-copy">
                   <strong>{t(item.labelKey)}</strong>
                   <small>{t(item.typeKey)}</small>
                 </span>
-                <span className="evidence-row-action">{t("workspace.view")}</span>
+                <span className="evidence-row-action">
+                  {t("workspace.view")}
+                </span>
               </button>
             </li>
           ))
@@ -174,13 +190,19 @@ function EvidenceRows({
               className="report-source-file-row"
               key={`${file.name}-${file.lastModified}`}
             >
-              <span className="evidence-file-icon" aria-hidden="true">▧</span>
+              <span className="evidence-file-icon" aria-hidden="true">
+                ▧
+              </span>
               <span className="evidence-row-copy">
                 <strong>{file.name}</strong>
                 <small>{file.type.replace("image/", "").toUpperCase()}</small>
               </span>
               {!compact ? (
-                <button className="text-button" type="button" onClick={() => onRemoveScreenshot(index)}>
+                <button
+                  className="text-button"
+                  type="button"
+                  onClick={() => onRemoveScreenshot(index)}
+                >
                   {t("field.remove")}
                 </button>
               ) : null}
@@ -207,7 +229,12 @@ function EvidenceRows({
           <small>{t("workspace.syntheticEvidence")}</small>
           <strong>{t(activeDemoEvidence.labelKey)}</strong>
         </div>
-        <button type="button" className="secondary-button" onClick={closeEvidence} autoFocus>
+        <button
+          type="button"
+          className="secondary-button"
+          onClick={closeEvidence}
+          autoFocus
+        >
           {t("workspace.closeEvidence")}
         </button>
       </div>
@@ -226,7 +253,9 @@ function EvidenceRows({
       <details className="report-source-block compact-source-disclosure">
         <summary>
           <span>{t("workspace.evidence")}</span>
-          <strong>{evidenceCount} {t("workspace.screenshots")}</strong>
+          <strong>
+            {evidenceCount} {t("workspace.screenshots")}
+          </strong>
         </summary>
         {rows}
         {preview}
@@ -271,9 +300,9 @@ function SourceSummary({
   const showWrittenStatement =
     narrative.trim() && (isDemoIncident || !transcription);
   const displayedNarrative = isDemoIncident
-    ? (locale === "hi"
-        ? "मुझे एसबीआई केवाईसी अपडेट करने का संदेश मिला। मैंने निर्देश माने और बाद में मेरे खाते से ₹40,000 ट्रांसफर हो गए।"
-        : narrative)
+    ? locale === "hi"
+      ? "मुझे एसबीआई केवाईसी अपडेट करने का संदेश मिला। मैंने निर्देश माने और बाद में मेरे खाते से ₹40,000 ट्रांसफर हो गए।"
+      : narrative
     : narrative;
   const demoNarration = DEMO_NARRATIONS[demoNarrationLanguage];
 
@@ -287,14 +316,20 @@ function SourceSummary({
     `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, "0")}`;
 
   return (
-    <div className="report-sources" aria-label={t("workspace.informationShared")}>
+    <div
+      className="report-sources"
+      aria-label={t("workspace.informationShared")}
+    >
       {isDemoIncident ? (
         <div className="report-source-block demo-narration-block">
           <div className="demo-narration-heading">
             <div>
               <h3>{t("workspace.sampleNarration")}</h3>
               <p className="source-meta">
-                {demoNarration.nativeLabel} · {t("workspace.approxSeconds", { seconds: demoNarration.durationSeconds })}
+                {demoNarration.nativeLabel} ·{" "}
+                {t("workspace.approxSeconds", {
+                  seconds: demoNarration.durationSeconds,
+                })}
               </p>
             </div>
             <button
@@ -307,9 +342,12 @@ function SourceSummary({
                 else player.pause();
               }}
             >
-              {isPlaying ? t("workspace.pauseSample") : t("workspace.playSample")}
+              {isPlaying
+                ? t("workspace.pauseSample")
+                : t("workspace.playSample")}
               <span className="audio-progress" aria-hidden="true">
-                {formatPlayback(playbackSeconds)} / {formatPlayback(demoNarration.durationSeconds)}
+                {formatPlayback(playbackSeconds)} /{" "}
+                {formatPlayback(demoNarration.durationSeconds)}
               </span>
             </button>
           </div>
@@ -320,20 +358,28 @@ function SourceSummary({
             onPlay={() => setIsPlaying(true)}
             onPause={() => setIsPlaying(false)}
             onEnded={() => setIsPlaying(false)}
-            onTimeUpdate={(event) => setPlaybackSeconds(event.currentTarget.currentTime)}
+            onTimeUpdate={(event) =>
+              setPlaybackSeconds(event.currentTarget.currentTime)
+            }
           />
           <p className="demo-language-label">{t("workspace.sampleLanguage")}</p>
-          <div className="demo-narration-languages" role="group" aria-label={t("workspace.changeLanguage")}>
-            {(Object.keys(DEMO_NARRATIONS) as DemoNarrationLanguage[]).map((language) => (
-              <button
-                key={language}
-                type="button"
-                aria-pressed={demoNarrationLanguage === language}
-                onClick={() => onDemoNarrationLanguageChange(language)}
-              >
-                {DEMO_NARRATIONS[language].nativeLabel}
-              </button>
-            ))}
+          <div
+            className="demo-narration-languages"
+            role="group"
+            aria-label={t("workspace.changeLanguage")}
+          >
+            {(Object.keys(DEMO_NARRATIONS) as DemoNarrationLanguage[]).map(
+              (language) => (
+                <button
+                  key={language}
+                  type="button"
+                  aria-pressed={demoNarrationLanguage === language}
+                  onClick={() => onDemoNarrationLanguageChange(language)}
+                >
+                  {DEMO_NARRATIONS[language].nativeLabel}
+                </button>
+              ),
+            )}
           </div>
         </div>
       ) : null}
@@ -342,9 +388,15 @@ function SourceSummary({
           <details className="report-source-block compact-source-disclosure transcript-result">
             <summary>
               <span>
-                {isDemoIncident ? t("workspace.transcript") : `${languageLabel(transcription.languageCode)} ${locale === "hi" ? "बयान" : "voice statement"}`}
+                {isDemoIncident
+                  ? t("workspace.transcript")
+                  : `${languageLabel(transcription.languageCode)} ${locale === "hi" ? "बयान" : "voice statement"}`}
               </span>
-              <strong>{t("workspace.approxSeconds", { seconds: recordingSeconds || 1 })}</strong>
+              <strong>
+                {t("workspace.approxSeconds", {
+                  seconds: recordingSeconds || 1,
+                })}
+              </strong>
             </summary>
             <p className="source-transcript">
               {transcription.originalTranscript}
@@ -359,7 +411,11 @@ function SourceSummary({
           </details>
         ) : (
           <div className="report-source-block transcript-result">
-            <h3>{isDemoIncident ? t("workspace.transcript") : t("workspace.yourStatement")}</h3>
+            <h3>
+              {isDemoIncident
+                ? t("workspace.transcript")
+                : t("workspace.yourStatement")}
+            </h3>
             <p className="source-transcript">
               {transcription.originalTranscript}
             </p>
@@ -404,8 +460,8 @@ function SourceSummary({
           <div className="report-source-block">
             <h3>
               {isDemoIncident
-                  ? t("workspace.typedDescription")
-                  : t("workspace.yourStatement")}
+                ? t("workspace.typedDescription")
+                : t("workspace.yourStatement")}
             </h3>
             <p className="source-transcript">{displayedNarrative}</p>
           </div>
@@ -444,6 +500,24 @@ function ReportInputPane(props: ReportWorkspaceProps) {
 
       {props.mode !== "REVIEW" && props.experienceMode !== "DEMO_CASE" ? (
         <div className="incident-composer">
+          <div className="reporter-name-field">
+            <label htmlFor="reporter-name">
+              {t("workspace.reporterNameQuestion")}
+            </label>
+            <input
+              id="reporter-name"
+              type="text"
+              autoComplete="name"
+              value={props.reporterName}
+              disabled={processing}
+              onChange={(event) =>
+                props.onReporterNameChange(event.target.value)
+              }
+              placeholder={t("workspace.reporterNamePlaceholder")}
+              maxLength={120}
+            />
+            <small>{t("workspace.reporterNameHelp")}</small>
+          </div>
           <label className="visually-hidden" htmlFor="incident-narrative">
             {t("workspace.whatHappened")}
           </label>
@@ -458,10 +532,20 @@ function ReportInputPane(props: ReportWorkspaceProps) {
           />
           <div className="composer-actions">
             <button
-              className={props.isRecording ? "recording-button recording-button-active" : "recording-button"}
+              className={
+                props.isRecording
+                  ? "recording-button recording-button-active"
+                  : "recording-button"
+              }
               type="button"
               disabled={processing}
-              onClick={props.isRecording ? props.onStopRecording : props.hasAudio ? props.onRecordAgain : props.onStartRecording}
+              onClick={
+                props.isRecording
+                  ? props.onStopRecording
+                  : props.hasAudio
+                    ? props.onRecordAgain
+                    : props.onStartRecording
+              }
             >
               <span aria-hidden="true">●</span>
               {props.isRecording
@@ -470,7 +554,10 @@ function ReportInputPane(props: ReportWorkspaceProps) {
                   ? t("workspace.recordAgain")
                   : t("workspace.speak")}
             </button>
-            <label className="evidence-add-button" htmlFor="incident-screenshots">
+            <label
+              className="evidence-add-button"
+              htmlFor="incident-screenshots"
+            >
               <span aria-hidden="true">＋</span> {t("workspace.addEvidence")}
             </label>
             <input
@@ -484,7 +571,8 @@ function ReportInputPane(props: ReportWorkspaceProps) {
             />
             {props.isRecording || props.hasAudio ? (
               <span className="recording-time" aria-live="polite">
-                {Math.floor(props.recordingSeconds / 60)}:{String(props.recordingSeconds % 60).padStart(2, "0")} / 2:00
+                {Math.floor(props.recordingSeconds / 60)}:
+                {String(props.recordingSeconds % 60).padStart(2, "0")} / 2:00
               </span>
             ) : null}
           </div>
@@ -492,16 +580,20 @@ function ReportInputPane(props: ReportWorkspaceProps) {
           <button
             className="primary-button prepare-report-button"
             type="button"
-            disabled={processing || (!props.narrative.trim() && !props.hasAudio && props.screenshots.length === 0)}
+            disabled={
+              processing ||
+              !props.reporterName.trim() ||
+              (!props.narrative.trim() &&
+                !props.hasAudio &&
+                props.screenshots.length === 0)
+            }
             onClick={props.onOrganizeReport}
           >
             {t("workspace.organise")}
           </button>
         </div>
       ) : props.mode === "REVIEW" ? (
-        <p className="review-source-intro">
-          {t("workspace.reviewIntro")}
-        </p>
+        <p className="review-source-intro">{t("workspace.reviewIntro")}</p>
       ) : null}
 
       <SourceSummary
@@ -548,9 +640,13 @@ function MissingFieldEditor({
         data-missing-field={question.field}
       >
         <p className="partial-date-value">{field.value}</p>
-        <p className="report-field-state">{locale === "hi" ? "पुष्टि जरूरी है" : "Needs confirmation"}</p>
+        <p className="report-field-state">
+          {locale === "hi" ? "पुष्टि जरूरी है" : "Needs confirmation"}
+        </p>
         <p>
-          {locale === "hi" ? `क्या यह ${field.value} ${suggestedYear} की घटना है?` : `Was this ${field.value} ${suggestedYear}?`}
+          {locale === "hi"
+            ? `क्या यह ${field.value} ${suggestedYear} की घटना है?`
+            : `Was this ${field.value} ${suggestedYear}?`}
         </p>
         <div className="inline-field-actions">
           <button
@@ -570,7 +666,9 @@ function MissingFieldEditor({
         </div>
         {chooseAnotherYear ? (
           <div className="year-confirmation-input">
-            <label htmlFor="missing-incidentDateYear">{locale === "hi" ? "साल" : "Year"}</label>
+            <label htmlFor="missing-incidentDateYear">
+              {locale === "hi" ? "साल" : "Year"}
+            </label>
             <input
               id="missing-incidentDateYear"
               type="number"
@@ -594,15 +692,26 @@ function MissingFieldEditor({
 
   if (question.field === "recoveryInformationChanged") {
     return (
-      <div className="report-missing-editor" data-missing-field={question.field}>
+      <div
+        className="report-missing-editor"
+        data-missing-field={question.field}
+      >
         <p className="report-field-state">
           {locale === "hi" ? question.questionHi : question.question}
         </p>
         <div className="inline-field-actions">
-          <button className="secondary-button" type="button" onClick={() => onSave("yes")}>
+          <button
+            className="secondary-button"
+            type="button"
+            onClick={() => onSave("yes")}
+          >
             {t("field.yes")}
           </button>
-          <button className="secondary-button" type="button" onClick={() => onSave("no")}>
+          <button
+            className="secondary-button"
+            type="button"
+            onClick={() => onSave("no")}
+          >
             {t("field.no")}
           </button>
         </div>
@@ -638,7 +747,9 @@ function MissingFieldEditor({
             type="button"
             onClick={() => onSave(CITIZEN_DOES_NOT_HAVE)}
           >
-            {locale === "hi" ? "मेरे पास यह जानकारी नहीं है" : "I don’t have this"}
+            {locale === "hi"
+              ? "मेरे पास यह जानकारी नहीं है"
+              : "I don’t have this"}
           </button>
         ) : null}
       </div>
@@ -666,7 +777,10 @@ function ReportFieldRow({
   if (field.missingQuestion) {
     const isPartialDate = field.missingQuestion.field === "incidentDateYear";
     return (
-      <div className="report-field report-field-missing" data-field-id={field.id}>
+      <div
+        className="report-field report-field-missing"
+        data-field-id={field.id}
+      >
         <p className="report-field-label">{field.label}</p>
         {!isPartialDate ? (
           <p className="report-field-state">{t("field.needsInput")}</p>
@@ -819,21 +933,41 @@ function ReportGroup({
     const narrative = getField("incident-description");
     const reportedAmount =
       draft.incident.reportedAmount ??
-      draft.transactions.reduce((total, transaction) => total + (transaction.amount ?? 0), 0);
-    const summaryIds = new Set(["subcategory", "incident-date", "incident-time", "occurred-on", "incident-description"]);
-    const supportingFields = allFields.filter((field) => !summaryIds.has(field.id));
+      draft.transactions.reduce(
+        (total, transaction) => total + (transaction.amount ?? 0),
+        0,
+      );
+    const summaryIds = new Set([
+      "subcategory",
+      "incident-date",
+      "incident-time",
+      "occurred-on",
+      "incident-description",
+    ]);
+    const supportingFields = allFields.filter(
+      (field) => !summaryIds.has(field.id),
+    );
 
     return (
-      <div className="report-group report-group-incident" data-group-id={group.id}>
+      <div
+        className="report-group report-group-incident"
+        data-group-id={group.id}
+      >
         {editors}
         <section className="incident-overview" aria-label={group.label}>
           <h3>{subcategory?.value}</h3>
           <div className="incident-overview-meta">
             {reportedAmount > 0 ? (
-              <strong>{formatCurrency(reportedAmount)} {locale === "hi" ? "का नुकसान" : "lost"}</strong>
+              <strong>
+                {formatCurrency(reportedAmount)}{" "}
+                {locale === "hi" ? "का नुकसान" : "lost"}
+              </strong>
             ) : null}
             <span>{channel?.value}</span>
-            <span>{date?.value}{time?.value ? ` · ${time.value}` : ""}</span>
+            <span>
+              {date?.value}
+              {time?.value ? ` · ${time.value}` : ""}
+            </span>
           </div>
         </section>
         {narrative ? (
@@ -841,7 +975,11 @@ function ReportGroup({
             <div className="section-heading-with-action">
               <h3>{narrative.label}</h3>
               {!narrativeEditing ? (
-                <button className="text-button" type="button" onClick={() => setNarrativeEditing(true)}>
+                <button
+                  className="text-button"
+                  type="button"
+                  onClick={() => setNarrativeEditing(true)}
+                >
                   {t("field.edit")} →
                 </button>
               ) : null}
@@ -851,9 +989,13 @@ function ReportGroup({
         ) : null}
         {allFields.filter((field) => field.missingQuestion).map(renderField)}
         <details className="report-summary-disclosure">
-          <summary>{t("workspace.officialDetails")} <span aria-hidden="true">→</span></summary>
+          <summary>
+            {t("workspace.officialDetails")} <span aria-hidden="true">→</span>
+          </summary>
           <div className="report-summary-disclosure-content">
-            {supportingFields.filter((field) => !field.missingQuestion).map(renderField)}
+            {supportingFields
+              .filter((field) => !field.missingQuestion)
+              .map(renderField)}
           </div>
         </details>
       </div>
@@ -861,28 +1003,54 @@ function ReportGroup({
   }
 
   if (group.id === "TRANSACTIONS") {
-    const transactionSections = group.sections.filter((section) => section.id.startsWith("transaction-") && section.id !== "transaction-summary");
-    const totalField = group.sections.find((section) => section.id === "transaction-summary")?.fields[0];
+    const transactionSections = group.sections.filter(
+      (section) =>
+        section.id.startsWith("transaction-") &&
+        section.id !== "transaction-summary",
+    );
+    const totalField = group.sections.find(
+      (section) => section.id === "transaction-summary",
+    )?.fields[0];
     return (
-      <div className="report-group report-group-transactions" data-group-id={group.id}>
-        {transactionSections.length > 1 && totalField ? renderField(totalField) : null}
+      <div
+        className="report-group report-group-transactions"
+        data-group-id={group.id}
+      >
+        {transactionSections.length > 1 && totalField
+          ? renderField(totalField)
+          : null}
         {transactionSections.map((section, index) => {
-          const bySuffix = (suffix: string) => section.fields.find((field) => field.id.endsWith(suffix));
+          const bySuffix = (suffix: string) =>
+            section.fields.find((field) => field.id.endsWith(suffix));
           const amount = bySuffix("-amount");
           const institution = bySuffix("-institution");
           const date = bySuffix("-date");
           const time = bySuffix("-time");
-          const secondary = section.fields.filter((field) =>
-            ![amount?.id, institution?.id, date?.id, time?.id].includes(field.id),
+          const secondary = section.fields.filter(
+            (field) =>
+              ![amount?.id, institution?.id, date?.id, time?.id].includes(
+                field.id,
+              ),
+          );
+          const summaryMissing = [amount, institution, date, time].filter(
+            (field): field is ReportFieldView =>
+              Boolean(field?.missingQuestion),
           );
           return (
             <section className="transaction-card" key={section.id}>
-              <p className="transaction-label">{section.title ?? t("field.transaction", { number: index + 1 })}</p>
+              <p className="transaction-label">
+                {section.title ?? t("field.transaction", { number: index + 1 })}
+              </p>
               <strong className="transaction-amount">{amount?.value}</strong>
               <p className="transaction-institution">{institution?.value}</p>
-              <p className="transaction-date">{date?.value}{time?.value ? ` · ${time.value}` : ""}</p>
-              <div className="transaction-secondary-fields">{secondary.map(renderField)}</div>
-              {institution?.missingQuestion ? renderField(institution) : null}
+              <p className="transaction-date">
+                {date?.value}
+                {time?.value ? ` · ${time.value}` : ""}
+              </p>
+              {summaryMissing.map(renderField)}
+              <div className="transaction-secondary-fields">
+                {secondary.map(renderField)}
+              </div>
             </section>
           );
         })}
@@ -891,17 +1059,30 @@ function ReportGroup({
   }
 
   if (group.id === "EVIDENCE_SUSPECT") {
-    const evidenceFields = group.sections.find((section) => section.id === "evidence")?.fields ?? [];
-    const evidenceFacts = group.sections.find((section) => section.id === "evidence-facts")?.fields ?? [];
-    const suspectFields = (group.sections.find((section) => section.id === "suspect")?.fields ?? [])
-      .filter((field) => field.state !== "NOT_PROVIDED_OPTIONAL");
-    const claimedIssue = evidenceFacts.find((field) => /KYC|केवाईसी/i.test(field.value));
-    const transactionFound = evidenceFacts.find((field) => field.value.includes("₹40,000"));
+    const evidenceFields =
+      group.sections.find((section) => section.id === "evidence")?.fields ?? [];
+    const evidenceFacts =
+      group.sections.find((section) => section.id === "evidence-facts")
+        ?.fields ?? [];
+    const suspectFields = (
+      group.sections.find((section) => section.id === "suspect")?.fields ?? []
+    ).filter((field) => field.state !== "NOT_PROVIDED_OPTIONAL");
+    const claimedIssue = evidenceFacts.find((field) =>
+      /KYC|केवाईसी/i.test(field.value),
+    );
+    const transactionFound = evidenceFacts.find((field) =>
+      field.value.includes("₹40,000"),
+    );
     return (
-      <div className="report-group report-group-evidence" data-group-id={group.id}>
+      <div
+        className="report-group report-group-evidence"
+        data-group-id={group.id}
+      >
         <section className="evidence-prepared-summary">
           <p className="report-field-label">{t("field.evidenceSupplied")}</p>
-          <strong>{t("workspace.evidenceItems", { count: evidenceFields.length })}</strong>
+          <strong>
+            {t("workspace.evidenceItems", { count: evidenceFields.length })}
+          </strong>
         </section>
         {suspectFields.length > 0 ? (
           <section className="information-found">
@@ -910,21 +1091,33 @@ function ReportGroup({
               {suspectFields.map(renderField)}
               {claimedIssue ? (
                 <div className="report-field">
-                  <p className="report-field-label">{t("workspace.claimedIssue")}</p>
-                  <p className="report-field-value">{claimedIssue.value} <span className="ready-mark">✓</span></p>
+                  <p className="report-field-label">
+                    {t("workspace.claimedIssue")}
+                  </p>
+                  <p className="report-field-value">
+                    {claimedIssue.value} <span className="ready-mark">✓</span>
+                  </p>
                 </div>
               ) : null}
               {transactionFound ? (
                 <div className="report-field">
-                  <p className="report-field-label">{t("workspace.transactionFound")}</p>
-                  <p className="report-field-value">{transactionFound.value} <span className="ready-mark">✓</span></p>
+                  <p className="report-field-label">
+                    {t("workspace.transactionFound")}
+                  </p>
+                  <p className="report-field-value">
+                    {transactionFound.value}{" "}
+                    <span className="ready-mark">✓</span>
+                  </p>
                 </div>
               ) : null}
             </div>
           </section>
         ) : null}
         <details className="report-summary-disclosure">
-          <summary>{t("workspace.fullEvidenceDetails")} <span aria-hidden="true">→</span></summary>
+          <summary>
+            {t("workspace.fullEvidenceDetails")}{" "}
+            <span aria-hidden="true">→</span>
+          </summary>
           <div className="report-summary-disclosure-content">
             {evidenceFields.map(renderField)}
             {evidenceFacts.map(renderField)}
@@ -942,18 +1135,38 @@ function ReportGroup({
     const city = getField("reporter-city");
     const identity = getField("reporter-identity-document");
     return (
-      <div className="report-group report-group-profile" data-group-id={group.id}>
+      <div
+        className="report-group report-group-profile"
+        data-group-id={group.id}
+      >
         <section className="profile-primary-summary">
           <h3>{name?.value}</h3>
           <p>{name?.source}</p>
           <dl>
-            <div><dt>{mobile?.label}</dt><dd>{mobile?.value}</dd></div>
-            <div><dt>{state?.label}</dt><dd>{[state?.value, district?.value ?? city?.value].filter(Boolean).join(" · ")}</dd></div>
-            <div><dt>{identity?.label}</dt><dd>{identity?.value} <span className="ready-mark">✓</span></dd></div>
+            <div>
+              <dt>{mobile?.label}</dt>
+              <dd>{mobile?.value}</dd>
+            </div>
+            <div>
+              <dt>{state?.label}</dt>
+              <dd>
+                {[state?.value, district?.value ?? city?.value]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </dd>
+            </div>
+            <div>
+              <dt>{identity?.label}</dt>
+              <dd>
+                {identity?.value} <span className="ready-mark">✓</span>
+              </dd>
+            </div>
           </dl>
         </section>
         <details className="report-summary-disclosure">
-          <summary>{t("workspace.fullProfile")} <span aria-hidden="true">→</span></summary>
+          <summary>
+            {t("workspace.fullProfile")} <span aria-hidden="true">→</span>
+          </summary>
           <div className="report-summary-disclosure-content">
             {group.sections.map((section) => (
               <section key={section.id} className="report-field-section">
@@ -974,7 +1187,10 @@ function ReportGroup({
         const fields = section.fields.map(renderField);
         if (section.id === "secondary-address") {
           return (
-            <details key={section.id} className="report-field-section report-address-disclosure">
+            <details
+              key={section.id}
+              className="report-field-section report-address-disclosure"
+            >
               <summary>{section.title}</summary>
               {fields}
             </details>
@@ -1010,7 +1226,10 @@ function ReportReview(props: ReportWorkspaceProps) {
     typedNarrative: props.narrative,
     isDemoIncident: props.isDemoIncident,
     screenshotNames: props.isDemoIncident
-      ? ["Synthetic KYC message screenshot", "Synthetic bank transaction screenshot"]
+      ? [
+          "Synthetic KYC message screenshot",
+          "Synthetic bank transaction screenshot",
+        ]
       : props.screenshots.map((file) => file.name),
     identityDocumentProvided: props.identityDocumentProvided,
     declarationAccepted,
@@ -1021,7 +1240,8 @@ function ReportReview(props: ReportWorkspaceProps) {
     if (sources.includes("USER_INPUT")) return t("profile.fromTest");
     if (sources.includes("USER_CONFIRMED")) return t("field.fromConfirmation");
     if (sources.includes("EVIDENCE")) return t("field.fromEvidence");
-    if (sources.includes("VOICE") || sources.includes("TYPED")) return t("field.fromStatement");
+    if (sources.includes("VOICE") || sources.includes("TYPED"))
+      return t("field.fromStatement");
     return t("field.fromShared");
   };
 
@@ -1048,10 +1268,17 @@ function ReportReview(props: ReportWorkspaceProps) {
               });
             }}
           >
-            <summary><span>{group.label}</span><strong aria-label={t("field.ready")}>✓</strong></summary>
+            <summary>
+              <span>{group.label}</span>
+              <strong aria-label={t("field.ready")}>✓</strong>
+            </summary>
             <div className="report-review-group-content">
               {group.sections
-                .filter((section) => section.id !== "secondary-address" && section.id !== "evidence-facts")
+                .filter(
+                  (section) =>
+                    section.id !== "secondary-address" &&
+                    section.id !== "evidence-facts",
+                )
                 .flatMap((section) => section.fields)
                 .map((item) => (
                   <div key={item.id} className="review-field-row">
@@ -1069,26 +1296,52 @@ function ReportReview(props: ReportWorkspaceProps) {
             <strong>{t("workspace.coverage")}</strong>
             <small>{t("workspace.coverageIntroShort")}</small>
           </span>
-          <span className="coverage-action">{t("workspace.coverageAction")}</span>
+          <span className="coverage-action">
+            {t("workspace.coverageAction")}
+          </span>
         </summary>
         <div className="field-coverage-content">
           <h3>{t("workspace.coverageHeading")}</h3>
           <p>{t("workspace.coverageIntro")}</p>
-          <div className="field-coverage-table" role="table" aria-label={t("workspace.coverageHeading")}>
+          <div
+            className="field-coverage-table"
+            role="table"
+            aria-label={t("workspace.coverageHeading")}
+          >
             <div className="field-coverage-header" role="row">
-              <strong role="columnheader">{t("workspace.coverageInformation")}</strong>
-              <strong role="columnheader">{t("workspace.coverageStatus")}</strong>
-              <strong role="columnheader">{t("workspace.coverageSource")}</strong>
+              <strong role="columnheader">
+                {t("workspace.coverageInformation")}
+              </strong>
+              <strong role="columnheader">
+                {t("workspace.coverageStatus")}
+              </strong>
+              <strong role="columnheader">
+                {t("workspace.coverageSource")}
+              </strong>
             </div>
-            {NCRP_FIELD_DEFINITIONS
-              .filter((definition) => definition.supportedInPrototype && definition.id !== "declaration.accepted")
-              .filter((definition) => complaintFieldApplies(complaint, definition))
+            {NCRP_FIELD_DEFINITIONS.filter(
+              (definition) =>
+                definition.supportedInPrototype &&
+                definition.id !== "declaration.accepted",
+            )
+              .filter((definition) =>
+                complaintFieldApplies(complaint, definition),
+              )
               .filter((definition) => {
-                const status = complaintRequiredFieldStatus(complaint, definition);
-                return complaintFieldIsRequired(complaint, definition) || status !== "NOT_PROVIDED_OPTIONAL";
+                const status = complaintRequiredFieldStatus(
+                  complaint,
+                  definition,
+                );
+                return (
+                  complaintFieldIsRequired(complaint, definition) ||
+                  status !== "NOT_PROVIDED_OPTIONAL"
+                );
               })
               .map((definition) => {
-                const status = complaintRequiredFieldStatus(complaint, definition);
+                const status = complaintRequiredFieldStatus(
+                  complaint,
+                  definition,
+                );
                 const path = definition.id.split(".");
                 let current: unknown = complaint.groups;
                 for (const part of path) {
@@ -1096,27 +1349,41 @@ function ReportReview(props: ReportWorkspaceProps) {
                     current = (current as Record<string, unknown>)[part];
                   }
                 }
-                const sources = current && typeof current === "object" && "sources" in current
-                  ? (current as { sources: string[] }).sources
-                  : ["EVIDENCE"];
+                const sources =
+                  current && typeof current === "object" && "sources" in current
+                    ? (current as { sources: string[] }).sources
+                    : ["EVIDENCE"];
                 return (
-                  <div className="field-coverage-row" role="row" key={definition.id}>
+                  <div
+                    className="field-coverage-row"
+                    role="row"
+                    key={definition.id}
+                  >
                     <span role="cell">{t(definition.labelKey)}</span>
-                    <span className={status === "NOT_PROVIDED_OPTIONAL" ? "coverage-optional" : undefined} role="cell">{
-                      status === "READY" || status === "CONFIRMED"
+                    <span
+                      className={
+                        status === "NOT_PROVIDED_OPTIONAL"
+                          ? "coverage-optional"
+                          : undefined
+                      }
+                      role="cell"
+                    >
+                      {status === "READY" || status === "CONFIRMED"
                         ? t("field.ready")
                         : status === "NOT_PROVIDED_OPTIONAL"
                           ? t("field.notProvided")
                           : status === "CITIZEN_DOES_NOT_HAVE"
                             ? t("field.notAvailable")
-                            : t("field.needsInput")
-                    }</span>
+                            : t("field.needsInput")}
+                    </span>
                     <span role="cell">{sourceLabel(sources)}</span>
                   </div>
                 );
               })}
           </div>
-          <p className="source-note">{t("workspace.structureLabel")} · {complaint.schemaVersion}</p>
+          <p className="source-note">
+            {t("workspace.structureLabel")} · {complaint.schemaVersion}
+          </p>
         </div>
       </details>
       <label className="report-declaration">
@@ -1128,15 +1395,26 @@ function ReportReview(props: ReportWorkspaceProps) {
         <span>{t("workspace.declaration")}</span>
       </label>
       <div className="report-primary-actions">
-        <button className="primary-button" type="button" disabled={!declarationAccepted} onClick={() => props.onSubmit(complaint)}>
+        <button
+          className="primary-button"
+          type="button"
+          disabled={!declarationAccepted}
+          onClick={() => props.onSubmit(complaint)}
+        >
           {t("workspace.submitSynthetic")}
         </button>
-        <button className="text-button" type="button" onClick={props.onBackToEdit}>
+        <button
+          className="text-button"
+          type="button"
+          onClick={props.onBackToEdit}
+        >
           {t("workspace.backEdit")}
         </button>
       </div>
       <p className="prototype-submit-note">{t("workspace.noSubmit")}</p>
-      {!declarationAccepted ? <p className="form-hint">{t("workspace.declarationRequired")}</p> : null}
+      {!declarationAccepted ? (
+        <p className="form-hint">{t("workspace.declarationRequired")}</p>
+      ) : null}
     </>
   );
 }
@@ -1144,18 +1422,24 @@ function ReportReview(props: ReportWorkspaceProps) {
 function ReportingPathControl({
   draft,
   onReportFamilyChange,
-}: Pick<ReportWorkspaceProps, "onReportFamilyChange"> & { draft: IncidentDraft }) {
+}: Pick<ReportWorkspaceProps, "onReportFamilyChange"> & {
+  draft: IncidentDraft;
+}) {
   const { locale } = useI18n();
   const [changing, setChanging] = useState(false);
   const classification = draft.classification;
-  const familyLabel = (family: Exclude<ReportFamily, "OUT_OF_SCOPE_OR_UNCLEAR">) => {
+  const familyLabel = (
+    family: Exclude<ReportFamily, "OUT_OF_SCOPE_OR_UNCLEAR">,
+  ) => {
     if (locale === "hi") {
       if (family === "FINANCIAL_FRAUD") return "वित्तीय धोखाधड़ी";
-      if (family === "WOMEN_CHILDREN_RELATED_CRIME") return "महिला / बच्चों से संबंधित अपराध";
+      if (family === "WOMEN_CHILDREN_RELATED_CRIME")
+        return "महिला / बच्चों से संबंधित अपराध";
       return "अन्य साइबर अपराध";
     }
     if (family === "FINANCIAL_FRAUD") return "Financial Fraud";
-    if (family === "WOMEN_CHILDREN_RELATED_CRIME") return "Women / Children Related Crime";
+    if (family === "WOMEN_CHILDREN_RELATED_CRIME")
+      return "Women / Children Related Crime";
     return "Other Cyber Crime";
   };
   const subCategoryLabel = () => {
@@ -1165,26 +1449,38 @@ function ReportingPathControl({
       "Investment / Trading Fraud": "निवेश / ट्रेडिंग धोखाधड़ी",
       "Online Financial Fraud": "ऑनलाइन वित्तीय धोखाधड़ी",
       "Profile Hacking": "प्रोफ़ाइल हैकिंग",
-      "Ransomware": "रैनसमवेयर",
+      Ransomware: "रैनसमवेयर",
       "Online abusive-content report": "ऑनलाइन अपमानजनक सामग्री की रिपोर्ट",
       "Other supported cyber incident": "अन्य समर्थित साइबर घटना",
     };
     return classification.subCategory
-      ? translations[classification.subCategory] ?? "सुझाई गई उप-श्रेणी"
+      ? (translations[classification.subCategory] ?? "सुझाई गई उप-श्रेणी")
       : null;
   };
   const detailedCategoryLabel = () => {
     const category = classification.category;
-    if (!category || ["Financial Fraud", "Women / Children Related Crime", "Other Cyber Crime"].includes(category)) {
+    if (
+      !category ||
+      [
+        "Financial Fraud",
+        "Women / Children Related Crime",
+        "Other Cyber Crime",
+      ].includes(category)
+    ) {
       return null;
     }
-    if (locale === "hi" && category === "Online and Social Media Related Crime") {
+    if (
+      locale === "hi" &&
+      category === "Online and Social Media Related Crime"
+    ) {
       return "ऑनलाइन और सोशल मीडिया से संबंधित अपराध";
     }
     return category;
   };
   const focusStory = () => {
-    const input = document.querySelector<HTMLTextAreaElement>("#incident-narrative");
+    const input = document.querySelector<HTMLTextAreaElement>(
+      "#incident-narrative",
+    );
     input?.scrollIntoView({ behavior: "smooth", block: "center" });
     input?.focus();
   };
@@ -1192,7 +1488,11 @@ function ReportingPathControl({
   if (classification.ambiguity === "INSUFFICIENT_INFORMATION") {
     return (
       <section className="classification-guidance" role="status">
-        <h3>{locale === "hi" ? "क्या हुआ, थोड़ा और बताएं" : "Tell us a little more about what happened"}</h3>
+        <h3>
+          {locale === "hi"
+            ? "क्या हुआ, थोड़ा और बताएं"
+            : "Tell us a little more about what happened"}
+        </h3>
         <p>
           {locale === "hi"
             ? "घटना किस ऐप, वेबसाइट, खाते या उपकरण से जुड़ी थी?"
@@ -1208,18 +1508,32 @@ function ReportingPathControl({
   if (classification.ambiguity === "OUT_OF_CYBER_SCOPE") {
     return (
       <section className="classification-guidance" role="status">
-        <h3>{locale === "hi" ? "यह ऑनलाइन या साइबर घटना नहीं हो सकती है" : "This may not be an online or cyber incident"}</h3>
+        <h3>
+          {locale === "hi"
+            ? "यह ऑनलाइन या साइबर घटना नहीं हो सकती है"
+            : "This may not be an online or cyber incident"}
+        </h3>
         <p>
           {locale === "hi"
             ? "यदि कोई तत्काल खतरे में है, तो उचित आपातकालीन या पुलिस सेवा से संपर्क करें।"
             : "If someone is in immediate danger, contact the appropriate emergency or police service."}
         </p>
         <div className="inline-field-actions">
-          <button className="secondary-button" type="button" onClick={focusStory}>
+          <button
+            className="secondary-button"
+            type="button"
+            onClick={focusStory}
+          >
             {locale === "hi" ? "क्या हुआ, बदलें" : "Edit what happened"}
           </button>
-          <button className="text-button" type="button" onClick={() => onReportFamilyChange("OTHER_CYBER_CRIME")}>
-            {locale === "hi" ? "यदि इसमें ऑनलाइन या साइबर हिस्सा था, तो जारी रखें" : "Continue only if this involved an online or cyber element"}
+          <button
+            className="text-button"
+            type="button"
+            onClick={() => onReportFamilyChange("OTHER_CYBER_CRIME")}
+          >
+            {locale === "hi"
+              ? "यदि इसमें ऑनलाइन या साइबर हिस्सा था, तो जारी रखें"
+              : "Continue only if this involved an online or cyber element"}
           </button>
         </div>
       </section>
@@ -1229,13 +1543,29 @@ function ReportingPathControl({
   if (classification.ambiguity === "MULTIPLE_PLAUSIBLE_PATHS") {
     return (
       <section className="classification-guidance" role="status">
-        <h3>{locale === "hi" ? "यह घटना एक से अधिक रिपोर्टिंग रास्तों में आ सकती है" : "This incident may fit more than one reporting path"}</h3>
-        <p>{locale === "hi" ? "आप यहाँ किस हिस्से की रिपोर्ट करना चाहते हैं?" : "Which part would you like to report here?"}</p>
+        <h3>
+          {locale === "hi"
+            ? "यह घटना एक से अधिक रिपोर्टिंग रास्तों में आ सकती है"
+            : "This incident may fit more than one reporting path"}
+        </h3>
+        <p>
+          {locale === "hi"
+            ? "आप यहाँ किस हिस्से की रिपोर्ट करना चाहते हैं?"
+            : "Which part would you like to report here?"}
+        </p>
         <div className="classification-options">
-          <button className="secondary-button" type="button" onClick={() => onReportFamilyChange("WOMEN_CHILDREN_RELATED_CRIME")}>
+          <button
+            className="secondary-button"
+            type="button"
+            onClick={() => onReportFamilyChange("WOMEN_CHILDREN_RELATED_CRIME")}
+          >
             {familyLabel("WOMEN_CHILDREN_RELATED_CRIME")}
           </button>
-          <button className="secondary-button" type="button" onClick={() => onReportFamilyChange("FINANCIAL_FRAUD")}>
+          <button
+            className="secondary-button"
+            type="button"
+            onClick={() => onReportFamilyChange("FINANCIAL_FRAUD")}
+          >
             {familyLabel("FINANCIAL_FRAUD")}
           </button>
         </div>
@@ -1251,17 +1581,42 @@ function ReportingPathControl({
     "OTHER_CYBER_CRIME",
   ];
   return (
-    <section className="suggested-reporting-path" aria-label={locale === "hi" ? "सुझाई गई रिपोर्टिंग श्रेणी" : "Suggested reporting category"}>
-      <p className="report-field-label">{locale === "hi" ? "सुझाई गई रिपोर्टिंग श्रेणी" : "Suggested reporting category"}</p>
+    <section
+      className="suggested-reporting-path"
+      aria-label={
+        locale === "hi"
+          ? "सुझाई गई रिपोर्टिंग श्रेणी"
+          : "Suggested reporting category"
+      }
+    >
+      <p className="report-field-label">
+        {locale === "hi"
+          ? "सुझाई गई रिपोर्टिंग श्रेणी"
+          : "Suggested reporting category"}
+      </p>
       <strong>{familyLabel(classification.reportFamily)}</strong>
       {detailedCategoryLabel() ? <span>{detailedCategoryLabel()}</span> : null}
       {subCategoryLabel() ? <span>{subCategoryLabel()}</span> : null}
-      <p>{locale === "hi" ? "आपके साझा किए गए विवरण के आधार पर।" : "Based on what you shared."}</p>
-      <button className="text-button" type="button" onClick={() => setChanging((current) => !current)} aria-expanded={changing}>
+      <p>
+        {locale === "hi"
+          ? "आपके साझा किए गए विवरण के आधार पर।"
+          : "Based on what you shared."}
+      </p>
+      <button
+        className="text-button"
+        type="button"
+        onClick={() => setChanging((current) => !current)}
+        aria-expanded={changing}
+      >
         {locale === "hi" ? "बदलें" : "Change"}
       </button>
       {changing ? (
-        <div className="classification-options" aria-label={locale === "hi" ? "दूसरी श्रेणी चुनें" : "Choose another category"}>
+        <div
+          className="classification-options"
+          aria-label={
+            locale === "hi" ? "दूसरी श्रेणी चुनें" : "Choose another category"
+          }
+        >
           {families.map((family) => (
             <button
               className="secondary-button"
@@ -1287,8 +1642,9 @@ function ReportDetailsPane({
   ...props
 }: ReportWorkspaceProps & { onShowDetails: () => void }) {
   const { locale, t } = useI18n();
-  const [pendingMissingFocus, setPendingMissingFocus] =
-    useState<MissingQuestion["field"] | null>(null);
+  const [pendingMissingFocus, setPendingMissingFocus] = useState<
+    MissingQuestion["field"] | null
+  >(null);
   const groups = props.draft
     ? deriveReportGroups(props.draft, {
         locale,
@@ -1297,34 +1653,49 @@ function ReportDetailsPane({
       })
     : [];
   const completion = props.draft ? deriveReportCompletion(props.draft) : null;
-  const complaint = props.draft ? buildNcrpCompatibleComplaint({
-    draft: props.draft,
-    profile: props.reporterProfile,
-    transcription: props.transcription,
-    typedNarrative: props.narrative,
-    isDemoIncident: props.isDemoIncident,
-    screenshotNames: props.isDemoIncident
-      ? ["Synthetic KYC message screenshot", "Synthetic bank transaction screenshot"]
-      : props.screenshots.map((file) => file.name),
-    identityDocumentProvided: props.identityDocumentProvided,
-  }) : null;
-  const contractMissing = complaint ? NCRP_FIELD_DEFINITIONS
-    .filter((definition) => complaintFieldIsRequired(complaint, definition) && definition.id !== "declaration.accepted")
-    .filter((definition) => {
-      const status = complaintRequiredFieldStatus(complaint, definition);
-      return status !== "READY" && status !== "CONFIRMED" && status !== "CITIZEN_DOES_NOT_HAVE";
-    }) : [];
+  const complaint = props.draft
+    ? buildNcrpCompatibleComplaint({
+        draft: props.draft,
+        profile: props.reporterProfile,
+        transcription: props.transcription,
+        typedNarrative: props.narrative,
+        isDemoIncident: props.isDemoIncident,
+        screenshotNames: props.isDemoIncident
+          ? [
+              "Synthetic KYC message screenshot",
+              "Synthetic bank transaction screenshot",
+            ]
+          : props.screenshots.map((file) => file.name),
+        identityDocumentProvided: props.identityDocumentProvided,
+      })
+    : null;
+  const contractMissing = complaint
+    ? NCRP_FIELD_DEFINITIONS.filter(
+        (definition) =>
+          complaintFieldIsRequired(complaint, definition) &&
+          definition.id !== "declaration.accepted",
+      ).filter((definition) => {
+        const status = complaintRequiredFieldStatus(complaint, definition);
+        return (
+          status !== "READY" &&
+          status !== "CONFIRMED" &&
+          status !== "CITIZEN_DOES_NOT_HAVE"
+        );
+      })
+    : [];
   const amountConflictMissing = Boolean(
     props.amountResolution?.hasConflict &&
     !props.amountResolution.selectedAmount,
   );
-  const requiredMissing = contractMissing.length + (amountConflictMissing ? 1 : 0);
+  const requiredMissing =
+    contractMissing.length + (amountConflictMissing ? 1 : 0);
   const firstMissingQuestion = props.draft
     ? deriveMissingQuestions(props.draft)[0]
     : null;
   const missingLabels: Record<MissingQuestion["field"], string> = {
     incidentDate: t("field.incidentDate"),
-    incidentDateYear: locale === "hi" ? "घटना की तारीख का साल" : "Incident date year",
+    incidentDateYear:
+      locale === "hi" ? "घटना की तारीख का साल" : "Incident date year",
     incidentApproximateTime: t("field.approxTime"),
     occurredOn: t("field.occurredOn"),
     institution: t("field.institution"),
@@ -1336,24 +1707,37 @@ function ReportDetailsPane({
     platform: locale === "hi" ? "प्लेटफ़ॉर्म या सेवा" : "Platform or service",
     affectedAccount: locale === "hi" ? "प्रभावित खाता" : "Affected account",
     accountAccessStatus: locale === "hi" ? "खाते तक पहुँच" : "Account access",
-    recoveryInformationChanged: locale === "hi" ? "रिकवरी जानकारी" : "Recovery information",
+    recoveryInformationChanged:
+      locale === "hi" ? "रिकवरी जानकारी" : "Recovery information",
     affectedSystem: locale === "hi" ? "प्रभावित सिस्टम" : "Affected system",
   };
-  const evidenceMissing = contractMissing.some((definition) => definition.id === "evidence.supportingEvidence");
+  const evidenceMissing = contractMissing.some(
+    (definition) => definition.id === "evidence.supportingEvidence",
+  );
   const firstMissingLabel = amountConflictMissing
-    ? (locale === "hi" ? "रिपोर्ट की राशि चुनें" : "Reported amount choice")
+    ? locale === "hi"
+      ? "रिपोर्ट की राशि चुनें"
+      : "Reported amount choice"
     : firstMissingQuestion
       ? missingLabels[firstMissingQuestion.field]
       : evidenceMissing
         ? t("field.evidenceSupplied")
-      : null;
+        : null;
   const missingActionLabel = amountConflictMissing
-    ? (locale === "hi" ? "रिपोर्ट की राशि चुनें" : "Choose report amount")
+    ? locale === "hi"
+      ? "रिपोर्ट की राशि चुनें"
+      : "Choose report amount"
     : firstMissingQuestion?.field === "incidentDateYear"
-      ? (locale === "hi" ? "घटना की तारीख पक्की करें" : "Confirm incident date")
+      ? locale === "hi"
+        ? "घटना की तारीख पक्की करें"
+        : "Confirm incident date"
       : firstMissingLabel
-        ? (locale === "hi" ? `${firstMissingLabel} जोड़ें` : `Add ${firstMissingLabel.toLowerCase()}`)
-        : (locale === "hi" ? "बाकी जानकारी पर जाएँ" : "Go to missing detail");
+        ? locale === "hi"
+          ? `${firstMissingLabel} जोड़ें`
+          : `Add ${firstMissingLabel.toLowerCase()}`
+        : locale === "hi"
+          ? "बाकी जानकारी पर जाएँ"
+          : "Go to missing detail";
 
   useEffect(() => {
     if (!pendingMissingFocus) return;
@@ -1414,17 +1798,6 @@ function ReportDetailsPane({
         />
       ) : null}
 
-      {props.mode === "INPUT" && !props.draft ? (
-        <div className="report-empty-state">
-          <p>
-            <strong>
-              {t("workspace.emptyStrong")}
-            </strong>
-          </p>
-          <p>{t("workspace.emptyBody")}</p>
-        </div>
-      ) : null}
-
       {props.mode === "PROCESSING" ? (
         <div
           className="report-processing-state"
@@ -1433,7 +1806,11 @@ function ReportDetailsPane({
         >
           <span className="loading-marker" aria-hidden="true" />
           <p>
-            <strong>{props.experienceMode === "DEMO_CASE" ? t("workspace.organisingSample") : t(props.loadingMessage)}</strong>
+            <strong>
+              {props.experienceMode === "DEMO_CASE"
+                ? t("workspace.organisingSample")
+                : t(props.loadingMessage)}
+            </strong>
           </p>
           <div className="report-skeleton" aria-hidden="true">
             <span />
@@ -1447,10 +1824,7 @@ function ReportDetailsPane({
       {props.mode === "ERROR" ? (
         <div className="report-error-state" role="alert">
           <h3>{t("workspace.errorHeading")}</h3>
-          <p>
-            {props.formError ??
-              t("workspace.inputPreserved")}
-          </p>
+          <p>{props.formError ?? t("workspace.inputPreserved")}</p>
           <div className="entry-actions">
             <button
               className="primary-button"
@@ -1462,7 +1836,11 @@ function ReportDetailsPane({
             <button
               className="secondary-button"
               type="button"
-              onClick={() => document.querySelector<HTMLTextAreaElement>("#incident-narrative")?.focus()}
+              onClick={() =>
+                document
+                  .querySelector<HTMLTextAreaElement>("#incident-narrative")
+                  ?.focus()
+              }
             >
               {locale === "hi" ? "विवरण बदलते रहें" : "Continue editing"}
             </button>
@@ -1498,7 +1876,10 @@ function ReportDetailsPane({
         </div>
       ) : null}
 
-      {props.mode === "READY" && props.draft && completion && props.draft.classification.ambiguity === "NONE" ? (
+      {props.mode === "READY" &&
+      props.draft &&
+      completion &&
+      props.draft.classification.ambiguity === "NONE" ? (
         <>
           <div className="report-completion" role="status" aria-live="polite">
             <p>
@@ -1508,7 +1889,9 @@ function ReportDetailsPane({
                   : t("workspace.detailNeeded", { count: requiredMissing })}
               </strong>
             </p>
-            {requiredMissing === 0 ? <p>{t("workspace.preparedReuse")}</p> : null}
+            {requiredMissing === 0 ? (
+              <p>{t("workspace.preparedReuse")}</p>
+            ) : null}
             {requiredMissing > 0 ? (
               <>
                 {firstMissingLabel ? <p>{firstMissingLabel}</p> : null}
@@ -1528,7 +1911,11 @@ function ReportDetailsPane({
               <section className="prepared-report-section" key={group.id}>
                 <div className="prepared-section-heading">
                   <h3>{group.label}</h3>
-                  <span>{group.missingCount > 0 ? `${group.missingCount} ${t("workspace.actionNeeded")}` : `✓ ${t("workspace.complete")}`}</span>
+                  <span>
+                    {group.missingCount > 0
+                      ? `${group.missingCount} ${t("workspace.actionNeeded")}`
+                      : `✓ ${t("workspace.complete")}`}
+                  </span>
                 </div>
                 <ReportGroup
                   group={group}
@@ -1549,11 +1936,15 @@ function ReportDetailsPane({
               aria-labelledby="amount-conflict-heading"
             >
               <h3 id="amount-conflict-heading">
-                {locale === "hi" ? "दो अलग राशियाँ मिलीं" : "We found two different amounts"}
+                {locale === "hi"
+                  ? "दो अलग राशियाँ मिलीं"
+                  : "We found two different amounts"}
               </h3>
               <dl>
                 <div>
-                  <dt>{locale === "hi" ? "आपके बयान से" : "From your statement"}</dt>
+                  <dt>
+                    {locale === "hi" ? "आपके बयान से" : "From your statement"}
+                  </dt>
                   <dd>
                     {formatCurrency(
                       props.amountResolution.statementAmount ?? 0,
@@ -1561,7 +1952,9 @@ function ReportDetailsPane({
                   </dd>
                 </div>
                 <div>
-                  <dt>{locale === "hi" ? "लेन-देन से" : "From your transactions"}</dt>
+                  <dt>
+                    {locale === "hi" ? "लेन-देन से" : "From your transactions"}
+                  </dt>
                   <dd>
                     {formatCurrency(
                       props.amountResolution.transactionAmount ?? 0,
@@ -1569,7 +1962,11 @@ function ReportDetailsPane({
                   </dd>
                 </div>
               </dl>
-              <p>{locale === "hi" ? "इस रिपोर्ट में कौन-सी राशि उपयोग की जाए?" : "Which amount should be used for this report?"}</p>
+              <p>
+                {locale === "hi"
+                  ? "इस रिपोर्ट में कौन-सी राशि उपयोग की जाए?"
+                  : "Which amount should be used for this report?"}
+              </p>
               <div className="inline-field-actions">
                 {[
                   props.amountResolution.statementAmount,
@@ -1586,7 +1983,9 @@ function ReportDetailsPane({
                       }
                       onClick={() => props.onReportedAmountSelect(amount)}
                     >
-                      {locale === "hi" ? `${formatCurrency(amount)} उपयोग करें` : `Use ${formatCurrency(amount)}`}
+                      {locale === "hi"
+                        ? `${formatCurrency(amount)} उपयोग करें`
+                        : `Use ${formatCurrency(amount)}`}
                     </button>
                   ))}
               </div>
@@ -1632,15 +2031,14 @@ export function ReportWorkspace(props: ReportWorkspaceProps) {
       tabIndex={-1}
     >
       <div className="report-workspace-shell">
-        <JourneyProgress current={props.mode === "REVIEW" ? "RESTORE" : "REPORT"} />
+        <JourneyProgress
+          current={props.mode === "REVIEW" ? "RESTORE" : "REPORT"}
+        />
         <div
           className={`report-workspace report-workspace-${props.mode.toLowerCase()}`}
         >
           <ReportInputPane {...props} />
-          <ReportDetailsPane
-            {...props}
-            onShowDetails={() => undefined}
-          />
+          <ReportDetailsPane {...props} onShowDetails={() => undefined} />
         </div>
       </div>
     </section>

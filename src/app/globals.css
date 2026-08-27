@@ -426,6 +426,25 @@ textarea {
   margin-top: 24px;
 }
 
+.reporter-name-field {
+  margin-bottom: 18px;
+  display: grid;
+  gap: 7px;
+}
+
+.reporter-name-field label {
+  font-weight: 700;
+}
+
+.reporter-name-field input {
+  width: 100%;
+}
+
+.reporter-name-field small {
+  color: var(--secondary);
+  font-size: 13px;
+}
+
 .incident-composer textarea {
   width: 100%;
   min-height: 210px;

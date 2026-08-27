@@ -77,6 +77,9 @@ const EN_TEXT: Record<string, string> = {
   "workspace.yourInformation": "What you shared",
   "workspace.intro":
     "Describe the fraud in your own words. You can speak, type, or add evidence you already have.",
+  "workspace.reporterNameQuestion": "What is your name?",
+  "workspace.reporterNamePlaceholder": "Enter a test name",
+  "workspace.reporterNameHelp": "Use test information only for this prototype.",
   "workspace.reviewIntro":
     "The statement and evidence used to prepare this report.",
   "workspace.speak": "Speak",
@@ -122,7 +125,7 @@ const EN_TEXT: Record<string, string> = {
   "workspace.syntheticEvidence": "Synthetic demo evidence",
   "workspace.approxSeconds": "approximately {seconds} seconds",
   "workspace.changeLanguage": "Change sample narration language",
-  "workspace.reportInfo": "Report prepared",
+  "workspace.reportInfo": "Report will be generated here",
   "workspace.reportInfoSupport":
     "We used what you shared to prepare the structured information below.",
   "workspace.organisingSample":
@@ -150,8 +153,7 @@ const EN_TEXT: Record<string, string> = {
   "workspace.actionNeeded": "action needed",
   "workspace.reviewContinue": "Review & continue",
   "workspace.reviewSubmit": "Review your report",
-  "workspace.reviewSupport":
-    "Check the information below before continuing.",
+  "workspace.reviewSupport": "Check the information below before continuing.",
   "workspace.submitSynthetic": "Submit synthetic complaint",
   "workspace.backEdit": "Back to edit",
   "workspace.noSubmit":

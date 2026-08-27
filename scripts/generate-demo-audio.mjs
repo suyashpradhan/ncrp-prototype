@@ -18,19 +18,13 @@ const narrations = [
   {
     file: "kyc-fraud-hi.mp3",
     languageCode: "hi-IN",
-    speaker: "shubh",
+    speaker: "priya",
     text: "मुझे एसबीआई केवाईसी अपडेट करने का एक मैसेज आया था। मैंने उसमें दिए लिंक को खोला और ऐप के निर्देश माने। इसके बाद 22 अगस्त की सुबह लगभग सात बजे मेरे खाते से चालीस हजार रुपये निकल गए। बाद में मैंने उस नंबर पर संपर्क करने की कोशिश की, लेकिन कोई जवाब नहीं मिला।",
-  },
-  {
-    file: "kyc-fraud-mr.mp3",
-    languageCode: "mr-IN",
-    speaker: "ratan",
-    text: "मला एसबीआय केवायसी अपडेट करण्यासाठी एक मेसेज आला होता. मी त्यातील लिंक उघडली आणि अॅपमधील सूचना पाळल्या. त्यानंतर 22 ऑगस्ट रोजी सकाळी सुमारे सात वाजता माझ्या खात्यातून चाळीस हजार रुपये गेले. नंतर त्या नंबरवर संपर्क करण्याचा प्रयत्न केला, पण उत्तर मिळाले नाही.",
   },
   {
     file: "kyc-fraud-en.mp3",
     languageCode: "en-IN",
-    speaker: "ratan",
+    speaker: "priya",
     text: "I received a message asking me to update my SBI KYC. I opened the link and followed the app instructions. At about seven in the morning on 22 August, forty thousand rupees was transferred from my account. I tried contacting the number afterward but received no response.",
   },
 ];

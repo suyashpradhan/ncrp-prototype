@@ -50,14 +50,14 @@ export const SYNTHETIC_NCRP_PROFILE: ReporterProfile = {
 
 export function createEmptyTestProfile(): ReporterProfile {
   return {
-    title: "Mr",
+    title: "Mx",
     displayName: "",
-    registeredMobile: "",
+    registeredMobile: "••••••0000",
     gender: "Not specified in test",
     dateOfBirth: "1990-01-01",
     parentOrSpouseRelationship: "Test relationship",
     parentOrSpouseName: "Synthetic Test Parent",
-    email: "tester@example.invalid",
+    email: "reporter.demo@example.invalid",
     relationshipWithVictim: "Self",
     houseNumber: "Test house",
     street: "Synthetic test street",
@@ -65,7 +65,7 @@ export function createEmptyTestProfile(): ReporterProfile {
     city: "Test city",
     tehsil: "Synthetic tehsil",
     country: "India",
-    state: "",
+    state: "Test state",
     district: "Synthetic district",
     policeStation: "Synthetic jurisdiction",
     pinCode: "TEST-000000",
