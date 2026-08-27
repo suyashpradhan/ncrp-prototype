@@ -55,10 +55,21 @@ export function AppShell({ children }: AppShellProps) {
       </main>
       <footer className="site-footer">
         <div className="shell footer-inner">
-          <p>{locale === "hi" ? "स्वतंत्र हैकाथॉन प्रोटोटाइप · कोई वास्तविक शिकायत जमा नहीं होती।" : "Independent hackathon prototype · No real complaint is submitted."}</p>
-          <Link className="footer-link" href="/about#sources">
-            {locale === "hi" ? "स्रोत" : "Sources"}
-          </Link>
+          <p>
+            <span>{locale === "hi" ? "स्वतंत्र हैकाथॉन प्रोटोटाइप।" : "Independent hackathon prototype."}</span>
+            <span>{locale === "hi" ? "कोई वास्तविक शिकायत जमा नहीं होती।" : "No real complaint is submitted."}</span>
+          </p>
+          <nav className="footer-links" aria-label={locale === "hi" ? "फुटर लिंक" : "Footer links"}>
+            <Link className="footer-link" href="/about">
+              {locale === "hi" ? "परिचय" : "About"}
+            </Link>
+            <Link className="footer-link" href="/how-it-works">
+              {locale === "hi" ? "यह कैसे काम करता है" : "How it works"}
+            </Link>
+            <Link className="footer-link" href="/about#sources">
+              {locale === "hi" ? "स्रोत" : "Sources"}
+            </Link>
+          </nav>
         </div>
       </footer>
     </>

@@ -96,6 +96,74 @@ function UrgentMoneyGuidance() {
   );
 }
 
+function SachetPreview() {
+  const { locale } = useI18n();
+  const hi = locale === "hi";
+
+  return (
+    <aside
+      className="sachet-preview"
+      aria-label={
+        hi
+          ? "साझा जानकारी से तैयार रिपोर्ट का उदाहरण"
+          : "Example of shared information becoming a prepared report"
+      }
+    >
+      <p className="sachet-preview-label">
+        {hi ? "आप क्या साझा करते हैं" : "What you share"}
+      </p>
+      <div className="sachet-preview-shared">
+        <blockquote>
+          {hi
+            ? "“आज सुबह मुझे एसबीआई केवाईसी का संदेश मिला। लिंक खोलने के बाद ₹40,000 डेबिट हो गए।”"
+            : "“I received an SBI KYC message this morning. After following the link, ₹40,000 was debited.”"}
+        </blockquote>
+        <div className="sachet-preview-evidence" aria-label={hi ? "जोड़े गए सबूत" : "Evidence added"}>
+          <div>
+            <span className="sachet-preview-file-icon" aria-hidden="true">▧</span>
+            <strong>{hi ? "संदेश का स्क्रीनशॉट" : "Message screenshot"}</strong>
+            <small>{hi ? "जोड़ा गया" : "Added"}</small>
+          </div>
+          <div>
+            <span className="sachet-preview-file-icon" aria-hidden="true">▧</span>
+            <strong>{hi ? "बैंक लेन-देन" : "Bank transaction"}</strong>
+            <small>{hi ? "जोड़ा गया" : "Added"}</small>
+          </div>
+        </div>
+      </div>
+
+      <div className="sachet-preview-connector" aria-hidden="true">
+        <span />
+        <b>↓</b>
+      </div>
+
+      <p className="sachet-preview-label">
+        {hi ? "रिपोर्ट तैयार" : "Report prepared"}
+      </p>
+      <div className="sachet-preview-report">
+        <div className="sachet-preview-report-heading">
+          <strong>{hi ? "वित्तीय धोखाधड़ी" : "Financial Fraud"}</strong>
+          <b>₹40,000</b>
+        </div>
+        <dl>
+          <div>
+            <dt>{hi ? "बैंक" : "Bank"}</dt>
+            <dd>{hi ? "एसबीआई" : "SBI"}</dd>
+          </div>
+          <div>
+            <dt>{hi ? "समय" : "When"}</dt>
+            <dd>{hi ? "22 अगस्त 2026 · लगभग सुबह 7:00 बजे" : "22 Aug 2026 · Around 7:00 AM"}</dd>
+          </div>
+          <div>
+            <dt>{hi ? "लेन-देन संदर्भ" : "Transaction reference"}</dt>
+            <dd>DEMO-UTR-40000-220826</dd>
+          </div>
+        </dl>
+      </div>
+    </aside>
+  );
+}
+
 export function DemoJourney() {
   const { locale, t } = useI18n();
   const {
@@ -584,39 +652,44 @@ export function DemoJourney() {
   if (view === "ENTRY") {
     content = (
       <section className="service-entry section-pad">
-        <div className="shell reading-shell service-entry-inner">
-          <h1>
-            {locale === "hi"
-              ? "वित्तीय साइबर धोखाधड़ी की रिपोर्ट करें—हर जानकारी खुद भरे बिना।"
-              : "Report cyber fraud, without filling everything yourself."}
-          </h1>
-          <p className="service-entry-support">
-            {locale === "hi"
-              ? "हमें बताएं कि क्या हुआ। हम आपकी जाँच के लिए रिपोर्ट तैयार करेंगे।"
-              : "Tell us what happened. We’ll prepare the report for you to review."}
-          </p>
-          <div className="service-entry-actions">
-            <button
-              className="primary-button"
-              type="button"
-              onClick={startReport}
-            >
-              {locale === "hi" ? "रिपोर्ट शुरू करें" : "Start a report"}
-            </button>
-            <button
-              className="secondary-button"
-              type="button"
-              onClick={useDemoIncident}
-            >
-              {locale === "hi" ? "डेमो देखें" : "Try demo"}
-            </button>
+        <div className="shell service-entry-inner">
+          <div className="service-entry-layout">
+            <div className="service-entry-copy">
+              <h1>
+                {locale === "hi"
+                  ? "वित्तीय साइबर धोखाधड़ी की रिपोर्ट करें—हर जानकारी खुद भरे बिना।"
+                  : "Report cyber fraud, without filling everything yourself."}
+              </h1>
+              <p className="service-entry-support">
+                {locale === "hi"
+                  ? "हमें बताएं कि क्या हुआ। हम आपकी जाँच के लिए रिपोर्ट तैयार करेंगे।"
+                  : "Tell us what happened. We’ll prepare the report for you to review."}
+              </p>
+              <div className="service-entry-actions">
+                <button
+                  className="primary-button"
+                  type="button"
+                  onClick={startReport}
+                >
+                  {locale === "hi" ? "रिपोर्ट शुरू करें" : "Start a report"}
+                </button>
+                <button
+                  className="secondary-button"
+                  type="button"
+                  onClick={useDemoIncident}
+                >
+                  {locale === "hi" ? "डेमो देखें" : "Try demo"}
+                </button>
+              </div>
+              <UrgentMoneyGuidance />
+              <p className="landing-capability-line">
+                {locale === "hi"
+                  ? "हमें बताएं कि क्या हुआ → हम रिपोर्ट तैयार करते हैं → आप जाँचते हैं"
+                  : "Tell us what happened → We prepare the report → You review"}
+              </p>
+            </div>
+            <SachetPreview />
           </div>
-          <UrgentMoneyGuidance />
-          <p className="landing-capability-line">
-            {locale === "hi"
-              ? "स्वाभाविक रूप से बोलें · सबूत जोड़ें · जमा करने से पहले जाँचें"
-              : "Speak naturally · Add evidence · Review before submitting"}
-          </p>
         </div>
       </section>
     );
