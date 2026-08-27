@@ -377,9 +377,7 @@ export function DemoJourney() {
     data.append("durationSeconds", String(durationSeconds));
 
     if (durationSeconds > 30) {
-      setLoadingMessage(
-        "workspace.transcribingLong",
-      );
+      setLoadingMessage("workspace.transcribingLong");
       const startResponse = await fetch("/api/transcribe-long/start", {
         method: "POST",
         body: data,
@@ -685,7 +683,6 @@ export function DemoJourney() {
                 <li>{t("entry.stepEvidence")}</li>
                 <li>{t("entry.stepReview")}</li>
               </ol>
-              <p>{t("entry.principle")}</p>
             </section>
           </div>
         </section>

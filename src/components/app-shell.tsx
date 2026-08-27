@@ -21,17 +21,15 @@ export function AppShell({ children }: AppShellProps) {
       <header className="site-header">
         <div className="shell service-header-inner">
           <div className="header-inner">
-            <Link
-              className="brand"
-              href="/"
-              aria-label={appName(locale)}
-            >
+            <Link className="brand" href="/" aria-label={appName(locale)}>
               <span className="brand-mark" aria-hidden="true">
                 <span />
               </span>
               <span>
                 <span className="brand-name">{appName(locale)}</span>
-                <span className="brand-description">{t("brand.description")}</span>
+                <span className="brand-description">
+                  {t("brand.description")}
+                </span>
                 <span className="brand-support">{t("brand.prototype")}</span>
               </span>
             </Link>
@@ -57,9 +55,6 @@ export function AppShell({ children }: AppShellProps) {
                   {t("language.hindi")}
                 </button>
               </div>
-              <a className="header-helpline" href="tel:1930" aria-label={`${t("header.helpline")}: 1930`}>
-                1930
-              </a>
             </div>
           </div>
         </div>

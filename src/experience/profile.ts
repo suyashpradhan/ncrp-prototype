@@ -26,10 +26,10 @@ export type ReporterProfile = {
 };
 
 export const SYNTHETIC_NCRP_PROFILE: ReporterProfile = {
-  title: "Ms",
+  title: "Mr",
   displayName: "Suyash Pradhan",
   registeredMobile: "••••••0024",
-  gender: "Female",
+  gender: "Male",
   dateOfBirth: "1992-04-18",
   parentOrSpouseRelationship: "Father",
   parentOrSpouseName: "Synthetic Parent",
@@ -50,7 +50,7 @@ export const SYNTHETIC_NCRP_PROFILE: ReporterProfile = {
 
 export function createEmptyTestProfile(): ReporterProfile {
   return {
-    title: "Ms",
+    title: "Mr",
     displayName: "",
     registeredMobile: "",
     gender: "Not specified in test",
