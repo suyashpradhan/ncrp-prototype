@@ -139,16 +139,38 @@ function EvidenceRows({
   const [activeDemoEvidence, setActiveDemoEvidence] = useState<
     (typeof DEMO_EVIDENCE)[number] | null
   >(null);
+  const [activeUploadedEvidence, setActiveUploadedEvidence] =
+    useState<File | null>(null);
+  const [uploadedPreviewUrl, setUploadedPreviewUrl] = useState<string | null>(
+    null,
+  );
   const dialogRef = useRef<HTMLDialogElement | null>(null);
 
   useEffect(() => {
     const dialog = dialogRef.current;
-    if (activeDemoEvidence && dialog && !dialog.open) dialog.showModal();
-  }, [activeDemoEvidence]);
+    if (
+      (activeDemoEvidence || activeUploadedEvidence) &&
+      dialog &&
+      !dialog.open
+    ) {
+      dialog.showModal();
+    }
+  }, [activeDemoEvidence, activeUploadedEvidence]);
+
+  useEffect(() => {
+    if (!activeUploadedEvidence) {
+      setUploadedPreviewUrl(null);
+      return;
+    }
+    const objectUrl = URL.createObjectURL(activeUploadedEvidence);
+    setUploadedPreviewUrl(objectUrl);
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [activeUploadedEvidence]);
 
   function closeEvidence() {
     dialogRef.current?.close();
     setActiveDemoEvidence(null);
+    setActiveUploadedEvidence(null);
   }
 
   if (!isDemoIncident && screenshots.length === 0) return null;
@@ -187,19 +209,30 @@ function EvidenceRows({
           ))
         : screenshots.map((file, index) => (
             <li
-              className="report-source-file-row"
+              className="report-source-file-preview uploaded-evidence-row"
               key={`${file.name}-${file.lastModified}`}
             >
-              <span className="evidence-file-icon" aria-hidden="true">
-                ▧
-              </span>
-              <span className="evidence-row-copy">
-                <strong>{file.name}</strong>
-                <small>{file.type.replace("image/", "").toUpperCase()}</small>
-              </span>
+              <button
+                className="evidence-preview-trigger"
+                type="button"
+                aria-haspopup="dialog"
+                aria-label={`${t("workspace.openEvidence")}: ${file.name}`}
+                onClick={() => setActiveUploadedEvidence(file)}
+              >
+                <span className="evidence-file-icon" aria-hidden="true">
+                  ▧
+                </span>
+                <span className="evidence-row-copy">
+                  <strong>{file.name}</strong>
+                  <small>{file.type.replace("image/", "").toUpperCase()}</small>
+                </span>
+                <span className="evidence-row-action">
+                  {t("workspace.view")}
+                </span>
+              </button>
               {!compact ? (
                 <button
-                  className="text-button"
+                  className="text-button evidence-remove-button"
                   type="button"
                   onClick={() => onRemoveScreenshot(index)}
                 >
@@ -211,11 +244,15 @@ function EvidenceRows({
     </ul>
   );
 
-  const preview = activeDemoEvidence ? (
+  const preview = activeDemoEvidence || activeUploadedEvidence ? (
     <dialog
       ref={dialogRef}
       className="evidence-preview-dialog"
-      aria-label={t(activeDemoEvidence.labelKey)}
+      aria-label={
+        activeDemoEvidence
+          ? t(activeDemoEvidence.labelKey)
+          : activeUploadedEvidence?.name
+      }
       onCancel={(event) => {
         event.preventDefault();
         closeEvidence();
@@ -226,8 +263,16 @@ function EvidenceRows({
     >
       <div className="evidence-preview-dialog-header">
         <div>
-          <small>{t("workspace.syntheticEvidence")}</small>
-          <strong>{t(activeDemoEvidence.labelKey)}</strong>
+          <small>
+            {activeDemoEvidence
+              ? t("workspace.syntheticEvidence")
+              : t("workspace.evidence")}
+          </small>
+          <strong>
+            {activeDemoEvidence
+              ? t(activeDemoEvidence.labelKey)
+              : activeUploadedEvidence?.name}
+          </strong>
         </div>
         <button
           type="button"
@@ -238,13 +283,24 @@ function EvidenceRows({
           {t("workspace.closeEvidence")}
         </button>
       </div>
-      <Image
-        src={activeDemoEvidence.src}
-        alt={t(activeDemoEvidence.altKey)}
-        width={520}
-        height={620}
-        sizes="(max-width: 600px) calc(100vw - 40px), 520px"
-      />
+      {activeDemoEvidence ? (
+        <Image
+          className="ph-no-capture"
+          src={activeDemoEvidence.src}
+          alt={t(activeDemoEvidence.altKey)}
+          width={520}
+          height={620}
+          sizes="(max-width: 600px) calc(100vw - 40px), 520px"
+        />
+      ) : uploadedPreviewUrl && activeUploadedEvidence ? (
+        // Blob URLs are local browser resources and cannot use next/image.
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          className="uploaded-evidence-preview ph-no-capture"
+          src={uploadedPreviewUrl}
+          alt={activeUploadedEvidence.name}
+        />
+      ) : null}
     </dialog>
   ) : null;
 
@@ -690,7 +746,11 @@ function MissingFieldEditor({
     );
   }
 
-  if (question.field === "recoveryInformationChanged") {
+  if (
+    question.field === "recoveryInformationChanged" ||
+    question.field === "moneyLost" ||
+    question.field === "delayInReporting"
+  ) {
     return (
       <div
         className="report-missing-editor"
@@ -1693,10 +1753,13 @@ function ReportDetailsPane({
     ? deriveMissingQuestions(props.draft)[0]
     : null;
   const missingLabels: Record<MissingQuestion["field"], string> = {
+    moneyLost: t("field.moneyLost"),
     incidentDate: t("field.incidentDate"),
     incidentDateYear:
       locale === "hi" ? "घटना की तारीख का साल" : "Incident date year",
     incidentApproximateTime: t("field.approxTime"),
+    delayInReporting: t("field.reportingDelay"),
+    delayReason: t("field.delayReason"),
     occurredOn: t("field.occurredOn"),
     institution: t("field.institution"),
     accountOrUpiId: t("field.account"),
@@ -1762,7 +1825,7 @@ function ReportDetailsPane({
       return;
     }
     if (evidenceMissing && !firstMissingQuestion) {
-      document.querySelector<HTMLElement>("#incident-screenshots")?.focus();
+      document.querySelector<HTMLInputElement>("#incident-screenshots")?.click();
       return;
     }
     if (!firstMissingQuestion) return;
@@ -2028,6 +2091,7 @@ export function ReportWorkspace(props: ReportWorkspaceProps) {
     <section
       className="report-workspace-stage section-pad"
       data-journey-focus
+      data-private
       tabIndex={-1}
     >
       <div className="report-workspace-shell">

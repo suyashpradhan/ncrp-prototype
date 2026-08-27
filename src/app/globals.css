@@ -622,6 +622,23 @@ textarea {
   cursor: pointer;
 }
 
+.uploaded-evidence-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.uploaded-evidence-row .evidence-preview-trigger {
+  min-width: 0;
+  flex: 1;
+}
+
+.evidence-remove-button {
+  flex: 0 0 auto;
+  min-height: 44px;
+  margin-right: 8px;
+}
+
 .evidence-preview-trigger:hover {
   border-color: var(--border-strong);
   background: #faf9f6;
@@ -632,6 +649,15 @@ textarea {
   height: 54px;
   object-fit: cover;
   border-radius: 8px;
+}
+
+.uploaded-evidence-preview {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  max-height: min(70vh, 720px);
+  margin: 0 auto;
+  object-fit: contain;
 }
 
 .evidence-file-icon {

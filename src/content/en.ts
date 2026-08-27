@@ -425,7 +425,7 @@ export const CITIZEN_MESSAGES = {
       "journey.ncrp.existing",
       "Existing NCRP service · redesigned citizen interaction",
     ),
-    reportTitle: message("journey.ncrp.title", "Report financial cyber fraud"),
+    reportTitle: message("journey.ncrp.title", "Report Cyber Fraud"),
     amount: message("journey.amount", "Amount"),
     incidentDate: message("journey.incidentDate", "Incident date"),
     evidence: message("journey.evidence", "Transaction evidence"),

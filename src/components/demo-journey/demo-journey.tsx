@@ -1,5 +1,6 @@
 "use client";
 
+import posthog from "posthog-js";
 import {
   useEffect,
   useRef,
@@ -154,6 +155,14 @@ export function DemoJourney() {
       document.querySelector<HTMLElement>("[data-journey-focus]")?.focus();
     }
   }, [view]);
+
+  useEffect(() => {
+    posthog.capture("sachet_journey_viewed", {
+      journey_view: view,
+      experience_mode: experienceMode ?? "NOT_SELECTED",
+      locale,
+    });
+  }, [experienceMode, locale, view]);
 
   useEffect(() => {
     if (!isRecording) return;

@@ -125,7 +125,7 @@ const EN_TEXT: Record<string, string> = {
   "workspace.syntheticEvidence": "Synthetic demo evidence",
   "workspace.approxSeconds": "approximately {seconds} seconds",
   "workspace.changeLanguage": "Change sample narration language",
-  "workspace.reportInfo": "Report will be generated here",
+  "workspace.reportInfo": "Report",
   "workspace.reportInfoSupport":
     "We used what you shared to prepare the structured information below.",
   "workspace.organisingSample":

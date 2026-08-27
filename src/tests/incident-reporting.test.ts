@@ -141,6 +141,68 @@ describe("AI-assisted incident reporting boundary", () => {
     expect(dateField?.missingQuestion?.field).toBe("transactionDate");
   });
 
+  it("maps every required financial incident question to a focusable field", () => {
+    const missingIncidentAnswers = IncidentDraftSchema.parse({
+      ...DEMO_INCIDENT_DRAFT,
+      classification: {
+        ...DEMO_INCIDENT_DRAFT.classification,
+        moneyLost: null,
+      },
+      incident: {
+        ...DEMO_INCIDENT_DRAFT.incident,
+        moneyLost: null,
+        delayInReporting: null,
+      },
+    });
+
+    expect(
+      deriveMissingQuestions(missingIncidentAnswers).map(
+        (question) => question.field,
+      ),
+    ).toEqual(expect.arrayContaining(["moneyLost", "delayInReporting"]));
+
+    const incidentFields = deriveReportGroups(missingIncidentAnswers)
+      .find((group) => group.id === "INCIDENT")
+      ?.sections.flatMap((section) => section.fields);
+    expect(incidentFields).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "money-lost",
+          missingQuestion: expect.objectContaining({ field: "moneyLost" }),
+        }),
+        expect.objectContaining({
+          id: "reporting-delay",
+          missingQuestion: expect.objectContaining({ field: "delayInReporting" }),
+        }),
+      ]),
+    );
+  });
+
+  it("asks for a delay reason only after a reporting delay is confirmed", () => {
+    const unknownDelay = IncidentDraftSchema.parse({
+      ...DEMO_INCIDENT_DRAFT,
+      incident: {
+        ...DEMO_INCIDENT_DRAFT.incident,
+        delayInReporting: null,
+        delayReason: null,
+      },
+    });
+
+    const delayed = applyMissingAnswer(unknownDelay, "delayInReporting", "yes");
+    expect(
+      deriveMissingQuestions(delayed).map((question) => question.field),
+    ).toContain("delayReason");
+
+    const completed = applyMissingAnswer(
+      delayed,
+      "delayReason",
+      "I first contacted the bank.",
+    );
+    expect(
+      deriveMissingQuestions(completed).map((question) => question.field),
+    ).not.toContain("delayReason");
+  });
+
   it("normalizes the structured incident channel without copying long evidence text", () => {
     const draft = IncidentDraftSchema.parse({
       ...DEMO_INCIDENT_DRAFT,

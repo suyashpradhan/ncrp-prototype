@@ -60,9 +60,12 @@ const GROUP_LABELS: Record<ReportGroupId, string> = {
 };
 
 const MISSING_GROUP: Record<MissingQuestion["field"], ReportGroupId> = {
+  moneyLost: "INCIDENT",
   incidentDate: "INCIDENT",
   incidentDateYear: "INCIDENT",
   incidentApproximateTime: "INCIDENT",
+  delayInReporting: "INCIDENT",
+  delayReason: "INCIDENT",
   occurredOn: "INCIDENT",
   institution: "TRANSACTIONS",
   accountOrUpiId: "TRANSACTIONS",
@@ -250,6 +253,7 @@ export function deriveReportGroups(
       "money-lost",
       copy("field.moneyLost"),
       draft.incident.moneyLost === null ? null : draft.incident.moneyLost ? copy("field.yes") : copy("field.no"),
+      { missingQuestion: missingByField.get("moneyLost") },
     ),
     makeField(
       "incident-date",
@@ -270,9 +274,12 @@ export function deriveReportGroups(
       draft.incident.delayInReporting === null
         ? null
         : draft.incident.delayInReporting ? copy("field.yes") : copy("field.no"),
+      { missingQuestion: missingByField.get("delayInReporting") },
     ),
     ...(draft.incident.delayInReporting
-      ? [makeField("delay-reason", copy("field.delayReason"), draft.incident.delayReason)]
+      ? [makeField("delay-reason", copy("field.delayReason"), draft.incident.delayReason, {
+          missingQuestion: missingByField.get("delayReason"),
+        })]
       : []),
     makeField("occurred-on", copy("field.occurredOn"), locale === "hi" && draft.incident.occurredOn === "SMS / chat message" ? "एसएमएस / चैट संदेश" : draft.incident.occurredOn, {
       source: draft.evidence.length > 0 ? copy("field.fromEvidence") : copy("field.fromShared"),

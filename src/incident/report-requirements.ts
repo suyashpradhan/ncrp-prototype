@@ -1,8 +1,11 @@
 import type { IncidentDraft, ReportFamily } from "./schema";
 
 export type ReportRequirementKey =
+  | "moneyLost"
   | "incidentDate"
   | "incidentApproximateTime"
+  | "delayInReporting"
+  | "delayReason"
   | "occurredOn"
   | "institution"
   | "accountOrUpiId"
@@ -28,7 +31,9 @@ const COMMON_INCIDENT_REQUIREMENTS: readonly ReportRequirement[] = [
 ];
 
 const FINANCIAL_FRAUD_REQUIREMENTS: readonly ReportRequirement[] = [
+  { key: "moneyLost", group: "INCIDENT" },
   ...COMMON_INCIDENT_REQUIREMENTS,
+  { key: "delayInReporting", group: "INCIDENT" },
   { key: "institution", group: "TRANSACTIONS" },
   { key: "accountOrUpiId", group: "TRANSACTIONS" },
   { key: "transactionAmount", group: "TRANSACTIONS" },
@@ -77,7 +82,15 @@ export function requirementsForIncident(draft: IncidentDraft): readonly ReportRe
   if (reportFamily === "OTHER_CYBER_CRIME" && !/profile hacking/i.test(subCategory ?? "")) {
     return GENERIC_OTHER_CYBER_REQUIREMENTS;
   }
-  return requirementsByReportFamily[reportFamily];
+  const requirements = requirementsByReportFamily[reportFamily];
+  if (reportFamily === "FINANCIAL_FRAUD" && draft.incident.delayInReporting === true) {
+    return requirements.flatMap((requirement) =>
+      requirement.key === "delayInReporting"
+        ? [requirement, { key: "delayReason", group: "INCIDENT" as const }]
+        : [requirement],
+    );
+  }
+  return requirements;
 }
 
 export function reportRequiresFinancialFields(draft: IncidentDraft): boolean {

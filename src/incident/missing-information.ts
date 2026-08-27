@@ -12,6 +12,12 @@ export type MissingQuestion = {
 };
 
 const QUESTIONS: Record<MissingQuestion["field"], MissingQuestion> = {
+  moneyLost: {
+    field: "moneyLost",
+    question: "Did you lose money in this incident?",
+    questionHi: "क्या इस घटना में आपके पैसे गए?",
+    inputType: "text",
+  },
   incidentDate: {
     field: "incidentDate",
     question: "When did this happen?",
@@ -29,6 +35,18 @@ const QUESTIONS: Record<MissingQuestion["field"], MissingQuestion> = {
     question: "About what time did this happen?",
     questionHi: "यह लगभग किस समय हुआ?",
     inputType: "time",
+  },
+  delayInReporting: {
+    field: "delayInReporting",
+    question: "Was this report delayed after the incident?",
+    questionHi: "क्या घटना के बाद यह रिपोर्ट देर से की गई?",
+    inputType: "text",
+  },
+  delayReason: {
+    field: "delayReason",
+    question: "Why was the report delayed?",
+    questionHi: "रिपोर्ट करने में देरी क्यों हुई?",
+    inputType: "text",
   },
   institution: {
     field: "institution",
@@ -107,8 +125,11 @@ const QUESTIONS: Record<MissingQuestion["field"], MissingQuestion> = {
 function requirementMissing(draft: IncidentDraft, field: ReportRequirementKey): boolean {
   const primaryTransaction = draft.transactions[0];
   switch (field) {
+    case "moneyLost": return draft.incident.moneyLost === null;
     case "incidentDate": return !draft.incident.incidentDate;
     case "incidentApproximateTime": return !draft.incident.approximateTime;
+    case "delayInReporting": return draft.incident.delayInReporting === null;
+    case "delayReason": return draft.incident.delayInReporting === true && !draft.incident.delayReason;
     case "occurredOn": return !draft.incident.occurredOn;
     case "institution": return !primaryTransaction?.institution;
     case "accountOrUpiId": return !primaryTransaction?.accountOrUpiId;
@@ -147,6 +168,45 @@ export function applyMissingAnswer(
 ): IncidentDraft {
   const answer = value.trim();
   if (!answer) return draft;
+
+  if (field === "moneyLost" || field === "delayInReporting") {
+    const normalized = answer.toLowerCase();
+    const selected = /^(yes|y|true|हाँ|हां)$/.test(normalized)
+      ? true
+      : /^(no|n|false|नहीं)$/.test(normalized)
+        ? false
+        : null;
+    if (selected === null) return draft;
+
+    if (field === "moneyLost") {
+      return {
+        ...draft,
+        classification: { ...draft.classification, moneyLost: selected },
+        incident: { ...draft.incident, moneyLost: selected },
+        missingRequiredFields: draft.missingRequiredFields.filter((item) => item !== field),
+      };
+    }
+
+    return {
+      ...draft,
+      incident: {
+        ...draft.incident,
+        delayInReporting: selected,
+        delayReason: selected ? draft.incident.delayReason : null,
+      },
+      missingRequiredFields: draft.missingRequiredFields.filter(
+        (item) => item !== field && (selected || item !== "delayReason"),
+      ),
+    };
+  }
+
+  if (field === "delayReason") {
+    return {
+      ...draft,
+      incident: { ...draft.incident, delayReason: answer },
+      missingRequiredFields: draft.missingRequiredFields.filter((item) => item !== field),
+    };
+  }
 
   if (field === "incidentDate" || field === "occurredOn") {
     return {
