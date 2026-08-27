@@ -1,6 +1,11 @@
 import { z } from "zod";
 import type { ReporterProfile } from "../experience/profile";
-import type { IncidentDraft, TranscriptionResult } from "./schema";
+import {
+  ReportFamilySchema,
+  type IncidentDraft,
+  type ReportFamily,
+  type TranscriptionResult,
+} from "./schema";
 
 export const NCRP_COMPATIBLE_SCHEMA_VERSION = "prototype-2026-08" as const;
 
@@ -111,10 +116,21 @@ const AddressGroupSchema = z.object({
 export const NcrpCompatibleComplaintSchema = z.object({
   schemaVersion: z.literal(NCRP_COMPATIBLE_SCHEMA_VERSION),
   structureLabel: z.literal("NCRP-compatible prototype complaint structure"),
-  supportedSubCategory: z.literal("Internet Banking Related Fraud"),
+  reportFamily: ReportFamilySchema,
+  supportedSubCategory: z.string().nullable(),
   groups: z.object({
     incident: IncidentGroupSchema,
     transactions: z.array(TransactionSchema),
+    adaptive: z.object({
+      platform: ComplaintFieldSchema,
+      affectedAccount: ComplaintFieldSchema,
+      accountAccessStatus: ComplaintFieldSchema,
+      recoveryInformationChanged: ComplaintFieldSchema,
+      affectedSystem: ComplaintFieldSchema,
+      filesEncrypted: ComplaintFieldSchema,
+      ransomMessagePresent: ComplaintFieldSchema,
+      sensitiveEvidenceRedacted: ComplaintFieldSchema,
+    }),
     evidence: z.object({
       citizenStatement: ComplaintFieldSchema,
       attachments: z.array(AttachmentSchema),
@@ -163,32 +179,48 @@ export type NcrpFieldDefinition = {
   conditionalRequired?: "WHEN_REPORTING_DELAYED";
   sourceReference: NcrpSourceReference[];
   supportedInPrototype: boolean;
+  reportFamilies?: readonly ReportFamily[];
+  subCategories?: readonly string[];
 };
 
 const portalAndChecklist: NcrpSourceReference[] = [
   "CURRENT_PORTAL_UI",
   "OFFICIAL_CHECKLIST",
 ];
+const financialOnly = { reportFamilies: ["FINANCIAL_FRAUD"] as const };
+const profileHackingOnly = {
+  reportFamilies: ["OTHER_CYBER_CRIME"] as const,
+  subCategories: ["Profile Hacking"] as const,
+};
+const ransomwareOnly = {
+  reportFamilies: ["OTHER_CYBER_CRIME"] as const,
+  subCategories: ["Ransomware"] as const,
+};
 
 export const NCRP_FIELD_DEFINITIONS: readonly NcrpFieldDefinition[] = [
   { id: "incident.category", group: "INCIDENT", labelKey: "field.category", required: true, sourceReference: portalAndChecklist, supportedInPrototype: true },
   { id: "incident.subCategory", group: "INCIDENT", labelKey: "field.subcategory", required: true, sourceReference: portalAndChecklist, supportedInPrototype: true },
-  { id: "incident.moneyLost", group: "INCIDENT", labelKey: "field.moneyLost", required: true, sourceReference: portalAndChecklist, supportedInPrototype: true },
+  { id: "incident.moneyLost", group: "INCIDENT", labelKey: "field.moneyLost", required: true, sourceReference: portalAndChecklist, supportedInPrototype: true, ...financialOnly },
   { id: "incident.incidentDate", group: "INCIDENT", labelKey: "field.incidentDate", required: true, sourceReference: portalAndChecklist, supportedInPrototype: true },
   { id: "incident.incidentTime", group: "INCIDENT", labelKey: "field.approxTime", required: true, sourceReference: portalAndChecklist, supportedInPrototype: true },
-  { id: "incident.delayInReporting", group: "INCIDENT", labelKey: "field.reportingDelay", required: true, sourceReference: portalAndChecklist, supportedInPrototype: true },
-  { id: "incident.reasonForDelay", group: "INCIDENT", labelKey: "field.delayReason", required: false, conditionalRequired: "WHEN_REPORTING_DELAYED", sourceReference: portalAndChecklist, supportedInPrototype: true },
+  { id: "incident.delayInReporting", group: "INCIDENT", labelKey: "field.reportingDelay", required: true, sourceReference: portalAndChecklist, supportedInPrototype: true, ...financialOnly },
+  { id: "incident.reasonForDelay", group: "INCIDENT", labelKey: "field.delayReason", required: false, conditionalRequired: "WHEN_REPORTING_DELAYED", sourceReference: portalAndChecklist, supportedInPrototype: true, ...financialOnly },
   { id: "incident.communicationChannel", group: "INCIDENT", labelKey: "field.occurredOn", required: true, sourceReference: portalAndChecklist, supportedInPrototype: true },
   { id: "incident.description", group: "INCIDENT", labelKey: "field.description", required: true, sourceReference: portalAndChecklist, supportedInPrototype: true },
-  { id: "transactions.0.institution", group: "TRANSACTIONS", labelKey: "field.institution", required: true, sourceReference: portalAndChecklist, supportedInPrototype: true },
-  { id: "transactions.0.sourceAccountOrPaymentId", group: "TRANSACTIONS", labelKey: "field.account", required: true, sourceReference: portalAndChecklist, supportedInPrototype: true },
-  { id: "transactions.0.transactionIdOrUtr", group: "TRANSACTIONS", labelKey: "field.transactionReference", required: true, sourceReference: portalAndChecklist, supportedInPrototype: true },
-  { id: "transactions.0.amount", group: "TRANSACTIONS", labelKey: "field.amount", required: true, sourceReference: portalAndChecklist, supportedInPrototype: true },
-  { id: "transactions.0.transactionDate", group: "TRANSACTIONS", labelKey: "field.transactionDate", required: true, sourceReference: portalAndChecklist, supportedInPrototype: true },
-  { id: "transactions.0.approximateTime", group: "TRANSACTIONS", labelKey: "field.approxTime", required: true, sourceReference: portalAndChecklist, supportedInPrototype: true },
-  { id: "transactions.0.referenceNumber", group: "TRANSACTIONS", labelKey: "field.reference", required: false, sourceReference: portalAndChecklist, supportedInPrototype: true },
+  { id: "transactions.0.institution", group: "TRANSACTIONS", labelKey: "field.institution", required: true, sourceReference: portalAndChecklist, supportedInPrototype: true, ...financialOnly },
+  { id: "transactions.0.sourceAccountOrPaymentId", group: "TRANSACTIONS", labelKey: "field.account", required: true, sourceReference: portalAndChecklist, supportedInPrototype: true, ...financialOnly },
+  { id: "transactions.0.transactionIdOrUtr", group: "TRANSACTIONS", labelKey: "field.transactionReference", required: true, sourceReference: portalAndChecklist, supportedInPrototype: true, ...financialOnly },
+  { id: "transactions.0.amount", group: "TRANSACTIONS", labelKey: "field.amount", required: true, sourceReference: portalAndChecklist, supportedInPrototype: true, ...financialOnly },
+  { id: "transactions.0.transactionDate", group: "TRANSACTIONS", labelKey: "field.transactionDate", required: true, sourceReference: portalAndChecklist, supportedInPrototype: true, ...financialOnly },
+  { id: "transactions.0.approximateTime", group: "TRANSACTIONS", labelKey: "field.approxTime", required: true, sourceReference: portalAndChecklist, supportedInPrototype: true, ...financialOnly },
+  { id: "transactions.0.referenceNumber", group: "TRANSACTIONS", labelKey: "field.reference", required: false, sourceReference: portalAndChecklist, supportedInPrototype: true, ...financialOnly },
+  { id: "adaptive.platform", group: "INCIDENT", labelKey: "field.occurredOn", required: true, sourceReference: portalAndChecklist, supportedInPrototype: true, reportFamilies: ["OTHER_CYBER_CRIME", "WOMEN_CHILDREN_RELATED_CRIME"] },
+  { id: "adaptive.affectedAccount", group: "INCIDENT", labelKey: "field.socialHandle", required: true, sourceReference: portalAndChecklist, supportedInPrototype: true, ...profileHackingOnly },
+  { id: "adaptive.accountAccessStatus", group: "INCIDENT", labelKey: "field.accountAccessStatus", required: true, sourceReference: portalAndChecklist, supportedInPrototype: true, ...profileHackingOnly },
+  { id: "adaptive.recoveryInformationChanged", group: "INCIDENT", labelKey: "field.recoveryInformationChanged", required: true, sourceReference: portalAndChecklist, supportedInPrototype: true, ...profileHackingOnly },
+  { id: "adaptive.affectedSystem", group: "INCIDENT", labelKey: "field.affectedSystem", required: true, sourceReference: portalAndChecklist, supportedInPrototype: true, ...ransomwareOnly },
   { id: "evidence.citizenStatement", group: "EVIDENCE", labelKey: "field.voiceStatement", required: true, sourceReference: portalAndChecklist, supportedInPrototype: true },
-  { id: "evidence.supportingEvidence", group: "EVIDENCE", labelKey: "field.evidenceSupplied", required: true, sourceReference: portalAndChecklist, supportedInPrototype: true },
+  { id: "evidence.supportingEvidence", group: "EVIDENCE", labelKey: "field.evidenceSupplied", required: true, sourceReference: portalAndChecklist, supportedInPrototype: true, ...financialOnly },
   { id: "suspect.name", group: "SUSPECT", labelKey: "field.name", required: false, sourceReference: portalAndChecklist, supportedInPrototype: true },
   { id: "suspect.mobileNumber", group: "SUSPECT", labelKey: "field.phone", required: false, sourceReference: portalAndChecklist, supportedInPrototype: true },
   { id: "suspect.email", group: "SUSPECT", labelKey: "field.email", required: false, sourceReference: portalAndChecklist, supportedInPrototype: true },
@@ -217,7 +249,7 @@ export const NCRP_FIELD_DEFINITIONS: readonly NcrpFieldDefinition[] = [
   { id: "address.country", group: "ADDRESS", labelKey: "field.country", required: true, sourceReference: portalAndChecklist, supportedInPrototype: true },
   { id: "address.policeStation", group: "ADDRESS", labelKey: "field.policeStation", required: true, sourceReference: portalAndChecklist, supportedInPrototype: true },
   { id: "address.pinCode", group: "ADDRESS", labelKey: "field.pinCode", required: true, sourceReference: portalAndChecklist, supportedInPrototype: true },
-  { id: "identityDocument.provided", group: "IDENTITY_DOCUMENT", labelKey: "field.identityDocument", required: true, sourceReference: ["CURRENT_PORTAL_UI", "OFFICIAL_CITIZEN_MANUAL_REFERENCE"], supportedInPrototype: true },
+  { id: "identityDocument.provided", group: "IDENTITY_DOCUMENT", labelKey: "field.identityDocument", required: true, sourceReference: ["CURRENT_PORTAL_UI", "OFFICIAL_CITIZEN_MANUAL_REFERENCE"], supportedInPrototype: true, ...financialOnly },
   { id: "declaration.accepted", group: "DECLARATION", labelKey: "field.declaration", required: true, sourceReference: ["CURRENT_PORTAL_UI"], supportedInPrototype: true },
 ] as const;
 
@@ -316,10 +348,13 @@ export function buildNcrpCompatibleComplaint({
   const structuredSource: FieldSource = evidenceAttachments.length > 0
     ? "EVIDENCE"
     : narrativeSource;
+  const classificationSource: FieldSource = draft.classification.explanation === "Reporting path confirmed by the citizen."
+    ? "USER_CONFIRMED"
+    : "SYSTEM_DERIVED";
 
   const incident = {
-    category: valueField(draft.officialMapping.categoryLabel, ["SYSTEM_DERIVED"], true),
-    subCategory: valueField(draft.officialMapping.subCategoryLabel, ["SYSTEM_DERIVED"], true),
+    category: valueField(draft.officialMapping.categoryLabel, [classificationSource], true),
+    subCategory: valueField(draft.officialMapping.subCategoryLabel, [classificationSource], true),
     moneyLost: valueField(draft.incident.moneyLost, [narrativeSource], true),
     incidentDate: draft.incident.incidentDateWithoutYear && !draft.incident.incidentDate
       ? {
@@ -338,7 +373,8 @@ export function buildNcrpCompatibleComplaint({
   return NcrpCompatibleComplaintSchema.parse({
     schemaVersion: NCRP_COMPATIBLE_SCHEMA_VERSION,
     structureLabel: "NCRP-compatible prototype complaint structure",
-    supportedSubCategory: "Internet Banking Related Fraud",
+    reportFamily: draft.classification.reportFamily,
+    supportedSubCategory: draft.classification.subCategory,
     groups: {
       incident,
       transactions: draft.transactions.map((transaction) => ({
@@ -350,6 +386,16 @@ export function buildNcrpCompatibleComplaint({
         approximateTime: valueField(transaction.approximateTime, [structuredSource], true),
         referenceNumber: valueField(transaction.referenceNumber, [structuredSource], false),
       })),
+      adaptive: {
+        platform: valueField(draft.adaptiveFacts.platform ?? draft.classification.platform, [structuredSource]),
+        affectedAccount: valueField(draft.adaptiveFacts.affectedAccount, [structuredSource]),
+        accountAccessStatus: valueField(draft.adaptiveFacts.accountAccessStatus, [structuredSource]),
+        recoveryInformationChanged: valueField(draft.adaptiveFacts.recoveryInformationChanged, [structuredSource]),
+        affectedSystem: valueField(draft.adaptiveFacts.affectedSystem, [structuredSource]),
+        filesEncrypted: valueField(draft.adaptiveFacts.filesEncrypted, [structuredSource]),
+        ransomMessagePresent: valueField(draft.adaptiveFacts.ransomMessagePresent, [structuredSource]),
+        sensitiveEvidenceRedacted: valueField(draft.adaptiveFacts.sensitiveEvidenceRedacted, [structuredSource]),
+      },
       evidence: {
         citizenStatement: valueField(
           transcription?.originalTranscript ?? (typedNarrative || draft.incident.narrative),
@@ -443,10 +489,27 @@ export function complaintRequiredFieldStatus(
   return "NEEDS_INPUT";
 }
 
+export function complaintFieldApplies(
+  complaint: NcrpCompatibleComplaint,
+  definition: NcrpFieldDefinition,
+): boolean {
+  if (definition.reportFamilies && !definition.reportFamilies.includes(complaint.reportFamily)) {
+    return false;
+  }
+  if (
+    definition.subCategories &&
+    !definition.subCategories.includes(complaint.supportedSubCategory ?? "")
+  ) {
+    return false;
+  }
+  return true;
+}
+
 export function complaintFieldIsRequired(
   complaint: NcrpCompatibleComplaint,
   definition: NcrpFieldDefinition,
 ): boolean {
+  if (!complaintFieldApplies(complaint, definition)) return false;
   if (definition.required) return true;
   if (definition.conditionalRequired === "WHEN_REPORTING_DELAYED") {
     return complaint.groups.incident.delayInReporting.value === true;

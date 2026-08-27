@@ -1,17 +1,10 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { syntheticCase } from "../data/synthetic-case";
-import { simulateNextCaseUpdate } from "../domain/money-path";
-import {
-  DEMO_RESTORATION_REQUEST_ID,
-  deriveJourneyFinancialSummary,
-  deriveJourneyTrail,
-} from "../presentation/demo-journey";
-import { DEMO_CASE_ACCESS } from "../components/demo-case/demo-case-provider";
+import { DEMO_INCIDENT_DRAFT } from "../incident/demo-incident";
 import { JOURNEY_STEPS } from "../components/demo-journey/journey-progress";
 
-describe("continuous synthetic citizen journey", () => {
-  it("presents reporting, restoration and resolution as one chronological journey", () => {
+describe("frozen Sachet reporting journey", () => {
+  it("uses only Tell us, Review and Submit progress labels", () => {
     expect(JOURNEY_STEPS).toEqual([
       { id: "REPORT", labelKey: "journey.report" },
       { id: "RESTORE", labelKey: "journey.restoration" },
@@ -19,75 +12,44 @@ describe("continuous synthetic citizen journey", () => {
     ]);
   });
 
-  it("uses the same complaint and restoration identifiers throughout", () => {
-    expect(syntheticCase.complaint.acknowledgementId).toBe(
-      DEMO_CASE_ACCESS.acknowledgementNumber,
-    );
-    expect(DEMO_RESTORATION_REQUEST_ID).toBe("MRM-DEMO-2026-00182");
-  });
-
-  it("derives the financial trail from the same four money paths as the case", () => {
-    const trail = deriveJourneyTrail(syntheticCase);
-
-    expect(trail.map(({ amount, state, institutionName }) => ({
-      amount,
-      state,
-      institutionName,
-    }))).toEqual([
-      { amount: 73_000, state: "HELD", institutionName: "Bank B" },
-      { amount: 42_000, state: "HELD", institutionName: "Bank A" },
-      { amount: 25_000, state: "EXITED", institutionName: "Synthetic cash-withdrawal trail" },
-      { amount: 60_000, state: "NOT_SECURED", institutionName: null },
-    ]);
-
-    expect(trail.reduce((total, item) => total + item.amount, 0)).toBe(200_000);
-  });
-
-  it("keeps the restoration amount aligned with active case reconciliation", () => {
-    expect(deriveJourneyFinancialSummary(syntheticCase)).toEqual({
-      reportedAmount: 200_000,
-      activeAmount: 115_000,
-      receivedAmount: 0,
-      exitedAmount: 25_000,
-      notSecuredAmount: 60_000,
+  it("keeps the canonical demo financial, deterministic and precomputed", () => {
+    expect(DEMO_INCIDENT_DRAFT.classification).toMatchObject({
+      reportFamily: "FINANCIAL_FRAUD",
+      subCategory: "Internet Banking Related Fraud",
+      ambiguity: "NONE",
     });
-  });
+    expect(DEMO_INCIDENT_DRAFT.incident.reportedAmount).toBe(40_000);
 
-  it("leaves the original case unchanged after synthetic process updates", () => {
-    let updatedCase = syntheticCase;
-    for (const day of [25, 26, 27, 28, 29, 30, 31]) {
-      updatedCase = simulateNextCaseUpdate(
-        updatedCase,
-        "path-held-io-verification",
-        `2026-08-${day}T10:00:00.000Z`,
-      );
-    }
-
-    expect(deriveJourneyFinancialSummary(updatedCase).receivedAmount).toBe(73_000);
-    expect(deriveJourneyFinancialSummary(syntheticCase)).toMatchObject({
-      activeAmount: 115_000,
-      receivedAmount: 0,
-    });
-    expect(syntheticCase.moneyPaths[0].events).toHaveLength(4);
-  });
-
-  it("keeps the detailed amount breakdown after the MRM handoff", () => {
-    const journeySource = readFileSync(
+    const source = readFileSync(
       new URL("../components/demo-journey/demo-journey.tsx", import.meta.url),
       "utf8",
     );
-    const caseSource = readFileSync(
-      new URL("../components/case-overview/case-overview.tsx", import.meta.url),
+    const demoHandler = source.slice(
+      source.indexOf("function useDemoIncident()"),
+      source.indexOf("function chooseDemoNarration"),
+    );
+    expect(demoHandler).toContain("DEMO_INCIDENT_DRAFT");
+    expect(demoHandler).not.toContain("fetch(");
+  });
+
+  it("does not expose restoration or tracking after synthetic submission", () => {
+    const source = readFileSync(
+      new URL("../components/demo-journey/demo-journey.tsx", import.meta.url),
       "utf8",
     );
+    expect(source).not.toContain("Continue to Money Restoration");
+    expect(source).not.toContain("Track progress");
+    expect(source).toContain("Report prepared successfully");
+  });
 
-    expect(journeySource).not.toContain('"POST_REPORT_HANDOFF"');
-    expect(journeySource).not.toContain('"POST_MRM_HANDOFF"');
-    expect(journeySource).toContain("buildSyntheticCaseFromComplaint");
-    expect(journeySource).toContain('t("mrm.held")');
-    expect(journeySource).not.toContain("FINANCIAL_TRAIL");
-    expect(journeySource).not.toContain("Track progress");
-    expect(caseSource).toContain('current="RESOLUTION"');
-    expect(caseSource).toContain("citizen-reconciliation-total");
+  it("redirects retired public routes to the reporting entry", () => {
+    for (const path of [
+      "../app/case/page.tsx",
+      "../app/ledger/page.tsx",
+      "../app/login/page.tsx",
+      "../app/how-it-works/page.tsx",
+    ]) {
+      expect(readFileSync(new URL(path, import.meta.url), "utf8")).toContain('redirect("/")');
+    }
   });
 });

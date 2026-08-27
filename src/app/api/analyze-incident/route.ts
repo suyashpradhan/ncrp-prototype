@@ -9,7 +9,7 @@ const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
 const MAX_SCREENSHOTS = 2;
 const ACCEPTED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
-const INCIDENT_EXTRACTION_INSTRUCTIONS = `You organise supplied evidence into a draft cybercrime complaint.
+const INCIDENT_EXTRACTION_INSTRUCTIONS = `You organise supplied evidence into one structured cybercrime incident draft and suggest a reporting path for citizen review.
 
 Rules:
 1. Extract only information supported by the supplied screenshots or transcript.
@@ -27,7 +27,19 @@ Rules:
 13. incident.occurredOn must be one concise supported channel: SMS / text message, WhatsApp, Telegram, Website, Mobile app, Email, Other, or null. Put contextual wording in the narrative, not this field.
 14. Keep evidence files and facts extracted from evidence distinct: evidence.type identifies the supplied item; evidence.extractedFacts contains only concise supported facts.
 15. When visibly supported, preserve safe suspect identifiers such as masked phone numbers, email addresses, URLs, UPI IDs, names or social handles in suspectIdentifiers. Do not unmask or complete partial identifiers.
-16. Identity documents are outside this incident-understanding feature. Never extract, reproduce or expose Aadhaar, PAN, passport, driving-licence, voter-ID or other government identity numbers.`;
+16. Identity documents are outside this incident-understanding feature. Never extract, reproduce or expose Aadhaar, PAN, passport, driving-licence, voter-ID or other government identity numbers.
+17. Populate classification and the reusable adaptiveFacts in this same response. Do not make a second classification pass.
+18. Classify by the primary harm, not by a platform keyword. Instagram, WhatsApp, Telegram, Facebook and email may only be contact channels.
+19. Use FINANCIAL_FRAUD when the primary supported harm is money transferred, debited, paid or lost through a digital interaction. Preserve the platform as context.
+20. Use OTHER_CYBER_CRIME for supported account/profile compromise or ransomware where financial loss is not the primary supported harm.
+21. Use WOMEN_CHILDREN_RELATED_CRIME only for supported online/digital sensitive harm involving women or children. Keep descriptions non-graphic and use the safe fact “Sensitive evidence — redacted” when evidence is referenced.
+22. Use OUT_OF_SCOPE_OR_UNCLEAR with ambiguity OUT_OF_CYBER_SCOPE when no online, cyber or digital element is described. Do not force serious offline conduct into a cyber form.
+23. Use OUT_OF_SCOPE_OR_UNCLEAR with ambiguity INSUFFICIENT_INFORMATION for incomplete input. Do not guess.
+24. When both a sensitive online harm and a financial demand are plausible primary paths, use OUT_OF_SCOPE_OR_UNCLEAR with ambiguity MULTIPLE_PLAUSIBLE_PATHS and requiresCitizenConfirmation true. Do not silently choose.
+25. classification.category and classification.subCategory are reporting-path suggestions, not legal conclusions. explanation must be short, neutral and supported.
+26. Unknown values in classification and adaptiveFacts must be null. Never invent account handles, recovery changes, affected devices or evidence.
+27. Keep officialMapping aligned with classification for the three supported report families. For OUT_OF_SCOPE_OR_UNCLEAR, officialMapping category and labels must be null.
+28. For non-financial incidents, do not create placeholder bank transactions. transactions must be empty unless actual financial activity is independently supported.`;
 
 type InputContent =
   | { type: "input_text"; text: string }

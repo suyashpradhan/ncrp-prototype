@@ -268,7 +268,7 @@ describe("AI-assisted incident reporting boundary", () => {
 
     const demoHandler = clientSource.slice(
       clientSource.indexOf("function useDemoIncident()"),
-      clientSource.indexOf("function startLiveTest()"),
+      clientSource.indexOf("function chooseDemoNarration"),
     );
     expect(demoHandler).not.toContain("fetch(");
     expect(demoHandler).not.toContain("getUserMedia");

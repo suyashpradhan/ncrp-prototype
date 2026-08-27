@@ -9,6 +9,7 @@ import { formatCurrency } from "./format";
 export type ReportGroupId =
   | "INCIDENT"
   | "TRANSACTIONS"
+  | "ACCOUNT_SYSTEM"
   | "EVIDENCE_SUSPECT"
   | "REPORTER";
 
@@ -53,6 +54,7 @@ export type ReportCompletion = {
 const GROUP_LABELS: Record<ReportGroupId, string> = {
   INCIDENT: "Incident",
   TRANSACTIONS: "Transactions",
+  ACCOUNT_SYSTEM: "Affected account or system",
   EVIDENCE_SUSPECT: "Evidence & suspect",
   REPORTER: "Your details",
 };
@@ -63,7 +65,16 @@ const MISSING_GROUP: Record<MissingQuestion["field"], ReportGroupId> = {
   incidentApproximateTime: "INCIDENT",
   occurredOn: "INCIDENT",
   institution: "TRANSACTIONS",
+  accountOrUpiId: "TRANSACTIONS",
+  transactionAmount: "TRANSACTIONS",
   transactionIdOrUtr: "TRANSACTIONS",
+  transactionDate: "TRANSACTIONS",
+  transactionApproximateTime: "TRANSACTIONS",
+  platform: "ACCOUNT_SYSTEM",
+  affectedAccount: "ACCOUNT_SYSTEM",
+  accountAccessStatus: "ACCOUNT_SYSTEM",
+  recoveryInformationChanged: "ACCOUNT_SYSTEM",
+  affectedSystem: "ACCOUNT_SYSTEM",
 };
 
 export const CITIZEN_DOES_NOT_HAVE = "__CITIZEN_DOES_NOT_HAVE__";
@@ -154,9 +165,15 @@ function localizedEvidenceFact(value: string, locale: UiLocale): string {
 }
 
 export function deriveReportCompletion(draft: IncidentDraft): ReportCompletion {
-  const total = 4;
+  const total = draft.classification.reportFamily === "FINANCIAL_FRAUD"
+    ? 4
+    : draft.classification.reportFamily === "OTHER_CYBER_CRIME"
+      ? 4
+      : draft.classification.reportFamily === "WOMEN_CHILDREN_RELATED_CRIME"
+        ? 3
+        : 0;
   const missing = deriveMissingQuestions(draft).length;
-  return { ready: total - missing, total, missing };
+  return { ready: Math.max(0, total - missing), total, missing };
 }
 
 function formatPartialDate(value: string | null, locale: UiLocale): string {
@@ -200,13 +217,32 @@ export function deriveReportGroups(
   const missingByField = new Map(missingQuestions.map((question) => [question.field, question]));
   const missingCount = (group: ReportGroupId) => missingQuestions
     .filter((question) => MISSING_GROUP[question.field] === group).length;
+  const localizedCategory = locale === "hi"
+    ? ({
+        "Financial Fraud": "वित्तीय धोखाधड़ी",
+        "Women / Children Related Crime": "महिला / बच्चों से संबंधित अपराध",
+        "Other Cyber Crime": "अन्य साइबर अपराध",
+        "Online and Social Media Related Crime": "ऑनलाइन और सोशल मीडिया से संबंधित अपराध",
+      } as Record<string, string>)[draft.officialMapping.categoryLabel ?? ""] ?? draft.officialMapping.categoryLabel
+    : draft.officialMapping.categoryLabel;
+  const localizedSubCategory = locale === "hi"
+    ? ({
+        "Internet Banking Related Fraud": "इंटरनेट बैंकिंग से जुड़ी धोखाधड़ी",
+        "Investment / Trading Fraud": "निवेश / ट्रेडिंग धोखाधड़ी",
+        "Online Financial Fraud": "ऑनलाइन वित्तीय धोखाधड़ी",
+        "Profile Hacking": "प्रोफ़ाइल हैकिंग",
+        "Ransomware": "रैनसमवेयर",
+        "Online abusive-content report": "ऑनलाइन अपमानजनक सामग्री की रिपोर्ट",
+        "Other supported cyber incident": "अन्य समर्थित साइबर घटना",
+      } as Record<string, string>)[draft.officialMapping.subCategoryLabel ?? ""] ?? draft.officialMapping.subCategoryLabel
+    : draft.officialMapping.subCategoryLabel;
 
   const incidentFields: ReportFieldView[] = [
-    makeField("category", copy("field.category"), locale === "hi" && draft.officialMapping.categoryLabel === "Financial Fraud" ? "वित्तीय धोखाधड़ी" : draft.officialMapping.categoryLabel, {
+    makeField("category", copy("field.category"), localizedCategory, {
       source: copy("field.suggested"),
       kind: "CATEGORY",
     }),
-    makeField("subcategory", copy("field.subcategory"), locale === "hi" && draft.officialMapping.subCategoryLabel === "Internet Banking Related Fraud" ? "इंटरनेट बैंकिंग से जुड़ी धोखाधड़ी" : draft.officialMapping.subCategoryLabel, {
+    makeField("subcategory", copy("field.subcategory"), localizedSubCategory, {
       source: copy("field.suggested"),
       kind: "CATEGORY",
     }),
@@ -255,18 +291,43 @@ export function deriveReportGroups(
     ),
   ];
 
-  const transactionSections: ReportFieldSection[] = draft.transactions.length > 0
-    ? draft.transactions.map((transaction, index) => ({
+  const commonIncidentIds = new Set([
+    "category",
+    "subcategory",
+    "incident-date",
+    "incident-time",
+    "occurred-on",
+    "incident-description",
+  ]);
+  const relevantIncidentFields = draft.classification.reportFamily === "FINANCIAL_FRAUD"
+    ? incidentFields
+    : incidentFields.filter((item) => commonIncidentIds.has(item.id));
+
+  const reportTransactions = draft.transactions.length > 0
+    ? draft.transactions
+    : [{
+        institution: null,
+        accountOrUpiId: null,
+        transactionIdOrUtr: null,
+        amount: draft.incident.reportedAmount,
+        transactionDate: draft.incident.incidentDate,
+        approximateTime: draft.incident.approximateTime,
+        referenceNumber: null,
+      }];
+  const transactionSections: ReportFieldSection[] = reportTransactions.map((transaction, index) => ({
         id: `transaction-${index + 1}`,
         title: copy("field.transaction", { number: index + 1 }),
         fields: [
           makeField(`transaction-${index}-amount`, copy("field.amount"), transaction.amount === null ? null : formatCurrency(transaction.amount), {
             source: copy("field.fromShared"),
+            missingQuestion: index === 0 ? missingByField.get("transactionAmount") : undefined,
           }),
           makeField(`transaction-${index}-institution`, copy("field.institution"), transaction.institution === "SBI" && locale === "hi" ? "एसबीआई" : transaction.institution, {
             missingQuestion: index === 0 ? missingByField.get("institution") : undefined,
           }),
-          makeField(`transaction-${index}-account`, copy("field.account"), transaction.accountOrUpiId === "Synthetic SBI account ending 0024" ? copy("field.syntheticSbiAccount") : transaction.accountOrUpiId),
+          makeField(`transaction-${index}-account`, copy("field.account"), transaction.accountOrUpiId === "Synthetic SBI account ending 0024" ? copy("field.syntheticSbiAccount") : transaction.accountOrUpiId, {
+            missingQuestion: index === 0 ? missingByField.get("accountOrUpiId") : undefined,
+          }),
           makeField(`transaction-${index}-utr`, copy("field.transactionReference"), transaction.transactionIdOrUtr, {
             source:
               transaction.transactionIdOrUtr &&
@@ -276,15 +337,15 @@ export function deriveReportGroups(
             helpText: copy("field.transactionReferenceHelp"),
             missingQuestion: index === 0 ? missingByField.get("transactionIdOrUtr") : undefined,
           }),
-          makeField(`transaction-${index}-date`, copy("field.transactionDate"), formatDate(transaction.transactionDate, locale)),
-          makeField(`transaction-${index}-time`, copy("field.approxTime"), transaction.approximateTime),
+          makeField(`transaction-${index}-date`, copy("field.transactionDate"), formatDate(transaction.transactionDate, locale), {
+            missingQuestion: index === 0 ? missingByField.get("transactionDate") : undefined,
+          }),
+          makeField(`transaction-${index}-time`, copy("field.approxTime"), transaction.approximateTime, {
+            missingQuestion: index === 0 ? missingByField.get("transactionApproximateTime") : undefined,
+          }),
           makeField(`transaction-${index}-reference`, copy("field.reference"), transaction.referenceNumber),
         ],
-      }))
-    : [{
-        id: "no-transactions",
-        fields: [makeField("transactions-empty", copy("field.transactions"), null)],
-      }];
+      }));
 
   const transactionTotal = draft.transactions.reduce(
     (total, transaction) => total + (transaction.amount ?? 0),
@@ -294,7 +355,14 @@ export function deriveReportGroups(
     ? transactionTotal
     : draft.incident.reportedAmount;
 
-  const evidenceFields = draft.evidence.length > 0
+  const evidenceFields = draft.classification.reportFamily === "WOMEN_CHILDREN_RELATED_CRIME" && draft.evidence.length > 0
+    ? [makeField(
+        "sensitive-evidence-redacted",
+        copy("field.evidenceSupplied"),
+        locale === "hi" ? "संवेदनशील सबूत — छिपाया गया" : "Sensitive evidence — redacted",
+        { source: copy("field.fromEvidence") },
+      )]
+    : draft.evidence.length > 0
     ? draft.evidence.map((item, index) => makeField(
         `evidence-${index}`,
         evidenceLabel(item.type, locale),
@@ -326,39 +394,111 @@ export function deriveReportGroups(
     )),
   );
 
-  return [
-    {
-      id: "INCIDENT",
-      label: copy("field.incident"),
-      missingCount: missingCount("INCIDENT"),
-      sections: [{ id: "incident", fields: incidentFields }],
-    },
-    {
-      id: "TRANSACTIONS",
-      label: copy("field.transactions"),
-      missingCount: missingCount("TRANSACTIONS"),
-      sections: [
-        {
-          id: "transaction-summary",
-          fields: [makeField(
-            "transaction-total",
-            copy("field.totalLost"),
-            displayedReportedAmount ? formatCurrency(displayedReportedAmount) : null,
-          )],
-        },
-        ...transactionSections,
-      ],
-    },
-    {
-      id: "EVIDENCE_SUSPECT",
-      label: copy("field.evidenceSuspect"),
-      missingCount: 0,
-      sections: [
-        { id: "evidence", title: copy("field.evidenceSupplied"), fields: evidenceFields },
-        { id: "evidence-facts", title: copy("field.factsExtracted"), fields: evidenceFactFields },
-        { id: "suspect", title: copy("field.suspectFound"), fields: suspectFields },
-      ],
-    },
+  const incidentGroup: ReportGroupView = {
+    id: "INCIDENT",
+    label: copy("field.incident"),
+    missingCount: missingCount("INCIDENT"),
+    sections: [{ id: "incident", fields: relevantIncidentFields }],
+  };
+  const transactionGroup: ReportGroupView = {
+    id: "TRANSACTIONS",
+    label: copy("field.transactions"),
+    missingCount: missingCount("TRANSACTIONS"),
+    sections: [
+      {
+        id: "transaction-summary",
+        fields: [makeField(
+          "transaction-total",
+          copy("field.totalLost"),
+          displayedReportedAmount ? formatCurrency(displayedReportedAmount) : null,
+        )],
+      },
+      ...transactionSections,
+    ],
+  };
+  const accountSystemFields: ReportFieldView[] = /ransomware/i.test(draft.classification.subCategory ?? "")
+    ? [
+        makeField(
+          "affected-system",
+          locale === "hi" ? "प्रभावित उपकरण या सिस्टम" : "Affected system",
+          locale === "hi" && draft.adaptiveFacts.affectedSystem === "Laptop"
+            ? "लैपटॉप"
+            : draft.adaptiveFacts.affectedSystem,
+          { missingQuestion: missingByField.get("affectedSystem") },
+        ),
+        makeField(
+          "files-encrypted",
+          locale === "hi" ? "फ़ाइलें एन्क्रिप्ट हुईं" : "Files encrypted",
+          draft.adaptiveFacts.filesEncrypted === null
+            ? null
+            : draft.adaptiveFacts.filesEncrypted ? copy("field.yes") : copy("field.no"),
+        ),
+        makeField(
+          "ransom-message",
+          locale === "hi" ? "फिरौती का संदेश" : "Ransom message",
+          draft.adaptiveFacts.ransomMessagePresent === null
+            ? null
+            : draft.adaptiveFacts.ransomMessagePresent
+              ? (locale === "hi" ? "सबूत में दिया गया" : "Provided as evidence")
+              : copy("field.no"),
+        ),
+      ]
+    : /profile hacking/i.test(draft.classification.subCategory ?? "")
+      ? [
+        makeField(
+          "platform",
+          locale === "hi" ? "प्लेटफ़ॉर्म या सेवा" : "Platform or service",
+          draft.adaptiveFacts.platform ?? draft.classification.platform,
+          { missingQuestion: missingByField.get("platform") },
+        ),
+        makeField(
+          "affected-account",
+          locale === "hi" ? "प्रभावित खाता" : "Affected account",
+          draft.adaptiveFacts.affectedAccount,
+          { missingQuestion: missingByField.get("affectedAccount") },
+        ),
+        makeField(
+          "account-access",
+          locale === "hi" ? "खाते तक पहुँच" : "Account access",
+          locale === "hi" && draft.adaptiveFacts.accountAccessStatus === "Lost"
+            ? "प्रवेश नहीं है"
+            : draft.adaptiveFacts.accountAccessStatus,
+          { missingQuestion: missingByField.get("accountAccessStatus") },
+        ),
+        makeField(
+          "recovery-information",
+          locale === "hi" ? "रिकवरी जानकारी बदली" : "Recovery information changed",
+          draft.adaptiveFacts.recoveryInformationChanged === null
+            ? null
+            : draft.adaptiveFacts.recoveryInformationChanged ? copy("field.yes") : copy("field.no"),
+          { missingQuestion: missingByField.get("recoveryInformationChanged") },
+        ),
+        ]
+      : [
+          makeField(
+            "platform",
+            locale === "hi" ? "प्लेटफ़ॉर्म या सेवा" : "Platform or service",
+            draft.adaptiveFacts.platform ?? draft.classification.platform,
+            { missingQuestion: missingByField.get("platform") },
+          ),
+        ];
+  const accountSystemGroup: ReportGroupView = {
+    id: "ACCOUNT_SYSTEM",
+    label: locale === "hi" ? "प्रभावित खाता या सिस्टम" : "Affected account or system",
+    missingCount: missingCount("ACCOUNT_SYSTEM"),
+    sections: [{ id: "account-system", fields: accountSystemFields }],
+  };
+  const evidenceGroup: ReportGroupView = {
+    id: "EVIDENCE_SUSPECT",
+    label: copy("field.evidenceSuspect"),
+    missingCount: 0,
+    sections: [
+      { id: "evidence", title: copy("field.evidenceSupplied"), fields: evidenceFields },
+      { id: "evidence-facts", title: copy("field.factsExtracted"), fields: evidenceFactFields },
+      { id: "suspect", title: copy("field.suspectFound"), fields: suspectFields },
+    ],
+  };
+  const reporterGroup: ReportGroupView =
     {
       id: "REPORTER",
       label: copy("field.reporter"),
@@ -410,6 +550,16 @@ export function deriveReportGroups(
           )],
         },
       ],
-    },
-  ];
+    };
+
+  if (draft.classification.reportFamily === "FINANCIAL_FRAUD") {
+    return [incidentGroup, transactionGroup, evidenceGroup, reporterGroup];
+  }
+  if (draft.classification.reportFamily === "OTHER_CYBER_CRIME") {
+    return [incidentGroup, accountSystemGroup, evidenceGroup, reporterGroup];
+  }
+  if (draft.classification.reportFamily === "WOMEN_CHILDREN_RELATED_CRIME") {
+    return [incidentGroup, evidenceGroup, reporterGroup];
+  }
+  return [];
 }

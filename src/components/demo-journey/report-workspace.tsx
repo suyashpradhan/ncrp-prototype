@@ -6,7 +6,7 @@ import {
   deriveMissingQuestions,
   type MissingQuestion,
 } from "../../incident/missing-information";
-import type { IncidentDraft, TranscriptionResult } from "../../incident/schema";
+import type { IncidentDraft, ReportFamily, TranscriptionResult } from "../../incident/schema";
 import {
   DEMO_NARRATIONS,
   type DemoNarrationLanguage,
@@ -15,6 +15,7 @@ import type { ReportedAmountResolution } from "../../incident/complaint-case";
 import {
   NCRP_FIELD_DEFINITIONS,
   buildNcrpCompatibleComplaint,
+  complaintFieldApplies,
   complaintFieldIsRequired,
   complaintRequiredFieldStatus,
   type NcrpCompatibleComplaint,
@@ -96,6 +97,9 @@ type ReportWorkspaceProps = {
   onSaveMissingAnswer: (question: MissingQuestion, fallback?: string) => void;
   onDraftChange: (draft: IncidentDraft) => void;
   onReportedAmountSelect: (amount: number) => void;
+  onReportFamilyChange: (
+    reportFamily: Exclude<ReportFamily, "OUT_OF_SCOPE_OR_UNCLEAR">,
+  ) => void;
   onDemoNarrationLanguageChange: (language: DemoNarrationLanguage) => void;
   onReview: () => void;
   onBackToEdit: () => void;
@@ -428,10 +432,12 @@ function ReportInputPane(props: ReportWorkspaceProps) {
       aria-labelledby="journey-stage-heading"
     >
       <h1 id="journey-stage-heading" tabIndex={-1}>
-        {props.mode === "REVIEW" ? t("workspace.yourInformation") : t("workspace.tell")}
+        {props.mode === "REVIEW" || props.mode === "READY"
+          ? t("workspace.yourInformation")
+          : t("workspace.tell")}
       </h1>
       <p className="pane-intro">
-        {props.mode === "REVIEW"
+        {props.mode === "REVIEW" || props.mode === "READY"
           ? t("workspace.reviewIntro")
           : t("workspace.intro")}
       </p>
@@ -586,19 +592,28 @@ function MissingFieldEditor({
     );
   }
 
+  if (question.field === "recoveryInformationChanged") {
+    return (
+      <div className="report-missing-editor" data-missing-field={question.field}>
+        <p className="report-field-state">
+          {locale === "hi" ? question.questionHi : question.question}
+        </p>
+        <div className="inline-field-actions">
+          <button className="secondary-button" type="button" onClick={() => onSave("yes")}>
+            {t("field.yes")}
+          </button>
+          <button className="secondary-button" type="button" onClick={() => onSave("no")}>
+            {t("field.no")}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="report-missing-editor" data-missing-field={question.field}>
       <label htmlFor={`missing-${question.field}`}>
-        {locale === "hi"
-          ? ({
-              incidentDate: "यह घटना कब हुई?",
-              incidentDateYear: "घटना की तारीख का साल पक्का करें",
-              incidentApproximateTime: "यह लगभग कितने बजे हुआ?",
-              institution: "आपने किस बैंक या भुगतान ऐप का उपयोग किया?",
-              transactionIdOrUtr: "क्या आपके पास लेन-देन संदर्भ संख्या है?",
-              occurredOn: "बातचीत या घटना कहाँ हुई?",
-            } as const)[question.field]
-          : question.question}
+        {locale === "hi" ? question.questionHi : question.question}
       </label>
       {field.helpText ? (
         <p className="report-field-help">{field.helpText}</p>
@@ -1067,6 +1082,7 @@ function ReportReview(props: ReportWorkspaceProps) {
             </div>
             {NCRP_FIELD_DEFINITIONS
               .filter((definition) => definition.supportedInPrototype && definition.id !== "declaration.accepted")
+              .filter((definition) => complaintFieldApplies(complaint, definition))
               .filter((definition) => {
                 const status = complaintRequiredFieldStatus(complaint, definition);
                 return complaintFieldIsRequired(complaint, definition) || status !== "NOT_PROVIDED_OPTIONAL";
@@ -1125,6 +1141,147 @@ function ReportReview(props: ReportWorkspaceProps) {
   );
 }
 
+function ReportingPathControl({
+  draft,
+  onReportFamilyChange,
+}: Pick<ReportWorkspaceProps, "onReportFamilyChange"> & { draft: IncidentDraft }) {
+  const { locale } = useI18n();
+  const [changing, setChanging] = useState(false);
+  const classification = draft.classification;
+  const familyLabel = (family: Exclude<ReportFamily, "OUT_OF_SCOPE_OR_UNCLEAR">) => {
+    if (locale === "hi") {
+      if (family === "FINANCIAL_FRAUD") return "वित्तीय धोखाधड़ी";
+      if (family === "WOMEN_CHILDREN_RELATED_CRIME") return "महिला / बच्चों से संबंधित अपराध";
+      return "अन्य साइबर अपराध";
+    }
+    if (family === "FINANCIAL_FRAUD") return "Financial Fraud";
+    if (family === "WOMEN_CHILDREN_RELATED_CRIME") return "Women / Children Related Crime";
+    return "Other Cyber Crime";
+  };
+  const subCategoryLabel = () => {
+    if (locale !== "hi") return classification.subCategory;
+    const translations: Record<string, string> = {
+      "Internet Banking Related Fraud": "इंटरनेट बैंकिंग से जुड़ी धोखाधड़ी",
+      "Investment / Trading Fraud": "निवेश / ट्रेडिंग धोखाधड़ी",
+      "Online Financial Fraud": "ऑनलाइन वित्तीय धोखाधड़ी",
+      "Profile Hacking": "प्रोफ़ाइल हैकिंग",
+      "Ransomware": "रैनसमवेयर",
+      "Online abusive-content report": "ऑनलाइन अपमानजनक सामग्री की रिपोर्ट",
+      "Other supported cyber incident": "अन्य समर्थित साइबर घटना",
+    };
+    return classification.subCategory
+      ? translations[classification.subCategory] ?? "सुझाई गई उप-श्रेणी"
+      : null;
+  };
+  const detailedCategoryLabel = () => {
+    const category = classification.category;
+    if (!category || ["Financial Fraud", "Women / Children Related Crime", "Other Cyber Crime"].includes(category)) {
+      return null;
+    }
+    if (locale === "hi" && category === "Online and Social Media Related Crime") {
+      return "ऑनलाइन और सोशल मीडिया से संबंधित अपराध";
+    }
+    return category;
+  };
+  const focusStory = () => {
+    const input = document.querySelector<HTMLTextAreaElement>("#incident-narrative");
+    input?.scrollIntoView({ behavior: "smooth", block: "center" });
+    input?.focus();
+  };
+
+  if (classification.ambiguity === "INSUFFICIENT_INFORMATION") {
+    return (
+      <section className="classification-guidance" role="status">
+        <h3>{locale === "hi" ? "क्या हुआ, थोड़ा और बताएं" : "Tell us a little more about what happened"}</h3>
+        <p>
+          {locale === "hi"
+            ? "घटना किस ऐप, वेबसाइट, खाते या उपकरण से जुड़ी थी?"
+            : "Which app, website, account or device was involved?"}
+        </p>
+        <button className="secondary-button" type="button" onClick={focusStory}>
+          {locale === "hi" ? "विवरण जारी रखें" : "Continue editing"}
+        </button>
+      </section>
+    );
+  }
+
+  if (classification.ambiguity === "OUT_OF_CYBER_SCOPE") {
+    return (
+      <section className="classification-guidance" role="status">
+        <h3>{locale === "hi" ? "यह ऑनलाइन या साइबर घटना नहीं हो सकती है" : "This may not be an online or cyber incident"}</h3>
+        <p>
+          {locale === "hi"
+            ? "यदि कोई तत्काल खतरे में है, तो उचित आपातकालीन या पुलिस सेवा से संपर्क करें।"
+            : "If someone is in immediate danger, contact the appropriate emergency or police service."}
+        </p>
+        <div className="inline-field-actions">
+          <button className="secondary-button" type="button" onClick={focusStory}>
+            {locale === "hi" ? "क्या हुआ, बदलें" : "Edit what happened"}
+          </button>
+          <button className="text-button" type="button" onClick={() => onReportFamilyChange("OTHER_CYBER_CRIME")}>
+            {locale === "hi" ? "यदि इसमें ऑनलाइन या साइबर हिस्सा था, तो जारी रखें" : "Continue only if this involved an online or cyber element"}
+          </button>
+        </div>
+      </section>
+    );
+  }
+
+  if (classification.ambiguity === "MULTIPLE_PLAUSIBLE_PATHS") {
+    return (
+      <section className="classification-guidance" role="status">
+        <h3>{locale === "hi" ? "यह घटना एक से अधिक रिपोर्टिंग रास्तों में आ सकती है" : "This incident may fit more than one reporting path"}</h3>
+        <p>{locale === "hi" ? "आप यहाँ किस हिस्से की रिपोर्ट करना चाहते हैं?" : "Which part would you like to report here?"}</p>
+        <div className="classification-options">
+          <button className="secondary-button" type="button" onClick={() => onReportFamilyChange("WOMEN_CHILDREN_RELATED_CRIME")}>
+            {familyLabel("WOMEN_CHILDREN_RELATED_CRIME")}
+          </button>
+          <button className="secondary-button" type="button" onClick={() => onReportFamilyChange("FINANCIAL_FRAUD")}>
+            {familyLabel("FINANCIAL_FRAUD")}
+          </button>
+        </div>
+      </section>
+    );
+  }
+
+  if (classification.reportFamily === "OUT_OF_SCOPE_OR_UNCLEAR") return null;
+
+  const families: Array<Exclude<ReportFamily, "OUT_OF_SCOPE_OR_UNCLEAR">> = [
+    "FINANCIAL_FRAUD",
+    "WOMEN_CHILDREN_RELATED_CRIME",
+    "OTHER_CYBER_CRIME",
+  ];
+  return (
+    <section className="suggested-reporting-path" aria-label={locale === "hi" ? "सुझाई गई रिपोर्टिंग श्रेणी" : "Suggested reporting category"}>
+      <p className="report-field-label">{locale === "hi" ? "सुझाई गई रिपोर्टिंग श्रेणी" : "Suggested reporting category"}</p>
+      <strong>{familyLabel(classification.reportFamily)}</strong>
+      {detailedCategoryLabel() ? <span>{detailedCategoryLabel()}</span> : null}
+      {subCategoryLabel() ? <span>{subCategoryLabel()}</span> : null}
+      <p>{locale === "hi" ? "आपके साझा किए गए विवरण के आधार पर।" : "Based on what you shared."}</p>
+      <button className="text-button" type="button" onClick={() => setChanging((current) => !current)} aria-expanded={changing}>
+        {locale === "hi" ? "बदलें" : "Change"}
+      </button>
+      {changing ? (
+        <div className="classification-options" aria-label={locale === "hi" ? "दूसरी श्रेणी चुनें" : "Choose another category"}>
+          {families.map((family) => (
+            <button
+              className="secondary-button"
+              type="button"
+              key={family}
+              aria-pressed={classification.reportFamily === family}
+              onClick={() => {
+                onReportFamilyChange(family);
+                setChanging(false);
+              }}
+            >
+              {familyLabel(family)}
+            </button>
+          ))}
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
 function ReportDetailsPane({
   onShowDetails,
   ...props
@@ -1171,7 +1328,16 @@ function ReportDetailsPane({
     incidentApproximateTime: t("field.approxTime"),
     occurredOn: t("field.occurredOn"),
     institution: t("field.institution"),
+    accountOrUpiId: t("field.account"),
+    transactionAmount: t("field.amount"),
     transactionIdOrUtr: t("field.transactionReference"),
+    transactionDate: t("field.transactionDate"),
+    transactionApproximateTime: t("field.approxTime"),
+    platform: locale === "hi" ? "प्लेटफ़ॉर्म या सेवा" : "Platform or service",
+    affectedAccount: locale === "hi" ? "प्रभावित खाता" : "Affected account",
+    accountAccessStatus: locale === "hi" ? "खाते तक पहुँच" : "Account access",
+    recoveryInformationChanged: locale === "hi" ? "रिकवरी जानकारी" : "Recovery information",
+    affectedSystem: locale === "hi" ? "प्रभावित सिस्टम" : "Affected system",
   };
   const evidenceMissing = contractMissing.some((definition) => definition.id === "evidence.supportingEvidence");
   const firstMissingLabel = amountConflictMissing
@@ -1241,6 +1407,13 @@ function ReportDetailsPane({
         <p>{t("workspace.reportInfoSupport")}</p>
       </div>
 
+      {props.mode === "READY" && props.draft ? (
+        <ReportingPathControl
+          draft={props.draft}
+          onReportFamilyChange={props.onReportFamilyChange}
+        />
+      ) : null}
+
       {props.mode === "INPUT" && !props.draft ? (
         <div className="report-empty-state">
           <p>
@@ -1286,6 +1459,13 @@ function ReportDetailsPane({
             >
               {t("workspace.tryAgain")}
             </button>
+            <button
+              className="secondary-button"
+              type="button"
+              onClick={() => document.querySelector<HTMLTextAreaElement>("#incident-narrative")?.focus()}
+            >
+              {locale === "hi" ? "विवरण बदलते रहें" : "Continue editing"}
+            </button>
             {props.isTranscriptionError ? (
               <>
                 <button
@@ -1318,7 +1498,7 @@ function ReportDetailsPane({
         </div>
       ) : null}
 
-      {props.mode === "READY" && props.draft && completion ? (
+      {props.mode === "READY" && props.draft && completion && props.draft.classification.ambiguity === "NONE" ? (
         <>
           <div className="report-completion" role="status" aria-live="polite">
             <p>

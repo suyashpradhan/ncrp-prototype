@@ -655,6 +655,49 @@ textarea {
   font-size: 30px;
 }
 
+.suggested-reporting-path,
+.classification-guidance {
+  margin-bottom: 22px;
+  padding: 16px;
+  background: #f7f6f3;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+
+.suggested-reporting-path > strong,
+.suggested-reporting-path > span {
+  display: block;
+}
+
+.suggested-reporting-path > strong {
+  font-size: 18px;
+}
+
+.suggested-reporting-path > span,
+.suggested-reporting-path > p:not(.report-field-label),
+.classification-guidance p {
+  color: var(--secondary);
+  font-size: 14px;
+}
+
+.classification-guidance h3 {
+  margin-bottom: 7px;
+  font-size: 19px;
+}
+
+.classification-options {
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.classification-options button[aria-pressed="true"] {
+  color: var(--surface);
+  background: var(--primary);
+  border-color: var(--primary);
+}
+
 .report-empty-state,
 .report-processing-state,
 .report-error-state {
@@ -1246,7 +1289,8 @@ dd {
 
   .service-entry-actions > *,
   .entry-actions > *,
-  .report-primary-actions > * {
+  .report-primary-actions > *,
+  .classification-options > * {
     width: 100%;
   }
 

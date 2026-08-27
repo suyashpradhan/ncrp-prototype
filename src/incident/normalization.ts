@@ -1,6 +1,8 @@
 import type { IncidentDraft } from "./schema";
 
 const CHANNEL_PATTERNS: ReadonlyArray<[RegExp, string]> = [
+  [/\binstagram\b/i, "Instagram"],
+  [/\bfacebook\b/i, "Facebook"],
   [/\bwhats?app\b/i, "WhatsApp"],
   [/\btelegram\b/i, "Telegram"],
   [/\b(?:sms|text message)\b/i, "SMS / text message"],
@@ -13,6 +15,8 @@ export function normalizeIncidentChannel(draft: IncidentDraft): string | null {
   const evidenceFacts = draft.evidence.flatMap((item) => item.extractedFacts);
   const supportedSources = [
     draft.incident.occurredOn?.trim() ?? "",
+    draft.classification.platform?.trim() ?? "",
+    draft.adaptiveFacts.platform?.trim() ?? "",
     evidenceFacts.join(" \n"),
   ].filter(Boolean);
 
@@ -26,8 +30,22 @@ export function normalizeIncidentChannel(draft: IncidentDraft): string | null {
 }
 
 export function normalizeIncidentDraft(draft: IncidentDraft): IncidentDraft {
+  const reportCategory = draft.classification.reportFamily === "OUT_OF_SCOPE_OR_UNCLEAR"
+    ? null
+    : draft.classification.reportFamily;
+  const platform = draft.adaptiveFacts.platform ?? draft.classification.platform;
   return {
     ...draft,
+    officialMapping: {
+      ...draft.officialMapping,
+      category: reportCategory,
+      categoryLabel: draft.classification.category,
+      subCategoryLabel: draft.classification.subCategory,
+    },
+    adaptiveFacts: {
+      ...draft.adaptiveFacts,
+      platform,
+    },
     incident: {
       ...draft.incident,
       occurredOn: normalizeIncidentChannel(draft),

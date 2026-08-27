@@ -32,8 +32,10 @@ import {
   IncidentDraftSchema,
   TranscriptionResultSchema,
   type IncidentDraft,
+  type ReportFamily,
   type TranscriptionResult,
 } from "../../incident/schema";
+import { applyReportFamily } from "../../incident/classification";
 import { SYNTHETIC_NCRP_PROFILE } from "../../experience/profile";
 import { useI18n } from "../../i18n/i18n-provider";
 import { DEMO_CASE_ACCESS, useDemoCase } from "../demo-case/demo-case-provider";
@@ -89,7 +91,6 @@ function UrgentMoneyGuidance() {
 export function DemoJourney() {
   const { locale, t } = useI18n();
   const {
-    caseData,
     experienceMode,
     reporterProfile,
     beginExperience,
@@ -114,10 +115,11 @@ export function DemoJourney() {
     useState<DemoNarrationLanguage>("hi-IN");
   const [selectedReportedAmount, setSelectedReportedAmount] = useState<number | null>(null);
   const [isTranscriptionError, setIsTranscriptionError] = useState(false);
+  const [submittedReference, setSubmittedReference] = useState(DEMO_CASE_ACCESS.acknowledgementNumber);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const recorderChunksRef = useRef<Blob[]>([]);
   const recordingStartedAtRef = useRef<number | null>(null);
-  const amountResolution = draft
+  const amountResolution = draft?.classification.reportFamily === "FINANCIAL_FRAUD"
     ? resolveReportedAmount(draft, selectedReportedAmount)
     : null;
   const activeProfile = reporterProfile ?? SYNTHETIC_NCRP_PROFILE;
@@ -156,6 +158,7 @@ export function DemoJourney() {
     setSelectedReportedAmount(null);
     setIsTranscriptionError(false);
     setIsDemoIncident(false);
+    setSubmittedReference(DEMO_CASE_ACCESS.acknowledgementNumber);
     setReportMethod("TYPE");
   }
 
@@ -401,11 +404,32 @@ export function DemoJourney() {
     setView("REVIEW");
   }
 
+  function changeReportFamily(
+    reportFamily: Exclude<ReportFamily, "OUT_OF_SCOPE_OR_UNCLEAR">,
+  ) {
+    setDraft((current) => {
+      if (!current) return current;
+      const classification = applyReportFamily(reportFamily, current.classification);
+      return normalizeIncidentDraft({
+        ...current,
+        classification,
+      });
+    });
+    setSelectedReportedAmount(null);
+    setFormError(null);
+  }
+
   function submitComplaint(complaint: NcrpCompatibleComplaint) {
     if (!draft) return;
     try {
       if (complaint.groups.declaration.accepted.status !== "CONFIRMED") {
         throw new Error("Confirm the synthetic declaration before submitting.");
+      }
+      if (draft.classification.reportFamily !== "FINANCIAL_FRAUD") {
+        setSubmittedReference(`NCRP-DEMO-${Date.now().toString().slice(-8)}`);
+        setFormError(null);
+        setView("SUCCESS");
+        return;
       }
       const submittedAt = isDemoIncident ? "2026-08-22T02:30:00.000Z" : new Date().toISOString();
       const built = buildSyntheticCaseFromComplaint({
@@ -417,6 +441,7 @@ export function DemoJourney() {
         selectedReportedAmount,
       });
       hydrateComplaintCase(built.caseData, built.now);
+      setSubmittedReference(built.caseData.complaint.acknowledgementId);
       setFormError(null);
       setView("SUCCESS");
     } catch (error) {
@@ -509,6 +534,7 @@ export function DemoJourney() {
         onSaveMissingAnswer={saveMissingAnswer}
         onDraftChange={setDraft}
         onReportedAmountSelect={setSelectedReportedAmount}
+        onReportFamilyChange={changeReportFamily}
         onDemoNarrationLanguageChange={chooseDemoNarration}
         onReview={reviewReport}
         onBackToEdit={() => setView("ANALYSIS_RESULT")}
@@ -521,7 +547,7 @@ export function DemoJourney() {
         <div className="shell reading-shell complaint-success-content">
           <span className="success-mark" aria-hidden="true">✓</span>
           <h1>{locale === "hi" ? "रिपोर्ट सफलतापूर्वक तैयार हुई" : "Report prepared successfully"}</h1>
-          <p className="journey-identifier">{caseData.complaint.acknowledgementId}</p>
+          <p className="journey-identifier">{submittedReference}</p>
           <p>{locale === "hi" ? "यह डेमो शिकायत किसी सरकारी सेवा को नहीं भेजी गई।" : "This demo complaint was not sent to a government service."}</p>
           <div className="entry-actions">
             <button className="primary-button" type="button" onClick={() => setView("REVIEW")}>

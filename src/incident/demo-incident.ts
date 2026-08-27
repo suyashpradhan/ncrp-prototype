@@ -38,6 +38,27 @@ export const DEMO_TYPED_DESCRIPTION =
   "I received a message claiming my SBI KYC needed to be updated. I followed the instructions and later ₹40,000 was transferred from my account.";
 
 export const DEMO_INCIDENT_DRAFT = {
+  classification: {
+    reportFamily: "FINANCIAL_FRAUD",
+    category: "Financial Fraud",
+    subCategory: "Internet Banking Related Fraud",
+    cyberElementPresent: true,
+    moneyLost: true,
+    platform: "SMS / chat message",
+    ambiguity: "NONE",
+    explanation: "The shared account describes an unauthorised bank transfer after a KYC message.",
+    requiresCitizenConfirmation: false,
+  },
+  adaptiveFacts: {
+    platform: "SMS / chat message",
+    affectedAccount: null,
+    accountAccessStatus: null,
+    recoveryInformationChanged: null,
+    affectedSystem: null,
+    filesEncrypted: null,
+    ransomMessagePresent: null,
+    sensitiveEvidenceRedacted: null,
+  },
   citizenSummary: {
     incidentLabel: "KYC-related banking fraud",
     shortSummary:
@@ -103,6 +124,27 @@ IncidentDraftSchema.parse(DEMO_INCIDENT_DRAFT);
 
 export function createUnknownIncidentDraft(): IncidentDraft {
   return {
+    classification: {
+      reportFamily: "OUT_OF_SCOPE_OR_UNCLEAR",
+      category: null,
+      subCategory: null,
+      cyberElementPresent: null,
+      moneyLost: null,
+      platform: null,
+      ambiguity: "INSUFFICIENT_INFORMATION",
+      explanation: null,
+      requiresCitizenConfirmation: false,
+    },
+    adaptiveFacts: {
+      platform: null,
+      affectedAccount: null,
+      accountAccessStatus: null,
+      recoveryInformationChanged: null,
+      affectedSystem: null,
+      filesEncrypted: null,
+      ransomMessagePresent: null,
+      sensitiveEvidenceRedacted: null,
+    },
     citizenSummary: { incidentLabel: "Incident details not yet known", shortSummary: "" },
     officialMapping: {
       category: null,

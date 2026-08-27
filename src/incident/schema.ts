@@ -1,16 +1,52 @@
 import { z } from "zod";
 
+export const ReportFamilySchema = z.enum([
+  "FINANCIAL_FRAUD",
+  "WOMEN_CHILDREN_RELATED_CRIME",
+  "OTHER_CYBER_CRIME",
+  "OUT_OF_SCOPE_OR_UNCLEAR",
+]);
+export type ReportFamily = z.infer<typeof ReportFamilySchema>;
+
+export const IncidentClassificationSchema = z.object({
+  reportFamily: ReportFamilySchema,
+  category: z.string().nullable(),
+  subCategory: z.string().nullable(),
+  cyberElementPresent: z.boolean().nullable(),
+  moneyLost: z.boolean().nullable(),
+  platform: z.string().nullable(),
+  ambiguity: z.enum([
+    "NONE",
+    "INSUFFICIENT_INFORMATION",
+    "MULTIPLE_PLAUSIBLE_PATHS",
+    "OUT_OF_CYBER_SCOPE",
+  ]),
+  explanation: z.string().nullable(),
+  requiresCitizenConfirmation: z.boolean(),
+}).strict();
+export type IncidentClassification = z.infer<typeof IncidentClassificationSchema>;
+
+export const AdaptiveIncidentFactsSchema = z.object({
+  platform: z.string().nullable(),
+  affectedAccount: z.string().nullable(),
+  accountAccessStatus: z.string().nullable(),
+  recoveryInformationChanged: z.boolean().nullable(),
+  affectedSystem: z.string().nullable(),
+  filesEncrypted: z.boolean().nullable(),
+  ransomMessagePresent: z.boolean().nullable(),
+  sensitiveEvidenceRedacted: z.boolean().nullable(),
+}).strict();
+export type AdaptiveIncidentFacts = z.infer<typeof AdaptiveIncidentFactsSchema>;
+
 export const IncidentDraftSchema = z.object({
+  classification: IncidentClassificationSchema,
+  adaptiveFacts: AdaptiveIncidentFactsSchema,
   citizenSummary: z.object({
     incidentLabel: z.string(),
     shortSummary: z.string(),
   }),
   officialMapping: z.object({
-    category: z.enum([
-      "WOMEN_CHILDREN_RELATED_CRIME",
-      "FINANCIAL_FRAUD",
-      "OTHER_CYBER_CRIME",
-    ]).nullable(),
+    category: ReportFamilySchema.nullable(),
     categoryLabel: z.string().nullable(),
     subCategoryLabel: z.string().nullable(),
     mappingConfidence: z.enum(["HIGH", "MEDIUM", "LOW"]),
