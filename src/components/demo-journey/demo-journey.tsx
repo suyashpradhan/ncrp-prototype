@@ -548,6 +548,7 @@ export function DemoJourney() {
       content = (
         <section className="service-entry section-pad" data-journey-focus tabIndex={-1}>
           <div className="shell reading-shell service-entry-inner">
+            <p className="entry-context">{t("entry.context")}</p>
             <h1>{t("entry.heading")}</h1>
             <p className="service-entry-support">{t("entry.support")}</p>
             <div className="service-entry-actions">
@@ -558,8 +559,12 @@ export function DemoJourney() {
                 {t("entry.live")}
               </button>
             </div>
-            <p className="service-entry-no-login">{t("entry.noLogin")}</p>
             <p className="service-disclosure">{t("entry.note")}</p>
+            <ol className="entry-benefits" aria-label={locale === "hi" ? "रिपोर्ट तैयार करने के तीन चरण" : "Three ways the report is prepared"}>
+              <li>{t("entry.stepSpeak")}</li>
+              <li>{t("entry.stepEvidence")}</li>
+              <li>{t("entry.stepReview")}</li>
+            </ol>
             <UrgentMoneyGuidance />
           </div>
         </section>
@@ -759,29 +764,27 @@ export function DemoJourney() {
 
     case "COMPLAINT_REGISTERED":
       content = (
-        <StageLayout progress="REPORT" completeCurrent>
-          <p className="service-stage-label">
-            {m(CITIZEN_MESSAGES.journey.existingNcrp)}
-          </p>
-          <p className="success-mark" aria-hidden="true">✓</p>
-          <h1 id="journey-stage-heading" tabIndex={-1}>
-            {t("complaint.registered")}
-          </h1>
-          <p className="journey-identifier">
-            {caseData.complaint.acknowledgementId}
-          </p>
-          <p>{t("complaint.response")}</p>
-          <p className="journey-note">{t("complaint.noGovernment")}</p>
-          <div className="entry-actions">
-            <button className="primary-button" type="button" onClick={() => {
-              resetDemo();
-              setView("ENTRY");
-            }}>
-              {t("complaint.startAnother")}
-            </button>
-            <button className="secondary-button" type="button" onClick={() => setView("REVIEW")}>
-              {t("complaint.viewPrepared")}
-            </button>
+        <StageLayout progress="RESOLUTION" completeCurrent>
+          <div className="complaint-success-content">
+            <p className="success-mark" aria-hidden="true">✓</p>
+            <h1 id="journey-stage-heading" tabIndex={-1}>
+              {t("complaint.registered")}
+            </h1>
+            <p className="journey-identifier">
+              {caseData.complaint.acknowledgementId}
+            </p>
+            <p className="complaint-success-body">{t("complaint.response")}</p>
+            <div className="entry-actions">
+              <button className="primary-button" type="button" onClick={() => {
+                resetDemo();
+                setView("ENTRY");
+              }}>
+                {t("complaint.startAnother")}
+              </button>
+              <button className="secondary-button" type="button" onClick={() => setView("REVIEW")}>
+                {t("complaint.viewPrepared")}
+              </button>
+            </div>
           </div>
         </StageLayout>
       );

@@ -45,13 +45,21 @@ const DEMO_EVIDENCE = [
     src: "/demo/evidence/kyc-message-demo.png",
     altKey: "workspace.demoMessage",
     labelKey: "workspace.demoMessage",
+    typeKey: "workspace.evidenceMessageType",
   },
   {
     src: "/demo/evidence/bank-transaction-demo.png",
     altKey: "workspace.demoBank",
     labelKey: "workspace.demoBank",
+    typeKey: "workspace.evidenceTransactionType",
   },
 ] as const;
+
+const SOURCE_VISIBLE_FIELD_IDS = new Set([
+  "category",
+  "transaction-0-utr",
+  "reporter-name",
+]);
 
 type ReportWorkspaceProps = {
   mode: ReportWorkspaceMode;
@@ -118,6 +126,18 @@ function EvidenceRows({
 }) {
   const { t } = useI18n();
   const [activeDemoEvidence, setActiveDemoEvidence] = useState<(typeof DEMO_EVIDENCE)[number] | null>(null);
+  const dialogRef = useRef<HTMLDialogElement | null>(null);
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (activeDemoEvidence && dialog && !dialog.open) dialog.showModal();
+  }, [activeDemoEvidence]);
+
+  function closeEvidence() {
+    dialogRef.current?.close();
+    setActiveDemoEvidence(null);
+  }
+
   if (!isDemoIncident && screenshots.length === 0) return null;
 
   const evidenceCount = isDemoIncident
@@ -131,11 +151,16 @@ function EvidenceRows({
               <button
                 className="evidence-preview-trigger"
                 type="button"
+                aria-haspopup="dialog"
                 aria-label={`${t("workspace.openEvidence")}: ${t(item.labelKey)}`}
                 onClick={() => setActiveDemoEvidence(item)}
               >
-                  <span>{t(item.labelKey)}</span>
-                  <strong>{t("workspace.added")}</strong>
+                <Image src={item.src} alt="" width={72} height={54} sizes="72px" />
+                <span className="evidence-row-copy">
+                  <strong>{t(item.labelKey)}</strong>
+                  <small>{t(item.typeKey)}</small>
+                </span>
+                <span className="evidence-row-action">{t("workspace.view")}</span>
               </button>
             </li>
           ))
@@ -152,10 +177,24 @@ function EvidenceRows({
   );
 
   const preview = activeDemoEvidence ? (
-    <dialog className="evidence-preview-dialog" open aria-label={t(activeDemoEvidence.labelKey)}>
+    <dialog
+      ref={dialogRef}
+      className="evidence-preview-dialog"
+      aria-label={t(activeDemoEvidence.labelKey)}
+      onCancel={(event) => {
+        event.preventDefault();
+        closeEvidence();
+      }}
+      onClick={(event) => {
+        if (event.currentTarget === event.target) closeEvidence();
+      }}
+    >
       <div className="evidence-preview-dialog-header">
-        <strong>{t(activeDemoEvidence.labelKey)}</strong>
-        <button type="button" className="text-button" onClick={() => setActiveDemoEvidence(null)}>
+        <div>
+          <small>{t("workspace.syntheticEvidence")}</small>
+          <strong>{t(activeDemoEvidence.labelKey)}</strong>
+        </div>
+        <button type="button" className="secondary-button" onClick={closeEvidence} autoFocus>
           {t("workspace.closeEvidence")}
         </button>
       </div>
@@ -213,6 +252,7 @@ function SourceSummary({
   const { locale, t } = useI18n();
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [playbackSeconds, setPlaybackSeconds] = useState(0);
   const showWrittenStatement =
     narrative.trim() && (isDemoIncident || !transcription);
   const displayedNarrative = isDemoIncident
@@ -224,8 +264,12 @@ function SourceSummary({
 
   useEffect(() => {
     setIsPlaying(false);
+    setPlaybackSeconds(0);
     audioRef.current?.load();
   }, [demoNarrationLanguage]);
+
+  const formatPlayback = (seconds: number) =>
+    `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, "0")}`;
 
   return (
     <div className="report-sources" aria-label={t("workspace.informationShared")}>
@@ -248,7 +292,10 @@ function SourceSummary({
                 else player.pause();
               }}
             >
-              {isPlaying ? t("workspace.pause") : t("workspace.play")}
+              {isPlaying ? t("workspace.pauseSample") : t("workspace.playSample")}
+              <span className="audio-progress" aria-hidden="true">
+                {formatPlayback(playbackSeconds)} / {formatPlayback(demoNarration.durationSeconds)}
+              </span>
             </button>
           </div>
           <audio
@@ -258,7 +305,9 @@ function SourceSummary({
             onPlay={() => setIsPlaying(true)}
             onPause={() => setIsPlaying(false)}
             onEnded={() => setIsPlaying(false)}
+            onTimeUpdate={(event) => setPlaybackSeconds(event.currentTarget.currentTime)}
           />
+          <p className="demo-language-label">{t("workspace.sampleLanguage")}</p>
           <div className="demo-narration-languages" role="group" aria-label={t("workspace.changeLanguage")}>
             {(Object.keys(DEMO_NARRATIONS) as DemoNarrationLanguage[]).map((language) => (
               <button
@@ -325,6 +374,14 @@ function SourceSummary({
                   : t("workspace.yourStatement")}
               </span>
               <strong>{t("workspace.viewStatement")}</strong>
+            </summary>
+            <p className="source-transcript">{displayedNarrative}</p>
+          </details>
+        ) : isDemoIncident ? (
+          <details className="report-source-block compact-source-disclosure typed-description-disclosure">
+            <summary>
+              <span>{t("workspace.typedDescription")}</span>
+              <strong>{t("workspace.viewStatement")} ↓</strong>
             </summary>
             <p className="source-transcript">{displayedNarrative}</p>
           </details>
@@ -696,10 +753,11 @@ function ReportFieldRow({
   onNarrativeEdit: () => void;
 }) {
   const { t } = useI18n();
+  const showSource = SOURCE_VISIBLE_FIELD_IDS.has(field.id);
   if (field.missingQuestion) {
     const isPartialDate = field.missingQuestion.field === "incidentDateYear";
     return (
-      <div className="report-field report-field-missing">
+      <div className="report-field report-field-missing" data-field-id={field.id}>
         <p className="report-field-label">{field.label}</p>
         {!isPartialDate ? (
           <p className="report-field-state">{t("field.needsInput")}</p>
@@ -715,7 +773,7 @@ function ReportFieldRow({
   }
 
   return (
-    <div className="report-field">
+    <div className="report-field" data-field-id={field.id}>
       <p className="report-field-label">{field.label}</p>
       <p className="report-field-value">
         {field.value}
@@ -728,7 +786,7 @@ function ReportFieldRow({
       {field.helpText ? (
         <p className="report-field-help">{field.helpText}</p>
       ) : null}
-      {field.source ? (
+      {field.source && showSource ? (
         <p className="report-field-source">{field.source}</p>
       ) : null}
       {field.id === "category" && !categoryEditing ? (
@@ -858,11 +916,39 @@ function ReportGroup({
   onSaveMissingAnswer: ReportWorkspaceProps["onSaveMissingAnswer"];
   onDraftChange: ReportWorkspaceProps["onDraftChange"];
 }) {
+  const { locale, t } = useI18n();
   const [categoryEditing, setCategoryEditing] = useState(false);
   const [narrativeEditing, setNarrativeEditing] = useState(false);
 
-  return (
-    <div className="report-group">
+  const renderField = (item: ReportFieldView) => (
+    <ReportFieldRow
+      key={item.id}
+      field={item}
+      missingValue={
+        item.missingQuestion
+          ? (missingAnswers[item.missingQuestion.field] ?? "")
+          : ""
+      }
+      onMissingValueChange={(value) => {
+        if (item.missingQuestion)
+          onMissingAnswerChange(item.missingQuestion.field, value);
+      }}
+      onSaveMissing={(fallback) => {
+        if (item.missingQuestion)
+          onSaveMissingAnswer(item.missingQuestion, fallback);
+      }}
+      categoryEditing={categoryEditing}
+      onCategoryEdit={() => setCategoryEditing(true)}
+      narrativeEditing={narrativeEditing}
+      onNarrativeEdit={() => setNarrativeEditing(true)}
+    />
+  );
+
+  const allFields = group.sections.flatMap((section) => section.fields);
+  const getField = (id: string) => allFields.find((field) => field.id === id);
+
+  const editors = (
+    <>
       {categoryEditing && group.id === "INCIDENT" ? (
         <CategoryEditor
           draft={draft}
@@ -894,31 +980,170 @@ function ReportGroup({
           }}
         />
       ) : null}
+    </>
+  );
 
+  if (group.id === "INCIDENT") {
+    const subcategory = getField("subcategory");
+    const date = getField("incident-date");
+    const time = getField("incident-time");
+    const channel = getField("occurred-on");
+    const narrative = getField("incident-description");
+    const reportedAmount =
+      draft.incident.reportedAmount ??
+      draft.transactions.reduce((total, transaction) => total + (transaction.amount ?? 0), 0);
+    const summaryIds = new Set(["subcategory", "incident-date", "incident-time", "occurred-on", "incident-description"]);
+    const supportingFields = allFields.filter((field) => !summaryIds.has(field.id));
+
+    return (
+      <div className="report-group report-group-incident" data-group-id={group.id}>
+        {editors}
+        <section className="incident-overview" aria-label={group.label}>
+          <h3>{subcategory?.value}</h3>
+          <div className="incident-overview-meta">
+            {reportedAmount > 0 ? (
+              <strong>{formatCurrency(reportedAmount)} {locale === "hi" ? "का नुकसान" : "lost"}</strong>
+            ) : null}
+            <span>{channel?.value}</span>
+            <span>{date?.value}{time?.value ? ` · ${time.value}` : ""}</span>
+          </div>
+        </section>
+        {narrative ? (
+          <section className="incident-description-block">
+            <div className="section-heading-with-action">
+              <h3>{narrative.label}</h3>
+              {!narrativeEditing ? (
+                <button className="text-button" type="button" onClick={() => setNarrativeEditing(true)}>
+                  {t("field.edit")} →
+                </button>
+              ) : null}
+            </div>
+            {!narrativeEditing ? <p>{narrative.value}</p> : null}
+          </section>
+        ) : null}
+        {allFields.filter((field) => field.missingQuestion).map(renderField)}
+        <details className="report-summary-disclosure">
+          <summary>{t("workspace.officialDetails")} <span aria-hidden="true">→</span></summary>
+          <div className="report-summary-disclosure-content">
+            {supportingFields.filter((field) => !field.missingQuestion).map(renderField)}
+          </div>
+        </details>
+      </div>
+    );
+  }
+
+  if (group.id === "TRANSACTIONS") {
+    const transactionSections = group.sections.filter((section) => section.id.startsWith("transaction-") && section.id !== "transaction-summary");
+    const totalField = group.sections.find((section) => section.id === "transaction-summary")?.fields[0];
+    return (
+      <div className="report-group report-group-transactions" data-group-id={group.id}>
+        {transactionSections.length > 1 && totalField ? renderField(totalField) : null}
+        {transactionSections.map((section, index) => {
+          const bySuffix = (suffix: string) => section.fields.find((field) => field.id.endsWith(suffix));
+          const amount = bySuffix("-amount");
+          const institution = bySuffix("-institution");
+          const date = bySuffix("-date");
+          const time = bySuffix("-time");
+          const secondary = section.fields.filter((field) =>
+            ![amount?.id, institution?.id, date?.id, time?.id].includes(field.id),
+          );
+          return (
+            <section className="transaction-card" key={section.id}>
+              <p className="transaction-label">{section.title ?? t("field.transaction", { number: index + 1 })}</p>
+              <strong className="transaction-amount">{amount?.value}</strong>
+              <p className="transaction-institution">{institution?.value}</p>
+              <p className="transaction-date">{date?.value}{time?.value ? ` · ${time.value}` : ""}</p>
+              <div className="transaction-secondary-fields">{secondary.map(renderField)}</div>
+              {institution?.missingQuestion ? renderField(institution) : null}
+            </section>
+          );
+        })}
+      </div>
+    );
+  }
+
+  if (group.id === "EVIDENCE_SUSPECT") {
+    const evidenceFields = group.sections.find((section) => section.id === "evidence")?.fields ?? [];
+    const evidenceFacts = group.sections.find((section) => section.id === "evidence-facts")?.fields ?? [];
+    const suspectFields = (group.sections.find((section) => section.id === "suspect")?.fields ?? [])
+      .filter((field) => field.state !== "NOT_PROVIDED_OPTIONAL");
+    const claimedIssue = evidenceFacts.find((field) => /KYC|केवाईसी/i.test(field.value));
+    const transactionFound = evidenceFacts.find((field) => field.value.includes("₹40,000"));
+    return (
+      <div className="report-group report-group-evidence" data-group-id={group.id}>
+        <section className="evidence-prepared-summary">
+          <p className="report-field-label">{t("field.evidenceSupplied")}</p>
+          <strong>{t("workspace.evidenceItems", { count: evidenceFields.length })}</strong>
+        </section>
+        {suspectFields.length > 0 ? (
+          <section className="information-found">
+            <h3>{t("workspace.informationFound")}</h3>
+            <div className="information-found-grid">
+              {suspectFields.map(renderField)}
+              {claimedIssue ? (
+                <div className="report-field">
+                  <p className="report-field-label">{t("workspace.claimedIssue")}</p>
+                  <p className="report-field-value">{claimedIssue.value} <span className="ready-mark">✓</span></p>
+                </div>
+              ) : null}
+              {transactionFound ? (
+                <div className="report-field">
+                  <p className="report-field-label">{t("workspace.transactionFound")}</p>
+                  <p className="report-field-value">{transactionFound.value} <span className="ready-mark">✓</span></p>
+                </div>
+              ) : null}
+            </div>
+          </section>
+        ) : null}
+        <details className="report-summary-disclosure">
+          <summary>{t("workspace.fullEvidenceDetails")} <span aria-hidden="true">→</span></summary>
+          <div className="report-summary-disclosure-content">
+            {evidenceFields.map(renderField)}
+            {evidenceFacts.map(renderField)}
+          </div>
+        </details>
+      </div>
+    );
+  }
+
+  if (group.id === "REPORTER") {
+    const name = getField("reporter-name");
+    const mobile = getField("reporter-mobile");
+    const state = getField("reporter-state");
+    const district = getField("reporter-district");
+    const city = getField("reporter-city");
+    const identity = getField("reporter-identity-document");
+    return (
+      <div className="report-group report-group-profile" data-group-id={group.id}>
+        <section className="profile-primary-summary">
+          <h3>{name?.value}</h3>
+          <p>{name?.source}</p>
+          <dl>
+            <div><dt>{mobile?.label}</dt><dd>{mobile?.value}</dd></div>
+            <div><dt>{state?.label}</dt><dd>{[state?.value, district?.value ?? city?.value].filter(Boolean).join(" · ")}</dd></div>
+            <div><dt>{identity?.label}</dt><dd>{identity?.value} <span className="ready-mark">✓</span></dd></div>
+          </dl>
+        </section>
+        <details className="report-summary-disclosure">
+          <summary>{t("workspace.fullProfile")} <span aria-hidden="true">→</span></summary>
+          <div className="report-summary-disclosure-content">
+            {group.sections.map((section) => (
+              <section key={section.id} className="report-field-section">
+                {section.title ? <h3>{section.title}</h3> : null}
+                {section.fields.map(renderField)}
+              </section>
+            ))}
+          </div>
+        </details>
+      </div>
+    );
+  }
+
+  return (
+    <div className="report-group" data-group-id={group.id}>
+      {editors}
       {group.sections.map((section) => {
-        const fields = section.fields.map((item) => (
-            <ReportFieldRow
-              key={item.id}
-              field={item}
-              missingValue={
-                item.missingQuestion
-                  ? (missingAnswers[item.missingQuestion.field] ?? "")
-                  : ""
-              }
-              onMissingValueChange={(value) => {
-                if (item.missingQuestion)
-                  onMissingAnswerChange(item.missingQuestion.field, value);
-              }}
-              onSaveMissing={(fallback) => {
-                if (item.missingQuestion)
-                  onSaveMissingAnswer(item.missingQuestion, fallback);
-              }}
-              categoryEditing={categoryEditing}
-              onCategoryEdit={() => setCategoryEditing(true)}
-              narrativeEditing={narrativeEditing}
-              onNarrativeEdit={() => setNarrativeEditing(true)}
-            />
-          ));
+        const fields = section.fields.map(renderField);
         if (section.id === "secondary-address") {
           return (
             <details key={section.id} className="report-field-section report-address-disclosure">
@@ -941,6 +1166,9 @@ function ReportGroup({
 function ReportReview(props: ReportWorkspaceProps) {
   const { locale, t } = useI18n();
   const [declarationAccepted, setDeclarationAccepted] = useState(false);
+  const [openGroups, setOpenGroups] = useState<Set<string>>(
+    () => new Set(["INCIDENT", "TRANSACTIONS"]),
+  );
   if (!props.draft) return null;
   const groups = deriveReportGroups(props.draft, {
     locale,
@@ -977,22 +1205,44 @@ function ReportReview(props: ReportWorkspaceProps) {
       </div>
       <div className="report-review-groups">
         {groups.map((group) => (
-          <section key={group.id} className="report-review-group">
-            <h3>{group.label}</h3>
-            {group.sections
-              .filter((section) => section.id !== "secondary-address" && section.id !== "evidence-facts")
-              .flatMap((section) => section.fields)
-              .map((item) => (
-                <div key={item.id} className="review-field-row">
-                  <span>{item.label}</span>
-                  <strong>{item.value}</strong>
-                </div>
-              ))}
-          </section>
+          <details
+            key={group.id}
+            className="report-review-group"
+            open={openGroups.has(group.id)}
+            onToggle={(event) => {
+              const isOpen = event.currentTarget.open;
+              setOpenGroups((current) => {
+                if (current.has(group.id) === isOpen) return current;
+                const next = new Set(current);
+                if (isOpen) next.add(group.id);
+                else next.delete(group.id);
+                return next;
+              });
+            }}
+          >
+            <summary><span>{group.label}</span><strong aria-label={t("field.ready")}>✓</strong></summary>
+            <div className="report-review-group-content">
+              {group.sections
+                .filter((section) => section.id !== "secondary-address" && section.id !== "evidence-facts")
+                .flatMap((section) => section.fields)
+                .map((item) => (
+                  <div key={item.id} className="review-field-row">
+                    <span>{item.label}</span>
+                    <strong>{item.value}</strong>
+                  </div>
+                ))}
+            </div>
+          </details>
         ))}
       </div>
       <details className="field-coverage-disclosure">
-        <summary>{t("workspace.coverage")}</summary>
+        <summary>
+          <span>
+            <strong>{t("workspace.coverage")}</strong>
+            <small>{t("workspace.coverageIntroShort")}</small>
+          </span>
+          <span className="coverage-action">{t("workspace.coverageAction")}</span>
+        </summary>
         <div className="field-coverage-content">
           <h3>{t("workspace.coverageHeading")}</h3>
           <p>{t("workspace.coverageIntro")}</p>
@@ -1057,9 +1307,6 @@ function ReportReview(props: ReportWorkspaceProps) {
         </button>
       </div>
       {!declarationAccepted ? <p className="form-hint">{t("workspace.declarationRequired")}</p> : null}
-      <p className="journey-note">
-        {t("workspace.noSubmit")}
-      </p>
     </>
   );
 }
@@ -1268,6 +1515,7 @@ function ReportDetailsPane(props: ReportWorkspaceProps) {
                   : t("workspace.detailNeeded", { count: requiredMissing })}
               </strong>
             </p>
+            {requiredMissing === 0 ? <p>{t("workspace.preparedReuse")}</p> : null}
             {requiredMissing > 0 ? (
               <>
                 {firstMissingLabel ? <p>{firstMissingLabel}</p> : null}
@@ -1296,11 +1544,9 @@ function ReportDetailsPane(props: ReportWorkspaceProps) {
               >
                 <span>{group.label}</span>
                 <small>
-                  {group.id === "REPORTER"
-                    ? t("workspace.fromProfile")
-                    : group.missingCount > 0
+                  {group.missingCount > 0
                       ? `${group.missingCount} ${t("workspace.actionNeeded")}`
-                      : t("workspace.complete")}
+                      : `✓ ${t("workspace.complete")}`}
                 </small>
               </button>
             ))}
@@ -1423,7 +1669,7 @@ export function ReportWorkspace(props: ReportWorkspaceProps) {
       tabIndex={-1}
     >
       <div className="report-workspace-shell">
-        <JourneyProgress current="REPORT" />
+        <JourneyProgress current={props.mode === "REVIEW" ? "RESTORE" : "REPORT"} />
         <div
           className="mobile-report-switch"
           role="group"
@@ -1453,7 +1699,7 @@ export function ReportWorkspace(props: ReportWorkspaceProps) {
           </p>
         ) : null}
         <div
-          className={`report-workspace mobile-pane-${mobilePane.toLowerCase()}`}
+          className={`report-workspace report-workspace-${props.mode.toLowerCase()} mobile-pane-${mobilePane.toLowerCase()}`}
         >
           <ReportInputPane {...props} />
           <ReportDetailsPane {...props} />

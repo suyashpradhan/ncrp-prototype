@@ -22,7 +22,7 @@ export const UI_MESSAGES = {
     label: message("prototype.label", "Independent prototype · Synthetic data"),
   },
   brand: {
-    eyebrow: message("brand.eyebrow", "NCRP experience prototype"),
+    eyebrow: message("brand.eyebrow", "Independent NCRP experience prototype"),
     name: message("brand.name", "Financial Cyber Fraud Reporting"),
   },
   navigation: {
@@ -229,7 +229,7 @@ export const UI_MESSAGES = {
     ),
     conciseIntro: message(
       "about.conciseIntro",
-      "The prototype redesigns how a citizen supplies structured NCRP complaint information, shows the existing Money Restoration Module as a simplified handoff, and proposes a clearer Financial Resolution experience afterwards.",
+      "This Phase 1 prototype explores a simpler way for a citizen to prepare, review and submit structured financial-cyber-fraud complaint information.",
     ),
     noLiveSystem: message(
       "about.noLiveSystem",
@@ -237,24 +237,24 @@ export const UI_MESSAGES = {
     ),
     existingStagesTitle: message(
       "about.existingStagesTitle",
-      "Research-grounded process structure",
+      "What this phase demonstrates",
     ),
     existingStagesBody: message(
       "about.existingStagesBody",
-      "Complaint fields, Money Restoration concepts, institutional actors and relevant procedural rules represented in the demo.",
+      "A guided reporting experience that organises an incident statement, transaction information, evidence and an existing citizen profile into a reviewable complaint.",
     ),
     proposedTitle: message(
       "about.proposedTitle",
-      "Proposed citizen experience",
+      "What automation can and cannot do",
     ),
     proposedBody: message(
       "about.proposedBody",
-      "Plain-language evidence organisation before submission and clear per-amount explanations after submission.",
+      "The prototype can extract and suggest structured information from synthetic inputs. It cannot decide whether a complaint is true, provide legal advice or submit to a live government system. The citizen reviews the complete report before submission.",
     ),
     dataTitle: message("about.dataTitle", "Data"),
     dataBody: message(
       "about.dataBody",
-      "The citizen, evidence, complaint, transactions, bank and police events are all synthetic.",
+      "The citizen profile, incident statement, evidence, transactions and generated complaint are all synthetic.",
     ),
     disclosureTitle: message(
       "about.disclosureTitle",

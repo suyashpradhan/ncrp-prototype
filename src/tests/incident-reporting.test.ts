@@ -145,7 +145,7 @@ describe("AI-assisted incident reporting boundary", () => {
 
     expect(groups.map((group) => group.label)).toEqual([
       "Incident",
-      "Transactions",
+      "Transaction",
       "Evidence & suspect",
       "Your details",
     ]);
