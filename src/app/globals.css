@@ -152,15 +152,19 @@ h3 {
   text-decoration: none;
 }
 
-.header-navigation {
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 16px;
+.journey-back-nav {
+  background: var(--background);
 }
 
-.header-back-button {
+.journey-back-nav > .shell {
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+}
+
+.journey-back-button {
   min-height: 44px;
+  margin-left: -10px;
   padding: 7px 10px;
   display: inline-flex;
   align-items: center;
@@ -175,7 +179,7 @@ h3 {
   cursor: pointer;
 }
 
-.header-back-button:hover {
+.journey-back-button:hover {
   color: var(--text);
   background: #f1f0ed;
 }
@@ -1522,12 +1526,8 @@ dd {
     gap: 7px;
   }
 
-  .header-navigation {
-    gap: 5px;
-  }
-
-  .header-back-button {
-    padding-inline: 6px;
+  .journey-back-nav > .shell {
+    min-height: 48px;
   }
 
   .language-switch button {

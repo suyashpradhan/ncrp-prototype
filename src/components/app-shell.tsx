@@ -34,35 +34,22 @@ export function AppShell({ children }: AppShellProps) {
       </a>
       <header className="site-header">
         <div className="shell header-inner">
-          <div className="header-navigation">
-            {showBack ? (
-              <button
-                className="header-back-button"
-                type="button"
-                onClick={goBack}
-                aria-label={locale === "hi" ? "पिछले पेज पर वापस जाएँ" : "Go back to the previous page"}
-              >
-                <span aria-hidden="true">←</span>
-                {locale === "hi" ? "वापस" : "Back"}
-              </button>
-            ) : null}
-            <Link
-              className="brand"
-              href="/"
-              aria-label={
-                locale === "hi"
-                  ? `${appName(locale)} के मुख्य पेज पर जाएँ`
-                  : `Go to the ${appName(locale)} home page`
-              }
-              onClick={(event) => {
-                if (!controls) return;
-                controls.onHome();
-                if (isJourneyPage) event.preventDefault();
-              }}
-            >
-              {appName(locale)}
-            </Link>
-          </div>
+          <Link
+            className="brand"
+            href="/"
+            aria-label={
+              locale === "hi"
+                ? `${appName(locale)} के मुख्य पेज पर जाएँ`
+                : `Go to the ${appName(locale)} home page`
+            }
+            onClick={(event) => {
+              if (!controls) return;
+              controls.onHome();
+              if (isJourneyPage) event.preventDefault();
+            }}
+          >
+            {appName(locale)}
+          </Link>
           <div className="header-actions">
             <Link className="header-about-link" href="/about">
               {locale === "hi" ? "परिचय" : "About"}
@@ -91,6 +78,24 @@ export function AppShell({ children }: AppShellProps) {
           </div>
         </div>
       </header>
+      {showBack ? (
+        <nav
+          className="journey-back-nav"
+          aria-label={locale === "hi" ? "पेज नेविगेशन" : "Page navigation"}
+        >
+          <div className="shell">
+            <button
+              className="journey-back-button"
+              type="button"
+              onClick={goBack}
+              aria-label={locale === "hi" ? "पिछले पेज पर वापस जाएँ" : "Go back to the previous page"}
+            >
+              <span aria-hidden="true">←</span>
+              {locale === "hi" ? "वापस" : "Back"}
+            </button>
+          </div>
+        </nav>
+      ) : null}
       <main id="main-content" tabIndex={-1}>
         {children}
       </main>
