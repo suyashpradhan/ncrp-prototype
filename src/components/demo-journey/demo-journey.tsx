@@ -115,7 +115,9 @@ export function DemoJourney() {
     useState<DemoNarrationLanguage>("hi-IN");
   const [selectedReportedAmount, setSelectedReportedAmount] = useState<number | null>(null);
   const [isTranscriptionError, setIsTranscriptionError] = useState(false);
-  const [submittedReference, setSubmittedReference] = useState(DEMO_CASE_ACCESS.acknowledgementNumber);
+  const [submittedReference, setSubmittedReference] = useState<string>(
+    DEMO_CASE_ACCESS.acknowledgementNumber,
+  );
   const recorderRef = useRef<MediaRecorder | null>(null);
   const recorderChunksRef = useRef<Blob[]>([]);
   const recordingStartedAtRef = useRef<number | null>(null);
