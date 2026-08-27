@@ -152,6 +152,34 @@ h3 {
   text-decoration: none;
 }
 
+.header-navigation {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.header-back-button {
+  min-height: 44px;
+  padding: 7px 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--secondary);
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.header-back-button:hover {
+  color: var(--text);
+  background: #f1f0ed;
+}
+
 .header-actions,
 .language-switch {
   display: flex;
@@ -1492,6 +1520,14 @@ dd {
   .header-actions,
   .language-switch {
     gap: 7px;
+  }
+
+  .header-navigation {
+    gap: 5px;
+  }
+
+  .header-back-button {
+    padding-inline: 6px;
   }
 
   .language-switch button {

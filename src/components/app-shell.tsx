@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { appName } from "../config/brand";
 import { useI18n } from "../i18n/i18n-provider";
+import { useJourneyNavigation } from "../navigation/journey-navigation";
 
 type AppShellProps = {
   children: ReactNode;
@@ -11,6 +13,19 @@ type AppShellProps = {
 
 export function AppShell({ children }: AppShellProps) {
   const { locale, setLocale, t } = useI18n();
+  const pathname = usePathname();
+  const router = useRouter();
+  const { controls } = useJourneyNavigation();
+  const isJourneyPage = pathname === "/";
+  const showBack = !isJourneyPage || Boolean(controls);
+
+  function goBack() {
+    if (isJourneyPage && controls) {
+      controls.onBack();
+      return;
+    }
+    router.back();
+  }
 
   return (
     <>
@@ -19,9 +34,35 @@ export function AppShell({ children }: AppShellProps) {
       </a>
       <header className="site-header">
         <div className="shell header-inner">
-          <Link className="brand" href="/" aria-label={appName(locale)}>
-            {appName(locale)}
-          </Link>
+          <div className="header-navigation">
+            {showBack ? (
+              <button
+                className="header-back-button"
+                type="button"
+                onClick={goBack}
+                aria-label={locale === "hi" ? "पिछले पेज पर वापस जाएँ" : "Go back to the previous page"}
+              >
+                <span aria-hidden="true">←</span>
+                {locale === "hi" ? "वापस" : "Back"}
+              </button>
+            ) : null}
+            <Link
+              className="brand"
+              href="/"
+              aria-label={
+                locale === "hi"
+                  ? `${appName(locale)} के मुख्य पेज पर जाएँ`
+                  : `Go to the ${appName(locale)} home page`
+              }
+              onClick={(event) => {
+                if (!controls) return;
+                controls.onHome();
+                if (isJourneyPage) event.preventDefault();
+              }}
+            >
+              {appName(locale)}
+            </Link>
+          </div>
           <div className="header-actions">
             <Link className="header-about-link" href="/about">
               {locale === "hi" ? "परिचय" : "About"}

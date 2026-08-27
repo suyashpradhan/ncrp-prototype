@@ -42,6 +42,7 @@ import {
   createEmptyTestProfile,
 } from "../../experience/profile";
 import { useI18n } from "../../i18n/i18n-provider";
+import { useJourneyNavigation } from "../../navigation/journey-navigation";
 import { DEMO_CASE_ACCESS, useDemoCase } from "../demo-case/demo-case-provider";
 import {
   ReportWorkspace,
@@ -166,6 +167,7 @@ function SachetPreview() {
 
 export function DemoJourney() {
   const { locale, t } = useI18n();
+  const { registerControls } = useJourneyNavigation();
   const {
     experienceMode,
     reporterProfile,
@@ -201,6 +203,9 @@ export function DemoJourney() {
   const [submittedReference, setSubmittedReference] = useState<string>(
     DEMO_CASE_ACCESS.acknowledgementNumber,
   );
+  const viewRef = useRef<JourneyView>("ENTRY");
+  const journeyHistoryRef = useRef<JourneyView[]>([]);
+  const analysisRunRef = useRef(0);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const recorderChunksRef = useRef<Blob[]>([]);
   const recordingStartedAtRef = useRef<number | null>(null);
@@ -267,11 +272,74 @@ export function DemoJourney() {
     setReportMethod("TYPE");
   }
 
+  function setCurrentView(nextView: JourneyView) {
+    viewRef.current = nextView;
+    setView(nextView);
+  }
+
+  function navigateTo(nextView: JourneyView) {
+    const currentView = viewRef.current;
+    if (currentView === nextView) return;
+    journeyHistoryRef.current.push(currentView);
+    setCurrentView(nextView);
+  }
+
+  function replaceView(nextView: JourneyView) {
+    while (
+      journeyHistoryRef.current.at(-1) === nextView
+    ) {
+      journeyHistoryRef.current.pop();
+    }
+    setCurrentView(nextView);
+  }
+
+  function goBackInJourney() {
+    if (viewRef.current === "ANALYSING") {
+      analysisRunRef.current += 1;
+    }
+    const previousView = journeyHistoryRef.current.pop() ?? "ENTRY";
+    setCurrentView(previousView);
+  }
+
+  function returnToReportDetails() {
+    const reportIndex = journeyHistoryRef.current.lastIndexOf(
+      "ANALYSIS_RESULT",
+    );
+    if (reportIndex >= 0) {
+      journeyHistoryRef.current = journeyHistoryRef.current.slice(
+        0,
+        reportIndex,
+      );
+    }
+    setCurrentView("ANALYSIS_RESULT");
+  }
+
+  function returnHome() {
+    analysisRunRef.current += 1;
+    if (recorderRef.current?.state === "recording") {
+      recorderRef.current.stop();
+    }
+    recorderRef.current?.stream.getTracks().forEach((track) => track.stop());
+    resetDemo();
+    resetInputs();
+    journeyHistoryRef.current = [];
+    setCurrentView("ENTRY");
+  }
+
+  useEffect(() => {
+    if (view === "ENTRY") return;
+    return registerControls({
+      onBack: goBackInJourney,
+      onHome: returnHome,
+    });
+  }, [registerControls, view]);
+
   function startReport() {
     resetDemo();
     resetInputs();
     beginExperience("LIVE_TEST", createEmptyTestProfile());
-    setView("REPORT_INPUT");
+    journeyHistoryRef.current = ["ENTRY"];
+    setCurrentView("REPORT_INPUT");
   }
 
   function useDemoIncident() {
@@ -284,7 +352,8 @@ export function DemoJourney() {
     setRecordingSeconds(DEMO_NARRATIONS["hi-IN"].durationSeconds);
     setIsDemoIncident(true);
     setDraft(structuredClone(DEMO_INCIDENT_DRAFT));
-    setView("ANALYSIS_RESULT");
+    journeyHistoryRef.current = ["ENTRY"];
+    setCurrentView("ANALYSIS_RESULT");
   }
 
   function chooseDemoNarration(language: DemoNarrationLanguage) {
@@ -497,7 +566,13 @@ export function DemoJourney() {
         ? "workspace.readingStatement"
         : "workspace.organisingReport",
     );
-    setView("ANALYSING");
+    const analysisRun = analysisRunRef.current + 1;
+    analysisRunRef.current = analysisRun;
+    if (viewRef.current === "ANALYSIS_ERROR") {
+      replaceView("ANALYSING");
+    } else {
+      navigateTo("ANALYSING");
+    }
     try {
       let preparedTranscription = transcription;
       if (audio && !preparedTranscription) {
@@ -505,6 +580,7 @@ export function DemoJourney() {
           audio,
           recordingSeconds,
         );
+        if (analysisRunRef.current !== analysisRun) return;
         setTranscription(preparedTranscription);
       }
 
@@ -524,6 +600,7 @@ export function DemoJourney() {
         body: data,
       });
       const result: unknown = await response.json().catch(() => null);
+      if (analysisRunRef.current !== analysisRun) return;
       if (!response.ok) {
         const serviceMessage =
           result &&
@@ -539,11 +616,12 @@ export function DemoJourney() {
       }
       setDraft(normalizeIncidentDraft(IncidentDraftSchema.parse(result)));
       setSelectedReportedAmount(null);
-      setView("ANALYSIS_RESULT");
+      replaceView("ANALYSIS_RESULT");
     } catch (error) {
+      if (analysisRunRef.current !== analysisRun) return;
       setFormError(error instanceof Error ? error.message : null);
       setIsTranscriptionError(Boolean(audio && !transcription));
-      setView("ANALYSIS_ERROR");
+      replaceView("ANALYSIS_ERROR");
     }
   }
 
@@ -589,7 +667,7 @@ export function DemoJourney() {
     )
       return;
     setFormError(null);
-    setView("REVIEW");
+    navigateTo("REVIEW");
   }
 
   function changeReportFamily(
@@ -619,7 +697,7 @@ export function DemoJourney() {
       if (draft.classification.reportFamily !== "FINANCIAL_FRAUD") {
         setSubmittedReference(`NCRP-DEMO-${Date.now().toString().slice(-8)}`);
         setFormError(null);
-        setView("SUCCESS");
+        navigateTo("SUCCESS");
         return;
       }
       const submittedAt = isDemoIncident
@@ -636,14 +714,14 @@ export function DemoJourney() {
       hydrateComplaintCase(built.caseData, built.now);
       setSubmittedReference(built.caseData.complaint.acknowledgementId);
       setFormError(null);
-      setView("SUCCESS");
+      navigateTo("SUCCESS");
     } catch (error) {
       setFormError(
         error instanceof Error
           ? error.message
           : "Check the report before submitting.",
       );
-      setView("ANALYSIS_RESULT");
+      replaceView("ANALYSIS_RESULT");
     }
   }
 
@@ -755,7 +833,7 @@ export function DemoJourney() {
         onReportFamilyChange={changeReportFamily}
         onDemoNarrationLanguageChange={chooseDemoNarration}
         onReview={reviewReport}
-        onBackToEdit={() => setView("ANALYSIS_RESULT")}
+        onBackToEdit={returnToReportDetails}
         onSubmit={submitComplaint}
       />
     );
@@ -785,18 +863,14 @@ export function DemoJourney() {
             <button
               className="primary-button"
               type="button"
-              onClick={() => setView("REVIEW")}
+              onClick={() => navigateTo("REVIEW")}
             >
               {locale === "hi" ? "रिपोर्ट देखें" : "View report"}
             </button>
             <button
               className="secondary-button"
               type="button"
-              onClick={() => {
-                resetDemo();
-                resetInputs();
-                setView("ENTRY");
-              }}
+              onClick={returnHome}
             >
               {locale === "hi" ? "फिर से शुरू करें" : "Start again"}
             </button>

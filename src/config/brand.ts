@@ -1,4 +1,4 @@
-export const APP_NAME = "Sachet";
+export const APP_NAME = "सचेत";
 export const APP_NAME_HI = "सचेत";
 
 export function appName(locale: "en" | "hi"): string {

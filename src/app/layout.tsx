@@ -8,6 +8,7 @@ import { APP_NAME } from "../config/brand";
 import { DemoCaseProvider } from "../components/demo-case/demo-case-provider";
 import { DEMO_NOW, syntheticCase } from "../data/synthetic-case";
 import { I18nProvider } from "../i18n/i18n-provider";
+import { JourneyNavigationProvider } from "../navigation/journey-navigation";
 import "./globals.css";
 
 const manrope = Manrope({
@@ -29,16 +30,18 @@ export const metadata: Metadata = {
     template: `%s · ${APP_NAME}`,
   },
   description:
-    "Tell Sachet what happened by voice, text or evidence, then review structured financial cyber-fraud reporting information.",
+    "Tell सचेत what happened by voice, text or evidence, then review structured financial cyber-fraud reporting information.",
   openGraph: {
     title: APP_NAME,
-    description: "From a citizen's story to complete structured financial cyber-fraud reporting information",
+    description:
+      "From a citizen's story to complete structured financial cyber-fraud reporting information",
     images: [{ url: "/og.jpg", width: 1536, height: 1024 }],
   },
   twitter: {
     card: "summary_large_image",
     title: APP_NAME,
-    description: "From a citizen's story to complete structured financial cyber-fraud reporting information",
+    description:
+      "From a citizen's story to complete structured financial cyber-fraud reporting information",
     images: ["/og.jpg"],
   },
 };
@@ -60,11 +63,16 @@ export default function RootLayout({
     >
       <body>
         <I18nProvider>
-          <AppShell>
-            <DemoCaseProvider initialCase={syntheticCase} initialNow={DEMO_NOW}>
-              {children}
-            </DemoCaseProvider>
-          </AppShell>
+          <JourneyNavigationProvider>
+            <AppShell>
+              <DemoCaseProvider
+                initialCase={syntheticCase}
+                initialNow={DEMO_NOW}
+              >
+                {children}
+              </DemoCaseProvider>
+            </AppShell>
+          </JourneyNavigationProvider>
         </I18nProvider>
         <SpeedInsights />
         <Analytics />

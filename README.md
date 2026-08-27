@@ -1,10 +1,10 @@
-# Sachet
+# सचेत
 
 An independent hackathon prototype for a simpler financial cyber-fraud reporting experience. It is not an official Government of India service and uses synthetic demo data only.
 
 ## What we are solving
 
-Sachet helps a citizen describe what happened in the way that feels easiest, then prepares the information needed for a report and lets them review it before submission.
+सचेत helps a citizen describe what happened in the way that feels easiest, then prepares the information needed for a report and lets them review it before submission.
 
 ## Why we are solving it
 
