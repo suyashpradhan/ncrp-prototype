@@ -236,15 +236,42 @@ h3 {
   margin: 0;
 }
 
-.footer-inner p span {
-  display: block;
-}
-
 .footer-links {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 18px;
+}
+
+.simple-footer {
+  min-height: 0;
+  padding-block: 24px;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 7px;
+  text-align: center;
+}
+
+.footer-credit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.footer-credit .footer-link {
+  min-height: auto;
+}
+
+.footer-heart {
+  color: var(--primary);
+}
+
+.footer-disclaimer {
+  color: var(--muted);
+  line-height: 1.5;
 }
 
 .primary-button,
@@ -1566,6 +1593,12 @@ dd {
     align-items: flex-start;
     flex-direction: column;
     gap: 14px;
+  }
+
+  .simple-footer {
+    padding-block: 22px;
+    align-items: center;
+    gap: 8px;
   }
 
   .footer-links {

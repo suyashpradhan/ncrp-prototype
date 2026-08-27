@@ -99,6 +99,32 @@ export function AppShell({ children }: AppShellProps) {
       <main id="main-content" tabIndex={-1}>
         {children}
       </main>
+      <footer className="site-footer">
+        <div className="shell footer-inner simple-footer">
+          <p className="footer-credit">
+            <a
+              className="footer-link"
+              href="https://buildwhatmovesindia.com"
+              target="_blank"
+              rel="noreferrer"
+            >
+              {locale === "hi"
+                ? "Build What Moves India हैकाथॉन के लिए बनाया गया"
+                : "Built for the Build What Moves India hackathon"}
+            </a>
+            <span aria-hidden="true">·</span>
+            <span>
+              {locale === "hi" ? "Suyash द्वारा बनाया गया" : "Made by Suyash"} {" "}
+              <span className="footer-heart" aria-label={locale === "hi" ? "प्यार से" : "with love"}>♥</span>
+            </span>
+          </p>
+          <p className="footer-disclaimer">
+            {locale === "hi"
+              ? "कोई वास्तविक डेटा नहीं · कोई सरकारी संबद्धता नहीं · NCRP से संबद्ध नहीं · कोई वास्तविक शिकायत जमा नहीं होती"
+              : "No real data · No government affiliation · Not affiliated with NCRP · No real complaint is submitted"}
+          </p>
+        </div>
+      </footer>
     </>
   );
 }

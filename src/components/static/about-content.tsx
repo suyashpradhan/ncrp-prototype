@@ -14,7 +14,7 @@ export function AboutContent() {
           <p>
             {hi
               ? "सचेत एक स्वतंत्र हैकाथॉन प्रोटोटाइप है, जो वित्तीय साइबर धोखाधड़ी की रिपोर्ट तैयार करने का आसान तरीका खोजता है।"
-              : "सचेत is an independent hackathon prototype exploring a simpler way to prepare financial cyber-fraud reports."}
+              : "सचेत is an independent prototype build for hackathon exploring a simpler way to prepare cyber-fraud reports."}
           </p>
         </header>
 
