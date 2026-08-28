@@ -139,12 +139,14 @@ type CaseCompanionProps = {
   acknowledgement: AddedAcknowledgement;
   draft: IncidentDraft;
   reporterName: string;
+  onRestartDemo?: () => void;
 };
 
 export function CaseCompanion({
   acknowledgement,
   draft,
   reporterName,
+  onRestartDemo,
 }: CaseCompanionProps) {
   const { locale } = useI18n();
   const hi = locale === "hi";
@@ -368,6 +370,13 @@ export function CaseCompanion({
               : "Sachet is an independent hackathon prototype. Official complaint status remains with NCRP and the relevant authorities. This page only explains information supplied by the citizen."}
           </p>
         </aside>
+        {onRestartDemo ? (
+          <div className="companion-restart">
+            <button className="text-button" type="button" onClick={onRestartDemo}>
+              {hi ? "डेमो फिर से शुरू करें" : "Restart demo"}
+            </button>
+          </div>
+        ) : null}
       </div>
     </main>
   );

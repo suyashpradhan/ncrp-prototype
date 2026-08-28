@@ -254,65 +254,66 @@ function EvidenceRows({
     </ul>
   );
 
-  const preview = activeDemoEvidence || activeUploadedEvidence ? (
-    <dialog
-      ref={dialogRef}
-      className="evidence-preview-dialog"
-      aria-label={
-        activeDemoEvidence
-          ? t(activeDemoEvidence.labelKey)
-          : activeUploadedEvidence?.name
-      }
-      onCancel={(event) => {
-        event.preventDefault();
-        closeEvidence();
-      }}
-      onClick={(event) => {
-        if (event.currentTarget === event.target) closeEvidence();
-      }}
-    >
-      <div className="evidence-preview-dialog-header">
-        <div>
-          <small>
-            {activeDemoEvidence
-              ? t("workspace.syntheticEvidence")
-              : t("workspace.evidence")}
-          </small>
-          <strong>
-            {activeDemoEvidence
-              ? t(activeDemoEvidence.labelKey)
-              : activeUploadedEvidence?.name}
-          </strong>
+  const preview =
+    activeDemoEvidence || activeUploadedEvidence ? (
+      <dialog
+        ref={dialogRef}
+        className="evidence-preview-dialog"
+        aria-label={
+          activeDemoEvidence
+            ? t(activeDemoEvidence.labelKey)
+            : activeUploadedEvidence?.name
+        }
+        onCancel={(event) => {
+          event.preventDefault();
+          closeEvidence();
+        }}
+        onClick={(event) => {
+          if (event.currentTarget === event.target) closeEvidence();
+        }}
+      >
+        <div className="evidence-preview-dialog-header">
+          <div>
+            <small>
+              {activeDemoEvidence
+                ? t("workspace.syntheticEvidence")
+                : t("workspace.evidence")}
+            </small>
+            <strong>
+              {activeDemoEvidence
+                ? t(activeDemoEvidence.labelKey)
+                : activeUploadedEvidence?.name}
+            </strong>
+          </div>
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={closeEvidence}
+            autoFocus
+          >
+            {t("workspace.closeEvidence")}
+          </button>
         </div>
-        <button
-          type="button"
-          className="secondary-button"
-          onClick={closeEvidence}
-          autoFocus
-        >
-          {t("workspace.closeEvidence")}
-        </button>
-      </div>
-      {activeDemoEvidence ? (
-        <Image
-          className="ph-no-capture"
-          src={activeDemoEvidence.src}
-          alt={t(activeDemoEvidence.altKey)}
-          width={520}
-          height={620}
-          sizes="(max-width: 600px) calc(100vw - 40px), 520px"
-        />
-      ) : uploadedPreviewUrl && activeUploadedEvidence ? (
-        // Blob URLs are local browser resources and cannot use next/image.
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          className="uploaded-evidence-preview ph-no-capture"
-          src={uploadedPreviewUrl}
-          alt={activeUploadedEvidence.name}
-        />
-      ) : null}
-    </dialog>
-  ) : null;
+        {activeDemoEvidence ? (
+          <Image
+            className="ph-no-capture"
+            src={activeDemoEvidence.src}
+            alt={t(activeDemoEvidence.altKey)}
+            width={520}
+            height={620}
+            sizes="(max-width: 600px) calc(100vw - 40px), 520px"
+          />
+        ) : uploadedPreviewUrl && activeUploadedEvidence ? (
+          // Blob URLs are local browser resources and cannot use next/image.
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            className="uploaded-evidence-preview ph-no-capture"
+            src={uploadedPreviewUrl}
+            alt={activeUploadedEvidence.name}
+          />
+        ) : null}
+      </dialog>
+    ) : null;
 
   if (compact) {
     return (
@@ -749,7 +750,9 @@ function ReportInputPane(props: ReportWorkspaceProps) {
             }
             onClick={props.onOrganizeReport}
           >
-            {t("workspace.organise")}
+            {processing
+              ? t("workspace.preparingReport")
+              : t("workspace.organise")}
           </button>
         </div>
       ) : props.mode === "REVIEW" ? (
@@ -1055,23 +1058,23 @@ function ReportGroup({
   const renderField = (item: ReportFieldView) =>
     item.missingQuestion && !showMissingEditors ? null : (
       <ReportFieldRow
-      key={item.id}
-      field={item}
-      missingValue={
-        item.missingQuestion
-          ? (missingAnswers[item.missingQuestion.field] ?? "")
-          : ""
-      }
-      onMissingValueChange={(value) => {
-        if (item.missingQuestion)
-          onMissingAnswerChange(item.missingQuestion.field, value);
-      }}
-      onSaveMissing={(fallback) => {
-        if (item.missingQuestion)
-          onSaveMissingAnswer(item.missingQuestion, fallback);
-      }}
-      narrativeEditing={narrativeEditing}
-      onNarrativeEdit={() => setNarrativeEditing(true)}
+        key={item.id}
+        field={item}
+        missingValue={
+          item.missingQuestion
+            ? (missingAnswers[item.missingQuestion.field] ?? "")
+            : ""
+        }
+        onMissingValueChange={(value) => {
+          if (item.missingQuestion)
+            onMissingAnswerChange(item.missingQuestion.field, value);
+        }}
+        onSaveMissing={(fallback) => {
+          if (item.missingQuestion)
+            onSaveMissingAnswer(item.missingQuestion, fallback);
+        }}
+        narrativeEditing={narrativeEditing}
+        onNarrativeEdit={() => setNarrativeEditing(true)}
       />
     );
 
@@ -1944,22 +1947,23 @@ function ReportDetailsPane({
     : null;
   const incidentGroup = groups.find((group) => group.id === "INCIDENT");
   const remainingGroups = groups.filter((group) => group.id !== "INCIDENT");
-  const timeline = props.draft && !amountConflictMissing
-    ? deriveIncidentTimeline(props.draft, {
-        locale,
-        isDemoIncident: props.isDemoIncident,
-      })
-    : [];
+  const timeline =
+    props.draft && !amountConflictMissing
+      ? deriveIncidentTimeline(props.draft, {
+          locale,
+          isDemoIncident: props.isDemoIncident,
+        })
+      : [];
   const sensitiveDetailDetected = Boolean(
     props.draft &&
-      [
-        props.narrative,
-        props.transcription?.originalTranscript,
-        props.transcription?.englishTranscript,
-        props.draft.incident.narrative,
-        props.draft.citizenSummary.shortSummary,
-        ...props.draft.evidence.flatMap((item) => item.extractedFacts),
-      ].some((value) => containsSensitiveDetail(value)),
+    [
+      props.narrative,
+      props.transcription?.originalTranscript,
+      props.transcription?.englishTranscript,
+      props.draft.incident.narrative,
+      props.draft.citizenSummary.shortSummary,
+      ...props.draft.evidence.flatMap((item) => item.extractedFacts),
+    ].some((value) => containsSensitiveDetail(value)),
   );
 
   useEffect(() => {
@@ -1985,7 +1989,9 @@ function ReportDetailsPane({
       return;
     }
     if (evidenceMissing && !firstMissingQuestion) {
-      document.querySelector<HTMLInputElement>("#incident-screenshots")?.click();
+      document
+        .querySelector<HTMLInputElement>("#incident-screenshots")
+        ?.click();
       return;
     }
     if (!firstMissingQuestion) return;
@@ -2134,50 +2140,6 @@ function ReportDetailsPane({
             </aside>
           ) : null}
 
-          <section className="report-readiness" aria-live="polite">
-            <h2>
-              {amountConflictMissing
-                ? locale === "hi"
-                  ? "आपकी पुष्टि जरूरी है"
-                  : "Needs your confirmation"
-                : requiredMissing === 0
-                  ? locale === "hi"
-                    ? "रिपोर्ट समीक्षा के लिए तैयार है ✓"
-                    : "Report ready to review ✓"
-                  : locale === "hi"
-                    ? "रिपोर्ट लगभग तैयार है"
-                    : "Report almost ready"}
-            </h2>
-            {amountConflictMissing ? (
-              <p>
-                {locale === "hi"
-                  ? "हमें दो अलग-अलग राशियाँ मिलीं। रिपोर्ट में उपयोग की जाने वाली राशि चुनें।"
-                  : "We found two different amounts. Choose which amount should be used in the report."}
-              </p>
-            ) : requiredMissing === 0 ? (
-              <p>
-                {locale === "hi"
-                  ? "इस रिपोर्टिंग रास्ते के लिए सभी जरूरी जानकारी उपलब्ध है।"
-                  : "All required information for this reporting path is available."}
-              </p>
-            ) : (
-              <p>
-                {locale === "hi"
-                  ? `${requiredPrepared} जानकारियाँ आपके साझा किए गए विवरण से तैयार हैं। ${requiredMissing} जानकारी अभी चाहिए।`
-                  : `${requiredPrepared} details prepared from what you shared. ${requiredMissing} ${requiredMissing === 1 ? "detail is" : "details are"} still needed.`}
-              </p>
-            )}
-            {requiredMissing === 0 ? (
-              <button
-                className="primary-button"
-                type="button"
-                onClick={props.onReview}
-              >
-                {locale === "hi" ? "रिपोर्ट की समीक्षा करें →" : "Review report →"}
-              </button>
-            ) : null}
-          </section>
-
           {amountConflictResolution ? (
             <section
               className="amount-conflict"
@@ -2244,7 +2206,9 @@ function ReportDetailsPane({
           {priorityField && !amountConflictMissing ? (
             <section className="priority-missing-question">
               <p className="eyebrow">
-                {locale === "hi" ? "अगली जरूरी जानकारी" : "Next required detail"}
+                {locale === "hi"
+                  ? "अगली जरूरी जानकारी"
+                  : "Next required detail"}
               </p>
               <MissingFieldEditor
                 field={priorityField}
@@ -2273,10 +2237,14 @@ function ReportDetailsPane({
                 }}
               />
             </section>
-          ) : evidenceMissing && !firstMissingQuestion && !amountConflictMissing ? (
+          ) : evidenceMissing &&
+            !firstMissingQuestion &&
+            !amountConflictMissing ? (
             <section className="priority-missing-question">
               <p className="eyebrow">
-                {locale === "hi" ? "अगली जरूरी जानकारी" : "Next required detail"}
+                {locale === "hi"
+                  ? "अगली जरूरी जानकारी"
+                  : "Next required detail"}
               </p>
               <h3>{t("field.evidenceSupplied")}</h3>
               <p>
@@ -2333,6 +2301,52 @@ function ReportDetailsPane({
             draft={props.draft}
             amountResolution={props.amountResolution}
           />
+
+          <section className="report-readiness" aria-live="polite">
+            <h2>
+              {amountConflictMissing
+                ? locale === "hi"
+                  ? "आपकी पुष्टि जरूरी है"
+                  : "Needs your confirmation"
+                : requiredMissing === 0
+                  ? locale === "hi"
+                    ? "रिपोर्ट समीक्षा के लिए तैयार है ✓"
+                    : "Report ready to review ✓"
+                  : locale === "hi"
+                    ? "रिपोर्ट लगभग तैयार है"
+                    : "Report almost ready"}
+            </h2>
+            {amountConflictMissing ? (
+              <p>
+                {locale === "hi"
+                  ? "हमें दो अलग-अलग राशियाँ मिलीं। रिपोर्ट में उपयोग की जाने वाली राशि चुनें।"
+                  : "We found two different amounts. Choose which amount should be used in the report."}
+              </p>
+            ) : requiredMissing === 0 ? (
+              <p>
+                {locale === "hi"
+                  ? "इस रिपोर्टिंग रास्ते के लिए सभी जरूरी जानकारी उपलब्ध है।"
+                  : "All required information for this reporting path is available."}
+              </p>
+            ) : (
+              <p>
+                {locale === "hi"
+                  ? `${requiredPrepared} जानकारियाँ आपके साझा किए गए विवरण से तैयार हैं। ${requiredMissing} जानकारी अभी चाहिए।`
+                  : `${requiredPrepared} details prepared from what you shared. ${requiredMissing} ${requiredMissing === 1 ? "detail is" : "details are"} still needed.`}
+              </p>
+            )}
+            {requiredMissing === 0 ? (
+              <button
+                className="primary-button"
+                type="button"
+                onClick={props.onReview}
+              >
+                {locale === "hi"
+                  ? "रिपोर्ट की समीक्षा करें →"
+                  : "Review report →"}
+              </button>
+            ) : null}
+          </section>
 
           {requiredMissing > 0 ? (
             <div className="missing-review-message">

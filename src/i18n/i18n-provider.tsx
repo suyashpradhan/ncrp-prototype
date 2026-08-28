@@ -102,6 +102,7 @@ const EN_TEXT: Record<string, string> = {
   "workspace.placeholder":
     "I received a message asking me to update my SBI KYC…",
   "workspace.organise": "Prepare my report",
+  "workspace.preparingReport": "Preparing report…",
   "workspace.informationShared": "Information you shared",
   "workspace.sampleStatement": "Sample statement",
   "workspace.yourStatement": "Your statement",
@@ -138,7 +139,7 @@ const EN_TEXT: Record<string, string> = {
   "workspace.emptyStrong":
     "Start by speaking, uploading evidence or typing what happened.",
   "workspace.emptyBody": "The required report details will appear here.",
-  "workspace.errorHeading": "We couldn’t organise the information",
+  "workspace.errorHeading": "We couldn’t prepare the report yet.",
   "workspace.inputPreserved":
     "Your statement and evidence are still available on the left.",
   "workspace.tryAgain": "Try again",

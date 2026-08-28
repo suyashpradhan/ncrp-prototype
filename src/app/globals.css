@@ -2136,6 +2136,11 @@ html[data-ui-locale="hi"] .companion-eyebrow {
   margin: 5px 0 0;
 }
 
+.companion-restart {
+  margin-top: 18px;
+  text-align: right;
+}
+
 .secondary-page-intro {
   margin-bottom: 32px;
 }

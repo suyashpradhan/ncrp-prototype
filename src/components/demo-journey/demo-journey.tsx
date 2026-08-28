@@ -70,6 +70,66 @@ type JourneyView =
   | "ANALYSIS_ERROR";
 
 const SACHET_DEMO_REFERENCE = "SACHET-DEMO-REPORT-00124";
+const DEMO_SESSION_KEY = "sachet-deterministic-demo-v1";
+const DEMO_RESTORABLE_VIEWS = new Set<JourneyView>([
+  "ANALYSIS_RESULT",
+  "REVIEW",
+  "SUCCESS",
+  "ACKNOWLEDGEMENT",
+  "CASE_COMPANION",
+]);
+
+type PersistedDemoSession = {
+  version: 1;
+  view: JourneyView;
+  draft: IncidentDraft;
+  narrative: string;
+  transcription: TranscriptionResult;
+  demoNarrationLanguage: DemoNarrationLanguage;
+  recordingSeconds: number;
+  submittedReference: string;
+  officialAcknowledgement: AddedAcknowledgement | null;
+};
+
+function restoredJourneyHistory(view: JourneyView): JourneyView[] {
+  const history: JourneyView[] = ["ENTRY"];
+  if (view === "ANALYSIS_RESULT") return history;
+  history.push("ANALYSIS_RESULT");
+  if (view === "REVIEW") return history;
+  history.push("REVIEW");
+  if (view === "SUCCESS") return history;
+  history.push("SUCCESS");
+  if (view === "ACKNOWLEDGEMENT") return history;
+  return history;
+}
+
+function parsePersistedAcknowledgement(
+  value: unknown,
+): AddedAcknowledgement | null {
+  if (value === null) return null;
+  if (!value || typeof value !== "object") return null;
+  const candidate = value as Partial<AddedAcknowledgement>;
+  if (
+    typeof candidate.number !== "string" ||
+    (candidate.receiptName !== null &&
+      typeof candidate.receiptName !== "string") ||
+    !["NUMBER_ENTERED", "RECEIPT_SUPPLIED", "SYNTHETIC_DEMO"].includes(
+      candidate.source ?? "",
+    ) ||
+    typeof candidate.synthetic !== "boolean"
+  ) {
+    return null;
+  }
+  return candidate as AddedAcknowledgement;
+}
+
+function clearPersistedDemoSession() {
+  try {
+    window.sessionStorage.removeItem(DEMO_SESSION_KEY);
+  } catch {
+    // The deterministic demo still works in memory when storage is unavailable.
+  }
+}
 
 async function compressScreenshot(file: File): Promise<File> {
   if (file.size <= 1_500_000 || typeof createImageBitmap === "undefined") {
@@ -219,6 +279,7 @@ export function DemoJourney() {
     useState<AddedAcknowledgement | null>(null);
   const viewRef = useRef<JourneyView>("ENTRY");
   const journeyHistoryRef = useRef<JourneyView[]>([]);
+  const attemptedDemoRestoreRef = useRef(false);
   const analysisRunRef = useRef(0);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const recorderChunksRef = useRef<Blob[]>([]);
@@ -236,6 +297,107 @@ export function DemoJourney() {
           source: "TEST_INPUT" as const,
         }
       : baseProfile;
+
+  useEffect(() => {
+    if (attemptedDemoRestoreRef.current) return;
+    attemptedDemoRestoreRef.current = true;
+
+    try {
+      const stored = window.sessionStorage.getItem(DEMO_SESSION_KEY);
+      if (!stored) return;
+      const parsed: unknown = JSON.parse(stored);
+      if (!parsed || typeof parsed !== "object") return;
+      const candidate = parsed as Partial<PersistedDemoSession>;
+      if (
+        candidate.version !== 1 ||
+        typeof candidate.view !== "string" ||
+        !DEMO_RESTORABLE_VIEWS.has(candidate.view as JourneyView) ||
+        typeof candidate.narrative !== "string" ||
+        typeof candidate.recordingSeconds !== "number" ||
+        typeof candidate.submittedReference !== "string" ||
+        !["hi-IN", "en-IN"].includes(candidate.demoNarrationLanguage ?? "")
+      ) {
+        clearPersistedDemoSession();
+        return;
+      }
+
+      const restoredDraft = IncidentDraftSchema.safeParse(candidate.draft);
+      const restoredTranscription = TranscriptionResultSchema.safeParse(
+        candidate.transcription,
+      );
+      const acknowledgement = parsePersistedAcknowledgement(
+        candidate.officialAcknowledgement,
+      );
+      if (!restoredDraft.success || !restoredTranscription.success) {
+        clearPersistedDemoSession();
+        return;
+      }
+      if (candidate.view === "CASE_COMPANION" && !acknowledgement) {
+        clearPersistedDemoSession();
+        return;
+      }
+
+      beginExperience("DEMO_CASE", SYNTHETIC_NCRP_PROFILE);
+      setDraft(restoredDraft.data);
+      setNarrative(candidate.narrative);
+      setTranscription(restoredTranscription.data);
+      setDemoNarrationLanguage(
+        candidate.demoNarrationLanguage as DemoNarrationLanguage,
+      );
+      setRecordingSeconds(candidate.recordingSeconds);
+      setSubmittedReference(candidate.submittedReference);
+      setOfficialAcknowledgement(acknowledgement);
+      setIsDemoIncident(true);
+      journeyHistoryRef.current = restoredJourneyHistory(
+        candidate.view as JourneyView,
+      );
+      viewRef.current = candidate.view as JourneyView;
+      setView(candidate.view as JourneyView);
+    } catch {
+      clearPersistedDemoSession();
+    }
+  }, [beginExperience]);
+
+  useEffect(() => {
+    if (
+      !attemptedDemoRestoreRef.current ||
+      !isDemoIncident ||
+      experienceMode !== "DEMO_CASE" ||
+      !draft ||
+      !transcription ||
+      !DEMO_RESTORABLE_VIEWS.has(view)
+    ) {
+      return;
+    }
+
+    const session: PersistedDemoSession = {
+      version: 1,
+      view,
+      draft,
+      narrative,
+      transcription,
+      demoNarrationLanguage,
+      recordingSeconds,
+      submittedReference,
+      officialAcknowledgement,
+    };
+    try {
+      window.sessionStorage.setItem(DEMO_SESSION_KEY, JSON.stringify(session));
+    } catch {
+      // Storage can be unavailable in restricted browsing modes; do not break the demo.
+    }
+  }, [
+    demoNarrationLanguage,
+    draft,
+    experienceMode,
+    isDemoIncident,
+    narrative,
+    officialAcknowledgement,
+    recordingSeconds,
+    submittedReference,
+    transcription,
+    view,
+  ]);
 
   useEffect(() => {
     if (view !== "ENTRY") {
@@ -335,6 +497,7 @@ export function DemoJourney() {
       recorderRef.current.stop();
     }
     recorderRef.current?.stream.getTracks().forEach((track) => track.stop());
+    clearPersistedDemoSession();
     resetDemo();
     resetInputs();
     journeyHistoryRef.current = [];
@@ -350,6 +513,7 @@ export function DemoJourney() {
   }, [registerControls, view]);
 
   function startReport() {
+    clearPersistedDemoSession();
     resetDemo();
     resetInputs();
     beginExperience("LIVE_TEST", createEmptyTestProfile());
@@ -358,6 +522,7 @@ export function DemoJourney() {
   }
 
   function useDemoIncident() {
+    clearPersistedDemoSession();
     resetDemo();
     resetInputs();
     beginExperience("DEMO_CASE", SYNTHETIC_NCRP_PROFILE);
@@ -369,6 +534,10 @@ export function DemoJourney() {
     setDraft(structuredClone(DEMO_INCIDENT_DRAFT));
     journeyHistoryRef.current = ["ENTRY"];
     setCurrentView("ANALYSIS_RESULT");
+  }
+
+  function restartDemo() {
+    useDemoIncident();
   }
 
   function chooseDemoNarration(language: DemoNarrationLanguage) {
@@ -616,25 +785,13 @@ export function DemoJourney() {
       });
       const result: unknown = await response.json().catch(() => null);
       if (analysisRunRef.current !== analysisRun) return;
-      if (!response.ok) {
-        const serviceMessage =
-          result &&
-          typeof result === "object" &&
-          "error" in result &&
-          typeof result.error === "string"
-            ? result.error
-            : null;
-        throw new Error(
-          serviceMessage ??
-            "We couldn’t prepare the report. Everything you shared is still here.",
-        );
-      }
+      if (!response.ok) throw new Error("REPORT_PREPARATION_FAILED");
       setDraft(normalizeIncidentDraft(IncidentDraftSchema.parse(result)));
       setSelectedReportedAmount(null);
       replaceView("ANALYSIS_RESULT");
-    } catch (error) {
+    } catch {
       if (analysisRunRef.current !== analysisRun) return;
-      setFormError(error instanceof Error ? error.message : null);
+      setFormError(null);
       setIsTranscriptionError(Boolean(audio && !transcription));
       replaceView("ANALYSIS_ERROR");
     }
@@ -877,6 +1034,7 @@ export function DemoJourney() {
         acknowledgement={officialAcknowledgement}
         draft={draft}
         reporterName={activeProfile.displayName}
+        onRestartDemo={isDemoIncident ? restartDemo : undefined}
       />
     );
   } else {
@@ -962,6 +1120,15 @@ export function DemoJourney() {
             >
               {locale === "hi" ? "फिर से शुरू करें" : "Start again"}
             </button>
+            {isDemoIncident ? (
+              <button
+                className="text-button"
+                type="button"
+                onClick={restartDemo}
+              >
+                {locale === "hi" ? "डेमो फिर से शुरू करें" : "Restart demo"}
+              </button>
+            ) : null}
           </div>
         </div>
       </section>
