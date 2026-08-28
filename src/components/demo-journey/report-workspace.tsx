@@ -33,6 +33,7 @@ import {
   type ReportGroupView,
 } from "../../presentation/report-details";
 import { formatCurrency } from "../../presentation/format";
+import { deriveEvidenceContributions } from "../../presentation/evidence-contributions";
 import { deriveIncidentTimeline } from "../../presentation/incident-timeline";
 import { ComplaintPacket } from "./complaint-packet";
 import { IncidentTimeline } from "./incident-timeline";
@@ -332,6 +333,100 @@ function EvidenceRows({
       {rows}
       {preview}
     </div>
+  );
+}
+
+function EvidenceContributions({
+  draft,
+  screenshots,
+  isDemoIncident,
+}: {
+  draft: IncidentDraft;
+  screenshots: File[];
+  isDemoIncident: boolean;
+}) {
+  const { locale } = useI18n();
+  const items = deriveEvidenceContributions(draft, {
+    locale,
+    isDemoIncident,
+    screenshotNames: screenshots.map((file) => file.name),
+  });
+  if (items.length === 0) return null;
+
+  return (
+    <section
+      className="evidence-contributions"
+      aria-labelledby="evidence-contributions-heading"
+    >
+      <div className="evidence-contributions-heading">
+        <p className="report-field-label">
+          {locale === "hi" ? "सबूत का उपयोग" : "Evidence used"}
+        </p>
+        <h3 id="evidence-contributions-heading">
+          {locale === "hi"
+            ? "आपके सबूत से रिपोर्ट में क्या जोड़ा गया"
+            : "What we used from your evidence"}
+        </h3>
+      </div>
+      <div className="evidence-contribution-list">
+        {items.map((item) => (
+          <article className="evidence-contribution" key={item.evidenceId}>
+            <div className="evidence-contribution-title">
+              <div>
+                <strong>{item.evidenceLabel}</strong>
+                <span>{item.evidenceType}</span>
+              </div>
+              <small>
+                {item.contributions.length > 0
+                  ? locale === "hi"
+                    ? `${item.contributions.length} जानकारियाँ उपयोग हुईं`
+                    : `${item.contributions.length} ${item.contributions.length === 1 ? "detail" : "details"} used`
+                  : locale === "hi"
+                    ? "रिपोर्ट के साथ जोड़ा गया"
+                    : "Attached to the report"}
+              </small>
+            </div>
+
+            {item.contributions.length > 0 ? (
+              <dl>
+                {item.contributions.map((fact) => (
+                  <div key={`${item.evidenceId}-${fact.fieldKey}`}>
+                    <dt>
+                      <span className="ready-mark" aria-hidden="true">
+                        ✓
+                      </span>{" "}
+                      {fact.label}
+                    </dt>
+                    <dd>{fact.displayValue}</dd>
+                  </div>
+                ))}
+              </dl>
+            ) : (
+              <p>
+                {locale === "hi"
+                  ? "हमने इस सबूत को आपकी रिपोर्ट के साथ जोड़ दिया है।"
+                  : "We’ve attached this evidence to your report."}
+              </p>
+            )}
+
+            <button
+              className="text-button"
+              type="button"
+              aria-haspopup="dialog"
+              onClick={() =>
+                document
+                  .querySelector<HTMLButtonElement>(
+                    `[data-evidence-id="${item.evidenceId}"]`,
+                  )
+                  ?.click()
+              }
+            >
+              {locale === "hi" ? "सबूत देखें" : "View evidence"} →
+            </button>
+          </article>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -939,6 +1034,8 @@ function ReportGroup({
   onSaveMissingAnswer,
   onDraftChange,
   showMissingEditors = true,
+  screenshots,
+  isDemoIncident,
 }: {
   group: ReportGroupView;
   draft: IncidentDraft;
@@ -947,6 +1044,8 @@ function ReportGroup({
   onSaveMissingAnswer: ReportWorkspaceProps["onSaveMissingAnswer"];
   onDraftChange: ReportWorkspaceProps["onDraftChange"];
   showMissingEditors?: boolean;
+  screenshots: File[];
+  isDemoIncident: boolean;
 }) {
   const { locale, t } = useI18n();
   const [narrativeEditing, setNarrativeEditing] = useState(false);
@@ -1154,6 +1253,11 @@ function ReportGroup({
             {t("workspace.evidenceItems", { count: evidenceFields.length })}
           </strong>
         </section>
+        <EvidenceContributions
+          draft={draft}
+          screenshots={screenshots}
+          isDemoIncident={isDemoIncident}
+        />
         {suspectFields.length > 0 ? (
           <section className="information-found">
             <h3>{t("workspace.informationFound")}</h3>
@@ -1996,6 +2100,8 @@ function ReportDetailsPane({
                 onSaveMissingAnswer={props.onSaveMissingAnswer}
                 onDraftChange={props.onDraftChange}
                 showMissingEditors={false}
+                screenshots={props.screenshots}
+                isDemoIncident={props.isDemoIncident}
               />
             </section>
           ) : null}
@@ -2188,6 +2294,8 @@ function ReportDetailsPane({
                   onSaveMissingAnswer={props.onSaveMissingAnswer}
                   onDraftChange={props.onDraftChange}
                   showMissingEditors={false}
+                  screenshots={props.screenshots}
+                  isDemoIncident={props.isDemoIncident}
                 />
               </section>
             ))}

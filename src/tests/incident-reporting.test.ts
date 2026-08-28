@@ -17,6 +17,7 @@ import {
   requiredComplaintFieldsReady,
 } from "../incident/ncrp-compatible-complaint";
 import { deriveReportCompletion, deriveReportGroups } from "../presentation/report-details";
+import { deriveEvidenceContributions } from "../presentation/evidence-contributions";
 
 describe("AI-assisted incident reporting boundary", () => {
   it("validates the precomputed demo incident against the strict schema", () => {
@@ -78,6 +79,43 @@ describe("AI-assisted incident reporting boundary", () => {
 
     const completion = deriveReportCompletion(DEMO_INCIDENT_DRAFT);
     expect(completion).toEqual({ ready: 4, total: 4, missing: 0 });
+  });
+
+  it("derives canonical evidence contributions without inventing fields", () => {
+    const contributions = deriveEvidenceContributions(DEMO_INCIDENT_DRAFT, {
+      locale: "en",
+      isDemoIncident: true,
+      screenshotNames: [],
+    });
+
+    expect(contributions).toHaveLength(2);
+    expect(contributions[0].contributions.map((fact) => fact.displayValue)).toEqual([
+      "SBI KYC update",
+      "98XX XX1234",
+      "https://kyc-demo.invalid/update",
+    ]);
+    expect(contributions[1].contributions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ displayValue: "₹40,000" }),
+        expect.objectContaining({ displayValue: "SBI" }),
+        expect.objectContaining({ displayValue: "DEMO-UTR-40000-220826" }),
+      ]),
+    );
+  });
+
+  it("hides evidence contributions when the incident has no evidence", () => {
+    const withoutEvidence = IncidentDraftSchema.parse({
+      ...DEMO_INCIDENT_DRAFT,
+      evidence: [],
+    });
+
+    expect(
+      deriveEvidenceContributions(withoutEvidence, {
+        locale: "en",
+        isDemoIncident: false,
+        screenshotNames: [],
+      }),
+    ).toEqual([]);
   });
 
   it("keeps a day and month unresolved until the citizen confirms the year", () => {

@@ -1240,6 +1240,89 @@ textarea {
   margin-top: 20px;
 }
 
+.evidence-contributions {
+  margin-top: 22px;
+  padding-top: 22px;
+  border-top: 1px solid var(--border);
+}
+
+.evidence-contributions-heading {
+  margin-bottom: 14px;
+}
+
+.evidence-contributions-heading h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.evidence-contribution-list {
+  display: grid;
+  gap: 12px;
+}
+
+.evidence-contribution {
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.evidence-contribution-title {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.evidence-contribution-title > div {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.evidence-contribution-title strong {
+  overflow-wrap: anywhere;
+  font-size: 15px;
+}
+
+.evidence-contribution-title span,
+.evidence-contribution-title small {
+  color: var(--secondary);
+  font-size: 12px;
+}
+
+.evidence-contribution-title small {
+  flex: 0 0 auto;
+}
+
+.evidence-contribution dl {
+  margin: 14px 0;
+  display: grid;
+  gap: 10px;
+}
+
+.evidence-contribution dl > div {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(120px, 0.85fr) minmax(0, 1.15fr);
+  gap: 14px;
+}
+
+.evidence-contribution dt {
+  font-size: 12px;
+}
+
+.evidence-contribution dd {
+  overflow-wrap: anywhere;
+  font-size: 14px;
+}
+
+.evidence-contribution > p {
+  margin: 12px 0;
+  color: var(--secondary);
+  font-size: 13px;
+}
+
 .incident-description-block p {
   line-height: 1.7;
 }
@@ -1864,6 +1947,16 @@ dd {
     width: auto;
     display: block;
     margin-bottom: 3px;
+  }
+
+  .evidence-contribution-title {
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .evidence-contribution dl > div {
+    grid-template-columns: 1fr;
+    gap: 2px;
   }
 }
 
