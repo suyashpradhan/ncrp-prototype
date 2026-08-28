@@ -48,7 +48,15 @@ export function AppShell({ children }: AppShellProps) {
               if (isJourneyPage) event.preventDefault();
             }}
           >
-            {appName(locale)}
+            <img
+              className="brand-mark"
+              src="/brand/sachet-mark.svg"
+              alt=""
+              width="34"
+              height="34"
+              aria-hidden="true"
+            />
+            <span>{appName(locale)}</span>
           </Link>
           <div className="header-actions">
             <Link className="header-about-link" href="/about">
@@ -88,7 +96,11 @@ export function AppShell({ children }: AppShellProps) {
               className="journey-back-button"
               type="button"
               onClick={goBack}
-              aria-label={locale === "hi" ? "पिछले पेज पर वापस जाएँ" : "Go back to the previous page"}
+              aria-label={
+                locale === "hi"
+                  ? "पिछले पेज पर वापस जाएँ"
+                  : "Go back to the previous page"
+              }
             >
               <span aria-hidden="true">←</span>
               {locale === "hi" ? "वापस" : "Back"}
@@ -109,13 +121,18 @@ export function AppShell({ children }: AppShellProps) {
               rel="noreferrer"
             >
               {locale === "hi"
-                ? "Build What Moves India हैकाथॉन के लिए बनाया गया"
-                : "Built for the Build What Moves India hackathon"}
+                ? "Build What Moves India हैकाथॉन"
+                : "Build What Moves India hackathon"}
             </a>
             <span aria-hidden="true">·</span>
             <span>
-              {locale === "hi" ? "Suyash द्वारा बनाया गया" : "Made by Suyash"} {" "}
-              <span className="footer-heart" aria-label={locale === "hi" ? "प्यार से" : "with love"}>♥</span>
+              {locale === "hi" ? "Suyash द्वारा बनाया गया" : "Made by Suyash"}{" "}
+              <span
+                className="footer-heart"
+                aria-label={locale === "hi" ? "प्यार से" : "with love"}
+              >
+                ♥
+              </span>
             </span>
           </p>
           <p className="footer-disclaimer">
