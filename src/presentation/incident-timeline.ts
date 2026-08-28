@@ -41,6 +41,13 @@ function statementSupportsInstructionStep(draft: IncidentDraft) {
   );
 }
 
+function uploadedScreenshotId(draft: IncidentDraft, evidenceIndex: number) {
+  const screenshotIndex = draft.evidence
+    .slice(0, evidenceIndex)
+    .filter((item) => item.type !== "VOICE_STATEMENT").length;
+  return `uploaded-${screenshotIndex}`;
+}
+
 export function deriveIncidentTimeline(
   draft: IncidentDraft,
   { locale, isDemoIncident }: TimelineOptions,
@@ -51,7 +58,7 @@ export function deriveIncidentTimeline(
     return [
       {
         id: "message-received",
-        timeLabel: locale === "hi" ? "लगभग सुबह 7:00 बजे" : "Around 7:00 AM",
+        timeLabel: locale === "hi" ? "पहले" : "Earlier",
         title:
           locale === "hi"
             ? "एसबीआई केवाईसी अपडेट संदेश मिला"
@@ -117,7 +124,7 @@ export function deriveIncidentTimeline(
         {
           type: "EVIDENCE",
           label: locale === "hi" ? "संदेश का स्क्रीनशॉट" : "Message screenshot",
-          evidenceId: `uploaded-${messageEvidenceIndex}`,
+          evidenceId: uploadedScreenshotId(draft, messageEvidenceIndex),
         },
       ],
     });
@@ -158,7 +165,7 @@ export function deriveIncidentTimeline(
           ? {
               type: "TRANSACTION",
               label: locale === "hi" ? "बैंक लेन-देन" : "Bank transaction",
-              evidenceId: `uploaded-${transactionEvidenceIndex}`,
+              evidenceId: uploadedScreenshotId(draft, transactionEvidenceIndex),
             }
           : {
               type: "STATEMENT",

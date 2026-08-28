@@ -1057,6 +1057,131 @@ textarea {
   margin-bottom: 4px;
 }
 
+.prepared-report-core {
+  margin-bottom: 24px;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.report-readiness {
+  margin: 0 0 24px;
+  padding: 18px;
+  background: var(--success-bg);
+  border: 1px solid #d7e9de;
+  border-radius: 12px;
+}
+
+.report-readiness h2 {
+  margin-bottom: 6px;
+  color: var(--success);
+  font-size: 21px;
+}
+
+.report-readiness p {
+  margin-bottom: 0;
+}
+
+.report-readiness .primary-button {
+  margin-top: 16px;
+}
+
+.priority-missing-question {
+  margin-bottom: 28px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.priority-missing-question .eyebrow {
+  margin-bottom: 6px;
+  color: var(--secondary);
+  font-size: 12px;
+  font-weight: 750;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.priority-missing-question .report-missing-editor {
+  margin-top: 0;
+  padding: 0;
+  background: transparent;
+  border: 0;
+}
+
+.incident-timeline {
+  margin: 0 0 30px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+}
+
+.incident-timeline h2 {
+  margin-bottom: 18px;
+  font-size: 21px;
+}
+
+.incident-timeline > ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.incident-timeline > ol > li {
+  position: relative;
+  min-height: 72px;
+  padding: 0 0 22px 132px;
+}
+
+.incident-timeline > ol > li::before {
+  content: "";
+  position: absolute;
+  top: 7px;
+  left: 108px;
+  width: 8px;
+  height: 8px;
+  background: #817d78;
+  border-radius: 50%;
+}
+
+.incident-timeline > ol > li:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  top: 18px;
+  bottom: -1px;
+  left: 111px;
+  width: 1px;
+  background: var(--border);
+}
+
+.incident-timeline time {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 94px;
+  color: var(--secondary);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.incident-timeline p {
+  margin: 0 0 5px;
+  font-weight: 650;
+}
+
+.timeline-sources {
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  list-style: none;
+}
+
+.timeline-sources span,
+.timeline-sources button {
+  color: var(--secondary);
+  font-size: 12px;
+}
+
 .prepared-report-groups {
   display: grid;
   gap: 28px;
@@ -1422,6 +1547,14 @@ dd {
   font-size: 13px;
 }
 
+.save-report-copy {
+  margin-top: 22px;
+}
+
+.complaint-packet {
+  display: none;
+}
+
 /* Dialog, success and about */
 .evidence-preview-dialog {
   width: min(calc(100% - 32px), 560px);
@@ -1712,5 +1845,134 @@ dd {
   .field-coverage-header > :last-child,
   .field-coverage-row > :last-child {
     display: none;
+  }
+
+  .incident-timeline > ol > li {
+    padding-left: 26px;
+  }
+
+  .incident-timeline > ol > li::before {
+    left: 0;
+  }
+
+  .incident-timeline > ol > li:not(:last-child)::after {
+    left: 3px;
+  }
+
+  .incident-timeline time {
+    position: static;
+    width: auto;
+    display: block;
+    margin-bottom: 3px;
+  }
+}
+
+@media print {
+  @page {
+    margin: 16mm;
+  }
+
+  body {
+    background: #fff !important;
+  }
+
+  body * {
+    visibility: hidden !important;
+  }
+
+  .complaint-packet,
+  .complaint-packet * {
+    visibility: visible !important;
+  }
+
+  .report-workspace-stage,
+  .report-workspace-shell,
+  .report-workspace,
+  .report-details-pane {
+    overflow: visible !important;
+  }
+
+  .complaint-packet {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    display: block !important;
+    color: #000;
+    background: #fff;
+    font-size: 10.5pt;
+    line-height: 1.45;
+  }
+
+  .complaint-packet header,
+  .complaint-packet section,
+  .complaint-packet footer,
+  .complaint-packet dl > div,
+  .complaint-packet li {
+    break-inside: avoid;
+  }
+
+  .complaint-packet header {
+    padding-bottom: 14px;
+    border-bottom: 2px solid #000;
+  }
+
+  .complaint-packet h1 {
+    margin: 2px 0 4px;
+    font-size: 20pt;
+  }
+
+  .complaint-packet h2 {
+    margin: 0 0 8px;
+    font-size: 12pt;
+  }
+
+  .complaint-packet p {
+    margin: 2px 0;
+  }
+
+  .complaint-packet > section,
+  .complaint-packet > .incident-timeline {
+    margin: 0;
+    padding: 14px 0;
+    border-top: 0;
+    border-bottom: 1px solid #bbb;
+  }
+
+  .complaint-packet dl {
+    margin: 0;
+  }
+
+  .complaint-packet dl > div {
+    display: grid;
+    grid-template-columns: 42mm 1fr;
+    gap: 8px;
+    padding: 3px 0;
+  }
+
+  .complaint-packet dt {
+    color: #333;
+  }
+
+  .complaint-packet dd {
+    font-weight: 600;
+    overflow-wrap: anywhere;
+  }
+
+  .complaint-packet ul {
+    margin: 0;
+    padding-left: 18px;
+  }
+
+  .complaint-packet footer {
+    padding-top: 14px;
+    font-size: 9pt;
+  }
+
+  .complaint-packet .incident-timeline > ol > li {
+    min-height: 54px;
+  }
+
+  .no-print {
+    display: none !important;
   }
 }

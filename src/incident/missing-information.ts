@@ -122,6 +122,22 @@ const QUESTIONS: Record<MissingQuestion["field"], MissingQuestion> = {
   },
 };
 
+const FINANCIAL_QUESTION_PRIORITY: readonly MissingQuestion["field"][] = [
+  "moneyLost",
+  "transactionAmount",
+  "incidentDateYear",
+  "incidentDate",
+  "incidentApproximateTime",
+  "institution",
+  "transactionIdOrUtr",
+  "transactionDate",
+  "accountOrUpiId",
+  "transactionApproximateTime",
+  "delayInReporting",
+  "delayReason",
+  "occurredOn",
+];
+
 function requirementMissing(draft: IncidentDraft, field: ReportRequirementKey): boolean {
   const primaryTransaction = draft.transactions[0];
   switch (field) {
@@ -156,6 +172,15 @@ export function deriveMissingQuestions(draft: IncidentDraft): MissingQuestion[] 
   for (const requirement of requirements) {
     if (requirement.key === "incidentDate" && draft.incident.incidentDateWithoutYear) continue;
     if (requirementMissing(draft, requirement.key)) missing.push(QUESTIONS[requirement.key]);
+  }
+
+  if (draft.classification.reportFamily === "FINANCIAL_FRAUD") {
+    return [...missing].sort((left, right) => {
+      const leftIndex = FINANCIAL_QUESTION_PRIORITY.indexOf(left.field);
+      const rightIndex = FINANCIAL_QUESTION_PRIORITY.indexOf(right.field);
+      return (leftIndex < 0 ? Number.MAX_SAFE_INTEGER : leftIndex) -
+        (rightIndex < 0 ? Number.MAX_SAFE_INTEGER : rightIndex);
+    });
   }
 
   return missing;

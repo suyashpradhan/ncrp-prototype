@@ -28,12 +28,14 @@ import type { ExperienceMode, ReporterProfile } from "../../experience/profile";
 import { useI18n } from "../../i18n/i18n-provider";
 import {
   CITIZEN_DOES_NOT_HAVE,
-  deriveReportCompletion,
   deriveReportGroups,
   type ReportFieldView,
   type ReportGroupView,
 } from "../../presentation/report-details";
 import { formatCurrency } from "../../presentation/format";
+import { deriveIncidentTimeline } from "../../presentation/incident-timeline";
+import { ComplaintPacket } from "./complaint-packet";
+import { IncidentTimeline } from "./incident-timeline";
 import { JourneyProgress } from "./journey-progress";
 
 export type ReportWorkspaceMode =
@@ -46,12 +48,14 @@ export type ReportMethod = "SPEAK" | "UPLOAD" | "TYPE";
 
 const DEMO_EVIDENCE = [
   {
+    id: "demo-message",
     src: "/demo/evidence/kyc-message-demo.png",
     altKey: "workspace.demoMessage",
     labelKey: "workspace.demoMessage",
     typeKey: "workspace.evidenceMessageType",
   },
   {
+    id: "demo-transaction",
     src: "/demo/evidence/bank-transaction-demo.png",
     altKey: "workspace.demoBank",
     labelKey: "workspace.demoBank",
@@ -86,6 +90,7 @@ type ReportWorkspaceProps = {
   formError: string | null;
   missingAnswers: Record<string, string>;
   amountResolution: ReportedAmountResolution | null;
+  reportReference: string;
   onReportMethodChange: (method: ReportMethod) => void;
   onNarrativeChange: (value: string) => void;
   onReporterNameChange: (value: string) => void;
@@ -186,6 +191,7 @@ function EvidenceRows({
               <button
                 className="evidence-preview-trigger"
                 type="button"
+                data-evidence-id={item.id}
                 aria-haspopup="dialog"
                 aria-label={`${t("workspace.openEvidence")}: ${t(item.labelKey)}`}
                 onClick={() => setActiveDemoEvidence(item)}
@@ -215,6 +221,7 @@ function EvidenceRows({
               <button
                 className="evidence-preview-trigger"
                 type="button"
+                data-evidence-id={`uploaded-${index}`}
                 aria-haspopup="dialog"
                 aria-label={`${t("workspace.openEvidence")}: ${file.name}`}
                 onClick={() => setActiveUploadedEvidence(file)}
@@ -931,6 +938,7 @@ function ReportGroup({
   onMissingAnswerChange,
   onSaveMissingAnswer,
   onDraftChange,
+  showMissingEditors = true,
 }: {
   group: ReportGroupView;
   draft: IncidentDraft;
@@ -938,12 +946,14 @@ function ReportGroup({
   onMissingAnswerChange: ReportWorkspaceProps["onMissingAnswerChange"];
   onSaveMissingAnswer: ReportWorkspaceProps["onSaveMissingAnswer"];
   onDraftChange: ReportWorkspaceProps["onDraftChange"];
+  showMissingEditors?: boolean;
 }) {
   const { locale, t } = useI18n();
   const [narrativeEditing, setNarrativeEditing] = useState(false);
 
-  const renderField = (item: ReportFieldView) => (
-    <ReportFieldRow
+  const renderField = (item: ReportFieldView) =>
+    item.missingQuestion && !showMissingEditors ? null : (
+      <ReportFieldRow
       key={item.id}
       field={item}
       missingValue={
@@ -961,8 +971,8 @@ function ReportGroup({
       }}
       narrativeEditing={narrativeEditing}
       onNarrativeEdit={() => setNarrativeEditing(true)}
-    />
-  );
+      />
+    );
 
   const allFields = group.sections.flatMap((section) => section.fields);
   const getField = (id: string) => allFields.find((field) => field.id === id);
@@ -1446,6 +1456,13 @@ function ReportReview(props: ReportWorkspaceProps) {
           </p>
         </div>
       </details>
+      <ComplaintPacket
+        complaint={complaint}
+        draft={props.draft}
+        reference={props.reportReference}
+        locale={locale}
+        isDemoIncident={props.isDemoIncident}
+      />
       <label className="report-declaration">
         <input
           type="checkbox"
@@ -1712,7 +1729,6 @@ function ReportDetailsPane({
         identityDocumentProvided: props.identityDocumentProvided,
       })
     : [];
-  const completion = props.draft ? deriveReportCompletion(props.draft) : null;
   const complaint = props.draft
     ? buildNcrpCompatibleComplaint({
         draft: props.draft,
@@ -1729,12 +1745,15 @@ function ReportDetailsPane({
         identityDocumentProvided: props.identityDocumentProvided,
       })
     : null;
-  const contractMissing = complaint
+  const contractRequired = complaint
     ? NCRP_FIELD_DEFINITIONS.filter(
         (definition) =>
           complaintFieldIsRequired(complaint, definition) &&
           definition.id !== "declaration.accepted",
-      ).filter((definition) => {
+      )
+    : [];
+  const contractMissing = complaint
+    ? contractRequired.filter((definition) => {
         const status = complaintRequiredFieldStatus(complaint, definition);
         return (
           status !== "READY" &&
@@ -1749,6 +1768,10 @@ function ReportDetailsPane({
   );
   const requiredMissing =
     contractMissing.length + (amountConflictMissing ? 1 : 0);
+  const requiredPrepared = Math.max(
+    0,
+    contractRequired.length - contractMissing.length,
+  );
   const firstMissingQuestion = props.draft
     ? deriveMissingQuestions(props.draft)[0]
     : null;
@@ -1801,6 +1824,23 @@ function ReportDetailsPane({
         : locale === "hi"
           ? "बाकी जानकारी पर जाएँ"
           : "Go to missing detail";
+  const priorityField = firstMissingQuestion
+    ? groups
+        .flatMap((group) => group.sections)
+        .flatMap((section) => section.fields)
+        .find(
+          (field) =>
+            field.missingQuestion?.field === firstMissingQuestion.field,
+        )
+    : null;
+  const incidentGroup = groups.find((group) => group.id === "INCIDENT");
+  const remainingGroups = groups.filter((group) => group.id !== "INCIDENT");
+  const timeline = props.draft && !amountConflictMissing
+    ? deriveIncidentTimeline(props.draft, {
+        locale,
+        isDemoIncident: props.isDemoIncident,
+      })
+    : [];
 
   useEffect(() => {
     if (!pendingMissingFocus) return;
@@ -1941,58 +1981,67 @@ function ReportDetailsPane({
 
       {props.mode === "READY" &&
       props.draft &&
-      completion &&
       props.draft.classification.ambiguity === "NONE" ? (
         <>
-          <div className="report-completion" role="status" aria-live="polite">
-            <p>
-              <strong>
-                {requiredMissing === 0
-                  ? t("workspace.ready")
-                  : t("workspace.detailNeeded", { count: requiredMissing })}
-              </strong>
-            </p>
+          {incidentGroup ? (
+            <section className="prepared-report-section prepared-report-core">
+              <ReportGroup
+                group={incidentGroup}
+                draft={props.draft}
+                missingAnswers={props.missingAnswers}
+                onMissingAnswerChange={props.onMissingAnswerChange}
+                onSaveMissingAnswer={props.onSaveMissingAnswer}
+                onDraftChange={props.onDraftChange}
+                showMissingEditors={false}
+              />
+            </section>
+          ) : null}
+
+          <section className="report-readiness" aria-live="polite">
+            <h2>
+              {amountConflictMissing
+                ? locale === "hi"
+                  ? "आपकी पुष्टि जरूरी है"
+                  : "Needs your confirmation"
+                : requiredMissing === 0
+                  ? locale === "hi"
+                    ? "रिपोर्ट समीक्षा के लिए तैयार है ✓"
+                    : "Report ready to review ✓"
+                  : locale === "hi"
+                    ? "रिपोर्ट लगभग तैयार है"
+                    : "Report almost ready"}
+            </h2>
+            {amountConflictMissing ? (
+              <p>
+                {locale === "hi"
+                  ? "हमें दो अलग-अलग राशियाँ मिलीं। रिपोर्ट में उपयोग की जाने वाली राशि चुनें।"
+                  : "We found two different amounts. Choose which amount should be used in the report."}
+              </p>
+            ) : requiredMissing === 0 ? (
+              <p>
+                {locale === "hi"
+                  ? "इस रिपोर्टिंग रास्ते के लिए सभी जरूरी जानकारी उपलब्ध है।"
+                  : "All required information for this reporting path is available."}
+              </p>
+            ) : (
+              <p>
+                {locale === "hi"
+                  ? `${requiredPrepared} जानकारियाँ आपके साझा किए गए विवरण से तैयार हैं। ${requiredMissing} जानकारी अभी चाहिए।`
+                  : `${requiredPrepared} details prepared from what you shared. ${requiredMissing} ${requiredMissing === 1 ? "detail is" : "details are"} still needed.`}
+              </p>
+            )}
             {requiredMissing === 0 ? (
-              <p>{t("workspace.preparedReuse")}</p>
+              <button
+                className="primary-button"
+                type="button"
+                onClick={props.onReview}
+              >
+                {locale === "hi" ? "रिपोर्ट की समीक्षा करें →" : "Review report →"}
+              </button>
             ) : null}
-            {requiredMissing > 0 ? (
-              <>
-                {firstMissingLabel ? <p>{firstMissingLabel}</p> : null}
-                <button
-                  className="text-button missing-detail-link"
-                  type="button"
-                  onClick={goToMissingDetail}
-                >
-                  {missingActionLabel} →
-                </button>
-              </>
-            ) : null}
-          </div>
+          </section>
 
-          <div className="prepared-report-groups">
-            {groups.map((group) => (
-              <section className="prepared-report-section" key={group.id}>
-                <div className="prepared-section-heading">
-                  <h3>{group.label}</h3>
-                  <span>
-                    {group.missingCount > 0
-                      ? `${group.missingCount} ${t("workspace.actionNeeded")}`
-                      : `✓ ${t("workspace.complete")}`}
-                  </span>
-                </div>
-                <ReportGroup
-                  group={group}
-                  draft={props.draft!}
-                  missingAnswers={props.missingAnswers}
-                  onMissingAnswerChange={props.onMissingAnswerChange}
-                  onSaveMissingAnswer={props.onSaveMissingAnswer}
-                  onDraftChange={props.onDraftChange}
-                />
-              </section>
-            ))}
-          </div>
-
-          {props.amountResolution?.hasConflict ? (
+          {amountConflictMissing ? (
             <section
               className="amount-conflict"
               data-amount-conflict
@@ -2055,31 +2104,107 @@ function ReportDetailsPane({
             </section>
           ) : null}
 
-          <div className="report-primary-actions">
-            <button
-              className="primary-button"
-              type="button"
-              disabled={requiredMissing > 0}
-              onClick={props.onReview}
-            >
-              {t("workspace.reviewContinue")}
-            </button>
-            {requiredMissing > 0 ? (
-              <div className="missing-review-message">
-                <p>
-                  {t("workspace.detailNeeded", { count: requiredMissing })}
-                  {firstMissingLabel ? `: ${firstMissingLabel}` : ""}.
-                </p>
-                <button
-                  className="text-button"
-                  type="button"
-                  onClick={goToMissingDetail}
-                >
-                  {missingActionLabel}
-                </button>
-              </div>
-            ) : null}
+          {priorityField && !amountConflictMissing ? (
+            <section className="priority-missing-question">
+              <p className="eyebrow">
+                {locale === "hi" ? "अगली जरूरी जानकारी" : "Next required detail"}
+              </p>
+              <MissingFieldEditor
+                field={priorityField}
+                value={
+                  priorityField.missingQuestion
+                    ? (props.missingAnswers[
+                        priorityField.missingQuestion.field
+                      ] ?? "")
+                    : ""
+                }
+                onChange={(value) => {
+                  if (priorityField.missingQuestion) {
+                    props.onMissingAnswerChange(
+                      priorityField.missingQuestion.field,
+                      value,
+                    );
+                  }
+                }}
+                onSave={(fallback) => {
+                  if (priorityField.missingQuestion) {
+                    props.onSaveMissingAnswer(
+                      priorityField.missingQuestion,
+                      fallback,
+                    );
+                  }
+                }}
+              />
+            </section>
+          ) : evidenceMissing && !firstMissingQuestion && !amountConflictMissing ? (
+            <section className="priority-missing-question">
+              <p className="eyebrow">
+                {locale === "hi" ? "अगली जरूरी जानकारी" : "Next required detail"}
+              </p>
+              <h3>{t("field.evidenceSupplied")}</h3>
+              <p>
+                {locale === "hi"
+                  ? "वित्तीय रिपोर्ट के लिए सहायक सबूत जोड़ें।"
+                  : "Add supporting evidence for this financial report."}
+              </p>
+              <button
+                className="secondary-button"
+                type="button"
+                onClick={() =>
+                  document
+                    .querySelector<HTMLInputElement>("#incident-screenshots")
+                    ?.click()
+                }
+              >
+                {locale === "hi" ? "सबूत जोड़ें" : "Add evidence"}
+              </button>
+            </section>
+          ) : null}
+
+          <IncidentTimeline
+            events={timeline}
+            heading={locale === "hi" ? "क्या हुआ" : "What happened"}
+          />
+
+          <div className="prepared-report-groups">
+            {remainingGroups.map((group) => (
+              <section className="prepared-report-section" key={group.id}>
+                <div className="prepared-section-heading">
+                  <h3>{group.label}</h3>
+                  <span>
+                    {group.missingCount > 0
+                      ? `${group.missingCount} ${t("workspace.actionNeeded")}`
+                      : `✓ ${t("workspace.complete")}`}
+                  </span>
+                </div>
+                <ReportGroup
+                  group={group}
+                  draft={props.draft!}
+                  missingAnswers={props.missingAnswers}
+                  onMissingAnswerChange={props.onMissingAnswerChange}
+                  onSaveMissingAnswer={props.onSaveMissingAnswer}
+                  onDraftChange={props.onDraftChange}
+                  showMissingEditors={false}
+                />
+              </section>
+            ))}
           </div>
+
+          {requiredMissing > 0 ? (
+            <div className="missing-review-message">
+              <p>
+                {t("workspace.detailNeeded", { count: requiredMissing })}
+                {firstMissingLabel ? `: ${firstMissingLabel}` : ""}.
+              </p>
+              <button
+                className="text-button"
+                type="button"
+                onClick={goToMissingDetail}
+              >
+                {missingActionLabel}
+              </button>
+            </div>
+          ) : null}
         </>
       ) : null}
     </section>

@@ -810,6 +810,7 @@ export function DemoJourney() {
         formError={formError}
         missingAnswers={missingAnswers}
         amountResolution={amountResolution}
+        reportReference={submittedReference}
         onReportMethodChange={setReportMethod}
         onNarrativeChange={setNarrative}
         onReporterNameChange={setReporterName}
