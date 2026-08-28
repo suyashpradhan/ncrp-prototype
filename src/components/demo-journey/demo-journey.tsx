@@ -43,7 +43,15 @@ import {
 } from "../../experience/profile";
 import { useI18n } from "../../i18n/i18n-provider";
 import { useJourneyNavigation } from "../../navigation/journey-navigation";
+import {
+  DEMO_OFFICIAL_ACKNOWLEDGEMENT,
+  type AddedAcknowledgement,
+} from "../../presentation/case-companion";
 import { DEMO_CASE_ACCESS, useDemoCase } from "../demo-case/demo-case-provider";
+import {
+  AcknowledgementForm,
+  CaseCompanion,
+} from "./case-companion";
 import {
   ReportWorkspace,
   type ReportMethod,
@@ -57,7 +65,11 @@ type JourneyView =
   | "ANALYSIS_RESULT"
   | "REVIEW"
   | "SUCCESS"
+  | "ACKNOWLEDGEMENT"
+  | "CASE_COMPANION"
   | "ANALYSIS_ERROR";
+
+const SACHET_DEMO_REFERENCE = "SACHET-DEMO-REPORT-00124";
 
 async function compressScreenshot(file: File): Promise<File> {
   if (file.size <= 1_500_000 || typeof createImageBitmap === "undefined") {
@@ -201,8 +213,10 @@ export function DemoJourney() {
   >(null);
   const [isTranscriptionError, setIsTranscriptionError] = useState(false);
   const [submittedReference, setSubmittedReference] = useState<string>(
-    DEMO_CASE_ACCESS.acknowledgementNumber,
+    SACHET_DEMO_REFERENCE,
   );
+  const [officialAcknowledgement, setOfficialAcknowledgement] =
+    useState<AddedAcknowledgement | null>(null);
   const viewRef = useRef<JourneyView>("ENTRY");
   const journeyHistoryRef = useRef<JourneyView[]>([]);
   const analysisRunRef = useRef(0);
@@ -268,7 +282,8 @@ export function DemoJourney() {
     setSelectedReportedAmount(null);
     setIsTranscriptionError(false);
     setIsDemoIncident(false);
-    setSubmittedReference(DEMO_CASE_ACCESS.acknowledgementNumber);
+    setSubmittedReference(SACHET_DEMO_REFERENCE);
+    setOfficialAcknowledgement(null);
     setReportMethod("TYPE");
   }
 
@@ -695,7 +710,7 @@ export function DemoJourney() {
         throw new Error("Confirm the synthetic declaration before submitting.");
       }
       if (draft.classification.reportFamily !== "FINANCIAL_FRAUD") {
-        setSubmittedReference(`NCRP-DEMO-${Date.now().toString().slice(-8)}`);
+        setSubmittedReference(`SACHET-DEMO-${Date.now().toString().slice(-8)}`);
         setFormError(null);
         navigateTo("SUCCESS");
         return;
@@ -712,7 +727,7 @@ export function DemoJourney() {
         selectedReportedAmount,
       });
       hydrateComplaintCase(built.caseData, built.now);
-      setSubmittedReference(built.caseData.complaint.acknowledgementId);
+      setSubmittedReference(SACHET_DEMO_REFERENCE);
       setFormError(null);
       navigateTo("SUCCESS");
     } catch (error) {
@@ -838,6 +853,32 @@ export function DemoJourney() {
         onSubmit={submitComplaint}
       />
     );
+  } else if (view === "ACKNOWLEDGEMENT") {
+    content = (
+      <AcknowledgementForm
+        onContinue={(acknowledgement) => {
+          setOfficialAcknowledgement(acknowledgement);
+          navigateTo("CASE_COMPANION");
+        }}
+        onUseDemo={() => {
+          setOfficialAcknowledgement({
+            number: DEMO_OFFICIAL_ACKNOWLEDGEMENT,
+            receiptName: null,
+            source: "SYNTHETIC_DEMO",
+            synthetic: true,
+          });
+          navigateTo("CASE_COMPANION");
+        }}
+      />
+    );
+  } else if (view === "CASE_COMPANION" && draft && officialAcknowledgement) {
+    content = (
+      <CaseCompanion
+        acknowledgement={officialAcknowledgement}
+        draft={draft}
+        reporterName={activeProfile.displayName}
+      />
+    );
   } else {
     content = (
       <section
@@ -854,12 +895,58 @@ export function DemoJourney() {
               ? "रिपोर्ट सफलतापूर्वक तैयार हुई"
               : "Report prepared successfully"}
           </h1>
+          <p className="companion-eyebrow">
+            {locale === "hi" ? "सचेत डेमो संदर्भ" : "Sachet demo reference"}
+          </p>
           <p className="journey-identifier">{submittedReference}</p>
           <p>
             {locale === "hi"
               ? "यह डेमो शिकायत किसी सरकारी सेवा को नहीं भेजी गई।"
               : "This demo complaint was not sent to a government service."}
           </p>
+          <div className="success-companion-prompt">
+            <h2>
+              {locale === "hi"
+                ? "क्या आपने NCRP पर पहले ही शिकायत दर्ज कर दी है?"
+                : "Already submitted on NCRP?"}
+            </h2>
+            <p>
+              {locale === "hi"
+                ? "आगे क्या हो सकता है, यह समझने के लिए अपनी आधिकारिक पावती जोड़ें।"
+                : "Add your official acknowledgement to understand what may happen next."}
+            </p>
+            <div className="entry-actions">
+              <button
+                className="primary-button"
+                type="button"
+                onClick={() => navigateTo("ACKNOWLEDGEMENT")}
+              >
+                {locale === "hi" ? "पावती जोड़ें" : "Add acknowledgement"}
+              </button>
+              <button
+                className="secondary-button"
+                type="button"
+                onClick={() => {
+                  setOfficialAcknowledgement({
+                    number: DEMO_OFFICIAL_ACKNOWLEDGEMENT,
+                    receiptName: null,
+                    source: "SYNTHETIC_DEMO",
+                    synthetic: true,
+                  });
+                  navigateTo("CASE_COMPANION");
+                }}
+              >
+                {locale === "hi"
+                  ? "डेमो पावती का उपयोग करें"
+                  : "Use demo acknowledgement"}
+              </button>
+            </div>
+            <p className="demo-data-note">
+              {locale === "hi"
+                ? "डेमो पावती पूरी तरह सिंथेटिक है और वास्तविक NCRP संख्या नहीं है।"
+                : "The demo acknowledgement is fully synthetic and is not a real NCRP number."}
+            </p>
+          </div>
           <div className="entry-actions">
             <button
               className="primary-button"

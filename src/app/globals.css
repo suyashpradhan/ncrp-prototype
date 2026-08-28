@@ -1816,11 +1816,324 @@ dd {
 
 .journey-identifier {
   width: fit-content;
+  max-width: 100%;
   padding: 8px 10px;
   background: #f2f1ee;
   border-radius: 8px;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.success-companion-prompt {
+  margin: 30px 0;
+  padding: 24px 0;
+  border-block: 1px solid var(--border);
+}
+
+.success-companion-prompt > p {
+  color: var(--secondary);
+}
+
+.demo-data-note,
+.field-help,
+.companion-file-name {
+  color: var(--secondary);
+  font-size: 14px;
+}
+
+.success-companion-prompt .demo-data-note {
+  margin: 12px 0 0;
+}
+
+.companion-eyebrow {
+  margin-bottom: 7px;
+  color: var(--secondary);
+  font-size: 13px;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+html[data-ui-locale="hi"] .companion-eyebrow {
+  letter-spacing: 0;
+}
+
+.companion-intro,
+.companion-header > p:last-child,
+.companion-section-note {
+  color: var(--secondary);
+}
+
+.acknowledgement-form .companion-intro {
+  margin-bottom: 28px;
+}
+
+.companion-field {
+  margin-bottom: 24px;
+}
+
+.companion-field label,
+.status-explainer > label {
+  margin-bottom: 7px;
+  display: block;
+  font-weight: 700;
+}
+
+.companion-field input[type="text"],
+.companion-field input[type="file"],
+.status-explainer textarea,
+.status-explainer input[type="file"] {
+  width: 100%;
+}
+
+.companion-field input[type="file"],
+.status-explainer input[type="file"] {
+  min-height: 52px;
+  padding: 8px;
+}
+
+.companion-file-name,
+.field-help {
+  margin: 8px 0 0;
+}
+
+.companion-error {
+  color: var(--urgent);
+  font-weight: 650;
+}
+
+.acknowledgement-form > .entry-actions {
+  margin-top: 30px;
+}
+
+.acknowledgement-form > .demo-data-note {
+  margin: 14px 0 0;
+}
+
+.case-companion-inner {
+  padding: 36px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+
+.companion-header {
+  padding-bottom: 30px;
+}
+
+.companion-header h1 {
+  max-width: 660px;
+}
+
+.companion-section {
+  padding-block: 30px;
+  border-top: 1px solid var(--border);
+}
+
+.companion-section > :last-child {
+  margin-bottom: 0;
+}
+
+.companion-summary-list {
+  margin: 0;
+}
+
+.companion-summary-list > div {
+  padding-block: 9px;
+  display: grid;
+  grid-template-columns: minmax(130px, 0.7fr) minmax(0, 1.3fr);
+  gap: 18px;
+}
+
+.companion-summary-list dt {
+  color: var(--secondary);
+}
+
+.companion-summary-list dd {
+  min-width: 0;
+  margin: 0;
+  font-weight: 680;
+  overflow-wrap: anywhere;
+}
+
+.companion-summary-list .companion-summary-primary {
+  margin-bottom: 10px;
+  padding: 16px;
+  display: block;
+  background: #f6f5f2;
+  border-radius: 10px;
+}
+
+.companion-summary-primary dt {
+  margin-bottom: 4px;
+}
+
+.companion-summary-primary dd {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.synthetic-status-label {
+  width: fit-content;
+  margin: 14px 0 0;
+  padding: 5px 9px;
+  color: var(--secondary);
+  background: #f2f1ee;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.known-status h2 {
+  color: var(--success);
+}
+
+.companion-source {
+  margin-top: 18px;
+  color: var(--secondary);
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.possible-stages-list {
+  margin: 24px 0 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: possible-stage;
+}
+
+.possible-stages-list li {
+  padding: 0 0 25px 44px;
+  position: relative;
+  counter-increment: possible-stage;
+}
+
+.possible-stages-list li:not(:last-child)::after {
+  content: "";
+  width: 1px;
+  position: absolute;
+  top: 31px;
+  bottom: 6px;
+  left: 15px;
+  background: var(--border);
+}
+
+.possible-stages-list li::before {
+  content: counter(possible-stage);
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  position: absolute;
+  top: 0;
+  left: 0;
+  color: var(--secondary);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 50%;
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.possible-stages-list h3,
+.possible-stages-list p {
+  margin-bottom: 5px;
+}
+
+.possible-stages-list small {
+  color: var(--secondary);
+}
+
+.citizen-actions-list {
+  margin: 20px 0 24px;
+  padding-left: 24px;
+}
+
+.citizen-actions-list li {
+  margin-bottom: 10px;
+  padding-left: 4px;
+}
+
+.companion-helpline {
+  width: fit-content;
+  min-height: 48px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--urgent);
+  background: var(--urgent-bg);
+  border-radius: 10px;
+  text-decoration: none;
+}
+
+.companion-helpline:hover strong {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.restrained-process-note h3 {
+  margin-top: 22px;
+}
+
+.restrained-process-note p {
+  color: var(--secondary);
+}
+
+.status-explainer textarea {
+  margin-bottom: 20px;
+}
+
+.status-upload-label {
+  margin-top: 4px;
+}
+
+.status-explainer > .primary-button {
+  margin-top: 22px;
+}
+
+.status-explanation {
+  margin-top: 26px;
+  padding: 22px;
+  background: #f6f5f2;
+  border-radius: 10px;
+}
+
+.status-explanation .synthetic-status-label {
+  margin-top: 0;
+}
+
+.status-explanation blockquote {
+  margin: 14px 0 24px;
+  padding-left: 14px;
+  border-left: 3px solid var(--border-strong);
+  overflow-wrap: anywhere;
+}
+
+.status-explanation h3 {
+  margin-top: 22px;
+}
+
+.status-explanation ul {
+  margin-bottom: 0;
+  padding-left: 22px;
+}
+
+.companion-disclosure {
+  margin-top: 30px;
+  padding: 18px;
+  color: var(--secondary);
+  background: #f6f5f2;
+  border-radius: 10px;
+  font-size: 14px;
+}
+
+.companion-disclosure strong {
+  color: var(--text);
+}
+
+.companion-disclosure p {
+  margin: 5px 0 0;
 }
 
 .secondary-page-intro {
@@ -2000,6 +2313,34 @@ dd {
   .journey-stage .reading-shell,
   .secondary-page .reading-shell {
     padding: 20px;
+  }
+
+  .case-companion-inner {
+    padding: 22px 20px;
+  }
+
+  .companion-header {
+    padding-bottom: 22px;
+  }
+
+  .companion-section {
+    padding-block: 24px;
+  }
+
+  .companion-summary-list > div {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+
+  .companion-helpline {
+    width: 100%;
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 1px;
+  }
+
+  .status-explanation {
+    padding: 18px;
   }
 
   .report-input-pane > h1,
