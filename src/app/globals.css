@@ -28,7 +28,13 @@ body {
   margin: 0;
   color: var(--text);
   background: var(--page);
-  font-family: var(--font-manrope), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family:
+    var(--font-manrope),
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
   font-size: 16px;
   font-weight: 450;
   line-height: 1.6;
@@ -36,7 +42,8 @@ body {
 }
 
 html[data-ui-locale="hi"] body {
-  font-family: var(--font-devanagari), var(--font-manrope), system-ui, sans-serif;
+  font-family:
+    var(--font-devanagari), var(--font-manrope), system-ui, sans-serif;
 }
 
 button,
@@ -198,7 +205,12 @@ h3 {
 .language-switch {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 4px;
+}
+
+.header-about-link {
+  margin-right: 22px;
+  text-decoration: underline;
 }
 
 .header-about-link,
@@ -1017,12 +1029,20 @@ textarea {
   border-radius: 5px;
 }
 
-.report-skeleton span:nth-child(2) { width: 72%; }
-.report-skeleton span:nth-child(3) { width: 88%; }
-.report-skeleton span:nth-child(4) { width: 58%; }
+.report-skeleton span:nth-child(2) {
+  width: 72%;
+}
+.report-skeleton span:nth-child(3) {
+  width: 88%;
+}
+.report-skeleton span:nth-child(4) {
+  width: 58%;
+}
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .report-completion {
