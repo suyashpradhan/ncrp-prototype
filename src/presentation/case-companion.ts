@@ -49,7 +49,7 @@ export function explainSuppliedStatus(
   return {
     displayedStatus,
     plainLanguageMeaning:
-      "This is the latest status wording you supplied from NCRP. Sachet is showing only that supplied information in a simpler format.",
+      "This is the latest status wording you supplied from NCRP. सचेत is showing only that supplied information in a simpler format.",
     citizenCanDoNow: [
       "Follow any explicit instruction shown in the supplied status.",
       "Keep the original status or screenshot and its date safely.",

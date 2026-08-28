@@ -1064,7 +1064,7 @@ textarea {
 }
 
 .report-readiness {
-  margin: 0 0 24px;
+  margin: 20px 0 24px;
   padding: 18px;
   background: var(--success-bg);
   border: 1px solid #d7e9de;

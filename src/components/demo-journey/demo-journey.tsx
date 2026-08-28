@@ -48,10 +48,7 @@ import {
   type AddedAcknowledgement,
 } from "../../presentation/case-companion";
 import { DEMO_CASE_ACCESS, useDemoCase } from "../demo-case/demo-case-provider";
-import {
-  AcknowledgementForm,
-  CaseCompanion,
-} from "./case-companion";
+import { AcknowledgementForm, CaseCompanion } from "./case-companion";
 import {
   ReportWorkspace,
   type ReportMethod,
@@ -69,7 +66,7 @@ type JourneyView =
   | "CASE_COMPANION"
   | "ANALYSIS_ERROR";
 
-const SACHET_DEMO_REFERENCE = "SACHET-DEMO-REPORT-00124";
+const SACHET_DEMO_REFERENCE = "सचेत-DEMO-REPORT-00124";
 const DEMO_SESSION_KEY = "sachet-deterministic-demo-v1";
 const DEMO_RESTORABLE_VIEWS = new Set<JourneyView>([
   "ANALYSIS_RESULT",
@@ -191,14 +188,21 @@ function SachetPreview() {
             ? "“आज सुबह मुझे एसबीआई केवाईसी का संदेश मिला। लिंक खोलने के बाद ₹40,000 डेबिट हो गए।”"
             : "“I received an SBI KYC message this morning. After following the link, ₹40,000 was debited.”"}
         </blockquote>
-        <div className="sachet-preview-evidence" aria-label={hi ? "जोड़े गए सबूत" : "Evidence added"}>
+        <div
+          className="sachet-preview-evidence"
+          aria-label={hi ? "जोड़े गए सबूत" : "Evidence added"}
+        >
           <div>
-            <span className="sachet-preview-file-icon" aria-hidden="true">▧</span>
+            <span className="sachet-preview-file-icon" aria-hidden="true">
+              ▧
+            </span>
             <strong>{hi ? "संदेश का स्क्रीनशॉट" : "Message screenshot"}</strong>
             <small>{hi ? "जोड़ा गया" : "Added"}</small>
           </div>
           <div>
-            <span className="sachet-preview-file-icon" aria-hidden="true">▧</span>
+            <span className="sachet-preview-file-icon" aria-hidden="true">
+              ▧
+            </span>
             <strong>{hi ? "बैंक लेन-देन" : "Bank transaction"}</strong>
             <small>{hi ? "जोड़ा गया" : "Added"}</small>
           </div>
@@ -225,7 +229,11 @@ function SachetPreview() {
           </div>
           <div>
             <dt>{hi ? "समय" : "When"}</dt>
-            <dd>{hi ? "22 अगस्त 2026 · लगभग सुबह 7:00 बजे" : "22 Aug 2026 · Around 7:00 AM"}</dd>
+            <dd>
+              {hi
+                ? "22 अगस्त 2026 · लगभग सुबह 7:00 बजे"
+                : "22 Aug 2026 · Around 7:00 AM"}
+            </dd>
           </div>
           <div>
             <dt>{hi ? "लेन-देन संदर्भ" : "Transaction reference"}</dt>
@@ -462,9 +470,7 @@ export function DemoJourney() {
   }
 
   function replaceView(nextView: JourneyView) {
-    while (
-      journeyHistoryRef.current.at(-1) === nextView
-    ) {
+    while (journeyHistoryRef.current.at(-1) === nextView) {
       journeyHistoryRef.current.pop();
     }
     setCurrentView(nextView);
@@ -479,9 +485,8 @@ export function DemoJourney() {
   }
 
   function returnToReportDetails() {
-    const reportIndex = journeyHistoryRef.current.lastIndexOf(
-      "ANALYSIS_RESULT",
-    );
+    const reportIndex =
+      journeyHistoryRef.current.lastIndexOf("ANALYSIS_RESULT");
     if (reportIndex >= 0) {
       journeyHistoryRef.current = journeyHistoryRef.current.slice(
         0,
@@ -1054,7 +1059,7 @@ export function DemoJourney() {
               : "Report prepared successfully"}
           </h1>
           <p className="companion-eyebrow">
-            {locale === "hi" ? "सचेत डेमो संदर्भ" : "Sachet demo reference"}
+            {locale === "hi" ? "सचेत डेमो संदर्भ" : "सचेत demo reference"}
           </p>
           <p className="journey-identifier">{submittedReference}</p>
           <p>
