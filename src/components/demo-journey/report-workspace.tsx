@@ -1766,6 +1766,9 @@ function ReportDetailsPane({
     props.amountResolution?.hasConflict &&
     !props.amountResolution.selectedAmount,
   );
+  const amountConflictResolution = amountConflictMissing
+    ? props.amountResolution
+    : null;
   const requiredMissing =
     contractMissing.length + (amountConflictMissing ? 1 : 0);
   const requiredPrepared = Math.max(
@@ -2041,7 +2044,7 @@ function ReportDetailsPane({
             ) : null}
           </section>
 
-          {amountConflictMissing ? (
+          {amountConflictResolution ? (
             <section
               className="amount-conflict"
               data-amount-conflict
@@ -2059,7 +2062,7 @@ function ReportDetailsPane({
                   </dt>
                   <dd>
                     {formatCurrency(
-                      props.amountResolution.statementAmount ?? 0,
+                      amountConflictResolution.statementAmount ?? 0,
                     )}
                   </dd>
                 </div>
@@ -2069,7 +2072,7 @@ function ReportDetailsPane({
                   </dt>
                   <dd>
                     {formatCurrency(
-                      props.amountResolution.transactionAmount ?? 0,
+                      amountConflictResolution.transactionAmount ?? 0,
                     )}
                   </dd>
                 </div>
@@ -2081,8 +2084,8 @@ function ReportDetailsPane({
               </p>
               <div className="inline-field-actions">
                 {[
-                  props.amountResolution.statementAmount,
-                  props.amountResolution.transactionAmount,
+                  amountConflictResolution.statementAmount,
+                  amountConflictResolution.transactionAmount,
                 ]
                   .filter((amount): amount is number => amount !== null)
                   .map((amount) => (
@@ -2091,7 +2094,7 @@ function ReportDetailsPane({
                       type="button"
                       key={amount}
                       aria-pressed={
-                        props.amountResolution?.selectedAmount === amount
+                        amountConflictResolution.selectedAmount === amount
                       }
                       onClick={() => props.onReportedAmountSelect(amount)}
                     >
