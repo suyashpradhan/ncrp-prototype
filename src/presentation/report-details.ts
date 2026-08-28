@@ -3,6 +3,7 @@ import { deriveMissingQuestions } from "../incident/missing-information";
 import type { IncidentDraft } from "../incident/schema";
 import type { ReporterProfile } from "../experience/profile";
 import { SYNTHETIC_NCRP_PROFILE } from "../experience/profile";
+import { sanitizeSensitiveText } from "../incident/sensitive-text";
 import { textForLocale, type UiLocale } from "../i18n/i18n-provider";
 import { formatCurrency } from "./format";
 
@@ -98,7 +99,9 @@ function formatDate(value: string | null, locale: UiLocale): string {
 
 function display(value: string | null | undefined, locale: UiLocale): string {
   if (value === CITIZEN_DOES_NOT_HAVE) return textForLocale(locale, "field.notAvailable");
-  return value?.trim() || textForLocale(locale, "field.notProvided");
+  return value?.trim()
+    ? sanitizeSensitiveText(value.trim()).text
+    : textForLocale(locale, "field.notProvided");
 }
 
 function field(

@@ -6,6 +6,7 @@ import {
   deriveMissingQuestions,
   type MissingQuestion,
 } from "../../incident/missing-information";
+import { containsSensitiveDetail } from "../../incident/sensitive-text";
 import type {
   IncidentDraft,
   ReportFamily,
@@ -36,6 +37,7 @@ import { formatCurrency } from "../../presentation/format";
 import { deriveEvidenceContributions } from "../../presentation/evidence-contributions";
 import { deriveIncidentTimeline } from "../../presentation/incident-timeline";
 import { ComplaintPacket } from "./complaint-packet";
+import { ImmediateHandoff } from "./immediate-handoff";
 import { IncidentTimeline } from "./incident-timeline";
 import { JourneyProgress } from "./journey-progress";
 
@@ -1948,6 +1950,17 @@ function ReportDetailsPane({
         isDemoIncident: props.isDemoIncident,
       })
     : [];
+  const sensitiveDetailDetected = Boolean(
+    props.draft &&
+      [
+        props.narrative,
+        props.transcription?.originalTranscript,
+        props.transcription?.englishTranscript,
+        props.draft.incident.narrative,
+        props.draft.citizenSummary.shortSummary,
+        ...props.draft.evidence.flatMap((item) => item.extractedFacts),
+      ].some((value) => containsSensitiveDetail(value)),
+  );
 
   useEffect(() => {
     if (!pendingMissingFocus) return;
@@ -2104,6 +2117,21 @@ function ReportDetailsPane({
                 isDemoIncident={props.isDemoIncident}
               />
             </section>
+          ) : null}
+
+          {sensitiveDetailDetected ? (
+            <aside className="sensitive-detail-notice" role="status">
+              <strong>
+                {locale === "hi"
+                  ? "संवेदनशील जानकारी हटा दी गई"
+                  : "Sensitive detail removed"}
+              </strong>
+              <p>
+                {locale === "hi"
+                  ? "OTP, PIN, CVV और पासवर्ड आपकी तैयार रिपोर्ट में शामिल नहीं किए जाते।"
+                  : "OTPs, PINs, CVVs and passwords are not included in your prepared report."}
+              </p>
+            </aside>
           ) : null}
 
           <section className="report-readiness" aria-live="polite">
@@ -2300,6 +2328,11 @@ function ReportDetailsPane({
               </section>
             ))}
           </div>
+
+          <ImmediateHandoff
+            draft={props.draft}
+            amountResolution={props.amountResolution}
+          />
 
           {requiredMissing > 0 ? (
             <div className="missing-review-message">

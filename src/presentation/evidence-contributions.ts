@@ -1,4 +1,5 @@
 import type { IncidentDraft } from "../incident/schema";
+import { sanitizeSensitiveText } from "../incident/sensitive-text";
 import type { UiLocale } from "../i18n/i18n-provider";
 import { formatCurrency } from "./format";
 
@@ -51,7 +52,9 @@ function contribution(
   displayValue: string | null | undefined,
 ): EvidenceFact | null {
   const value = displayValue?.trim();
-  return value ? { fieldKey, label, displayValue: value } : null;
+  return value
+    ? { fieldKey, label, displayValue: sanitizeSensitiveText(value).text }
+    : null;
 }
 
 function uniqueFacts(facts: Array<EvidenceFact | null>) {

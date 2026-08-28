@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { ReporterProfile } from "../experience/profile";
+import { sanitizeSensitiveText } from "./sensitive-text";
 import {
   ReportFamilySchema,
   type IncidentDraft,
@@ -265,9 +266,13 @@ function valueField(
       sources: ["USER_CONFIRMED"],
     };
   }
-  const isMissing = value === null || value === undefined || value === "";
+  const safeValue = typeof value === "string"
+    ? sanitizeSensitiveText(value).text
+    : value;
+  const isMissing =
+    safeValue === null || safeValue === undefined || safeValue === "";
   return {
-    value: isMissing ? null : value,
+    value: isMissing ? null : (safeValue ?? null),
     status: isMissing
       ? required ? "NEEDS_INPUT" : "NOT_PROVIDED_OPTIONAL"
       : "READY",
@@ -320,13 +325,13 @@ export function buildNcrpCompatibleComplaint({
         : item.type === "VOICE_STATEMENT"
           ? "CITIZEN_STATEMENT" as const
           : "OTHER_SUPPORTING_EVIDENCE" as const,
-    displayName: screenshotNames[index] ?? (
+    displayName: sanitizeSensitiveText(screenshotNames[index] ?? (
       item.type === "CHAT_SCREENSHOT"
         ? "Synthetic KYC message screenshot"
         : item.type === "TRANSACTION_SCREENSHOT"
           ? "Synthetic bank transaction screenshot"
           : "Supporting evidence"
-    ),
+    )).text,
     localPath: isDemoIncident
       ? index === 0 ? "/demo/evidence/kyc-message-demo.png" : "/demo/evidence/bank-transaction-demo.png"
       : null,
@@ -405,7 +410,7 @@ export function buildNcrpCompatibleComplaint({
         attachments: evidenceAttachments,
         extractedFacts: draft.evidence.flatMap((item, index) => item.extractedFacts.map((fact) => ({
           label: item.type === "CHAT_SCREENSHOT" ? "Message evidence fact" : "Transaction evidence fact",
-          value: fact,
+          value: sanitizeSensitiveText(fact).text,
           sourceAttachmentId: `evidence-${index + 1}`,
         }))),
       },

@@ -1323,6 +1323,124 @@ textarea {
   font-size: 13px;
 }
 
+.sensitive-detail-notice {
+  margin: 0 0 22px;
+  padding: 14px 16px;
+  background: #f7f6f3;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.sensitive-detail-notice strong {
+  display: block;
+  margin-bottom: 3px;
+  font-size: 14px;
+}
+
+.sensitive-detail-notice p {
+  margin: 0;
+  color: var(--secondary);
+  font-size: 13px;
+}
+
+.immediate-handoff {
+  margin-top: 32px;
+  display: grid;
+  gap: 30px;
+}
+
+.next-actions,
+.call-brief {
+  padding-top: 26px;
+  border-top: 1px solid var(--border);
+}
+
+.next-actions h2,
+.call-brief h2 {
+  margin-bottom: 16px;
+  font-size: 22px;
+}
+
+.next-actions ol {
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 18px;
+  list-style: none;
+}
+
+.next-actions li {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 12px;
+}
+
+.next-actions li > span {
+  color: var(--secondary);
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.next-actions strong {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 15px;
+}
+
+.next-actions p,
+.call-brief-intro {
+  margin: 0;
+  color: var(--secondary);
+  font-size: 14px;
+}
+
+.call-brief {
+  padding: 22px;
+  background: #f7f6f3;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.call-brief-eyebrow {
+  margin-bottom: 5px;
+  color: var(--urgent);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.call-brief blockquote {
+  margin: 18px 0;
+  padding: 16px;
+  white-space: pre-line;
+  background: var(--surface);
+  border-left: 3px solid var(--border-strong);
+  border-radius: 0 8px 8px 0;
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.call-brief-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.call-1930-button {
+  min-height: 48px;
+  background: var(--urgent);
+  border-color: var(--urgent);
+}
+
+.copy-feedback {
+  min-height: 20px;
+  margin: 8px 0 0;
+  color: var(--success);
+  font-size: 13px;
+  font-weight: 700;
+}
+
 .incident-description-block p {
   line-height: 1.7;
 }
@@ -1957,6 +2075,14 @@ dd {
   .evidence-contribution dl > div {
     grid-template-columns: 1fr;
     gap: 2px;
+  }
+
+  .call-brief {
+    padding: 18px;
+  }
+
+  .call-brief-actions > * {
+    width: 100%;
   }
 }
 

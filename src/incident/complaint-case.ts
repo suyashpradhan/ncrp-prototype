@@ -2,6 +2,7 @@ import type { Case, CaseOrigin, FraudType } from "../domain/case";
 import { assertCaseReconciles } from "../domain/reconciliation";
 import { DEMO_NOW, syntheticCase } from "../data/synthetic-case";
 import type { IncidentDraft } from "./schema";
+import { sanitizeSensitiveText } from "./sensitive-text";
 
 const PORTION_RATIOS = [0.365, 0.21, 0.125] as const;
 const GENERIC_INCIDENT_LABELS = new Set([
@@ -115,7 +116,9 @@ export function rebaseSyntheticCaseTimeline(
 }
 
 function deriveCitizenIncidentLabel(draft: IncidentDraft): string {
-  const citizenLabel = draft.citizenSummary.incidentLabel.trim();
+  const citizenLabel = sanitizeSensitiveText(
+    draft.citizenSummary.incidentLabel.trim(),
+  ).text;
   if (citizenLabel && !GENERIC_INCIDENT_LABELS.has(citizenLabel.toLowerCase())) {
     return citizenLabel;
   }
@@ -173,7 +176,9 @@ export function buildSyntheticCaseFromComplaint({
     fraudType: deriveFraudType(incidentDraft),
     reportedIncident: {
       citizenLabel: deriveCitizenIncidentLabel(incidentDraft),
-      description: incidentDraft.incident.narrative,
+      description: incidentDraft.incident.narrative
+        ? sanitizeSensitiveText(incidentDraft.incident.narrative).text
+        : null,
       officialCategoryLabel: incidentDraft.officialMapping.categoryLabel,
       officialSubCategoryLabel: incidentDraft.officialMapping.subCategoryLabel,
       incidentDate: incidentDraft.incident.incidentDate,
