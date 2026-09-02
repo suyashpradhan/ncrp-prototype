@@ -14,8 +14,8 @@ export type MissingQuestion = {
 const QUESTIONS: Record<MissingQuestion["field"], MissingQuestion> = {
   moneyLost: {
     field: "moneyLost",
-    question: "Did you lose money in this incident?",
-    questionHi: "क्या इस घटना में आपके पैसे गए?",
+    question: "Did any money leave your account or did you make a payment?",
+    questionHi: "क्या आपके खाते से पैसे गए या आपने कोई भुगतान किया?",
     inputType: "text",
   },
   incidentDate: {
@@ -114,6 +114,12 @@ const QUESTIONS: Record<MissingQuestion["field"], MissingQuestion> = {
     questionHi: "क्या रिकवरी ईमेल या फ़ोन बदला गया था?",
     inputType: "text",
   },
+  accountCompromiseBasis: {
+    field: "accountCompromiseBasis",
+    question: "What makes you think someone else may have accessed the account?",
+    questionHi: "आपको क्यों लगता है कि किसी और ने खाते में प्रवेश किया होगा?",
+    inputType: "text",
+  },
   affectedSystem: {
     field: "affectedSystem",
     question: "Which device or system was affected?",
@@ -141,7 +147,7 @@ const FINANCIAL_QUESTION_PRIORITY: readonly MissingQuestion["field"][] = [
 function requirementMissing(draft: IncidentDraft, field: ReportRequirementKey): boolean {
   const primaryTransaction = draft.transactions[0];
   switch (field) {
-    case "moneyLost": return draft.incident.moneyLost === null;
+    case "moneyLost": return draft.incident.financialLossState === "UNKNOWN";
     case "incidentDate": return !draft.incident.incidentDate;
     case "incidentApproximateTime": return !draft.incident.approximateTime;
     case "delayInReporting": return draft.incident.delayInReporting === null;
@@ -157,6 +163,7 @@ function requirementMissing(draft: IncidentDraft, field: ReportRequirementKey): 
     case "affectedAccount": return !draft.adaptiveFacts.affectedAccount;
     case "accountAccessStatus": return !draft.adaptiveFacts.accountAccessStatus;
     case "recoveryInformationChanged": return draft.adaptiveFacts.recoveryInformationChanged === null;
+    case "accountCompromiseBasis": return !draft.adaptiveFacts.accountCompromiseBasis;
     case "affectedSystem": return !draft.adaptiveFacts.affectedSystem;
   }
 }
@@ -204,10 +211,17 @@ export function applyMissingAnswer(
     if (selected === null) return draft;
 
     if (field === "moneyLost") {
+      const financialLossState = selected ? "YES" as const : "NO" as const;
       return {
         ...draft,
         classification: { ...draft.classification, moneyLost: selected },
-        incident: { ...draft.incident, moneyLost: selected },
+        incident: {
+          ...draft.incident,
+          financialLossState,
+          moneyLost: selected,
+          reportedAmount: selected ? draft.incident.reportedAmount : null,
+        },
+        transactions: selected ? draft.transactions : [],
         missingRequiredFields: draft.missingRequiredFields.filter((item) => item !== field),
       };
     }
@@ -275,6 +289,7 @@ export function applyMissingAnswer(
     field === "platform" ||
     field === "affectedAccount" ||
     field === "accountAccessStatus" ||
+    field === "accountCompromiseBasis" ||
     field === "affectedSystem"
   ) {
     return {
@@ -306,13 +321,17 @@ export function applyMissingAnswer(
   }
 
   const firstTransaction = draft.transactions[0] ?? {
+    id: "transaction-1",
     institution: null,
+    currency: "INR",
+    paymentMethod: null,
     accountOrUpiId: null,
     transactionIdOrUtr: null,
     amount: draft.incident.reportedAmount,
-    transactionDate: draft.incident.incidentDate,
-    approximateTime: draft.incident.approximateTime,
+    transactionDate: null,
+    approximateTime: null,
     referenceNumber: null,
+    status: "MISSING" as const,
   };
 
   const parsedTransactionAmount = Number(answer);
@@ -334,7 +353,7 @@ export function applyMissingAnswer(
   return {
     ...draft,
     transactions: [
-      updatedTransaction,
+      { ...updatedTransaction, status: "KNOWN" as const },
       ...draft.transactions.slice(1),
     ],
     missingRequiredFields: draft.missingRequiredFields.filter((item) => item !== field),

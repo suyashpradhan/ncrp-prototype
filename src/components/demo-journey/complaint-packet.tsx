@@ -59,7 +59,7 @@ export function ComplaintPacket({
   isDemoIncident,
 }: ComplaintPacketProps) {
   const hi = locale === "hi";
-  const transaction = complaint.groups.transactions[0];
+  const transactions = complaint.groups.transactions;
   const timeline = deriveIncidentTimeline(draft, { locale, isDemoIncident });
   const suspectFields = [
     [hi ? "नाम" : "Name", complaint.groups.suspect.name.value],
@@ -128,6 +128,12 @@ export function ComplaintPacket({
         <section className="packet-section">
           <h2>{hi ? "घटना" : "Incident"}</h2>
           <dl>
+            {draft.classification.reportFamily === "FINANCIAL_FRAUD" ? (
+              <PacketField
+                label={hi ? "पैसे गए" : "Money lost"}
+                value={complaint.groups.incident.moneyLost.value}
+              />
+            ) : null}
             <PacketField
               label={hi ? "तारीख" : "Date"}
               value={printableDate(
@@ -141,29 +147,33 @@ export function ComplaintPacket({
           </dl>
         </section>
 
-        {transaction ? (
+        {transactions.length > 0 ? (
           <section className="packet-section">
-            <h2>{hi ? "पैसा और लेन-देन" : "Money & transaction"}</h2>
-            <dl>
-              <PacketField
-                label={hi ? "राशि" : "Amount"}
-                value={
-                  typeof transaction.amount.value === "number"
-                    ? formatCurrency(transaction.amount.value)
-                    : transaction.amount.value
-                }
-              />
-              <PacketField label={hi ? "बैंक या भुगतान संस्था" : "Bank or payment institution"} value={transaction.institution.value} />
-              <PacketField label={hi ? "लेन-देन संदर्भ" : "Transaction reference"} value={transaction.transactionIdOrUtr.value} />
-              <PacketField
-                label={hi ? "लेन-देन की तारीख" : "Transaction date"}
-                value={printableDate(
-                  transaction.transactionDate.value,
-                  locale,
-                )}
-              />
-              <PacketField label={hi ? "लेन-देन का समय" : "Transaction time"} value={transaction.approximateTime.value} />
-            </dl>
+            <h2>{hi ? "पैसा और लेन-देन" : "Money & transactions"}</h2>
+            {transactions.map((transaction, index) => (
+              <div className="packet-transaction" key={`packet-transaction-${index + 1}`}>
+                {transactions.length > 1 ? (
+                  <h3>{hi ? `लेन-देन ${index + 1}` : `Transaction ${index + 1}`}</h3>
+                ) : null}
+                <dl>
+                  <PacketField
+                    label={hi ? "राशि" : "Amount"}
+                    value={
+                      typeof transaction.amount.value === "number"
+                        ? formatCurrency(transaction.amount.value)
+                        : transaction.amount.value
+                    }
+                  />
+                  <PacketField label={hi ? "बैंक या भुगतान संस्था" : "Bank / payment institution"} value={transaction.institution.value} />
+                  <PacketField label={hi ? "लेन-देन संदर्भ" : "Transaction reference"} value={transaction.transactionIdOrUtr.value} />
+                  <PacketField
+                    label={hi ? "लेन-देन की तारीख" : "Transaction date"}
+                    value={printableDate(transaction.transactionDate.value, locale)}
+                  />
+                  <PacketField label={hi ? "लेन-देन का समय" : "Transaction time"} value={transaction.approximateTime.value} />
+                </dl>
+              </div>
+            ))}
           </section>
         ) : null}
 

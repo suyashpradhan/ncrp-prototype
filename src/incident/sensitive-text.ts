@@ -11,6 +11,9 @@ function shouldRedact(keyword: string, separator: string, candidate: string) {
   const explicitAssignment = /\b(?:is|was|equals?)\b|[:=\-]/i.test(separator);
 
   if (normalizedKeyword === "password" || normalizedKeyword === "passcode") {
+    if (/^(?:incorrect|wrong|changed|reset|forgotten|compromised|recovered|expired|blocked|stolen)$/i.test(candidate)) {
+      return false;
+    }
     return explicitAssignment;
   }
 

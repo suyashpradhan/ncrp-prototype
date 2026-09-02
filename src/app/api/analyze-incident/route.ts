@@ -39,7 +39,15 @@ Rules:
 25. classification.category and classification.subCategory are reporting-path suggestions, not legal conclusions. explanation must be short, neutral and supported.
 26. Unknown values in classification and adaptiveFacts must be null. Never invent account handles, recovery changes, affected devices or evidence.
 27. Keep officialMapping aligned with classification for the three supported report families. For OUT_OF_SCOPE_OR_UNCLEAR, officialMapping category and labels must be null.
-28. For non-financial incidents, do not create placeholder bank transactions. transactions must be empty unless actual financial activity is independently supported.`;
+28. For non-financial incidents, do not create placeholder bank transactions. transactions must be empty unless actual financial activity is independently supported.
+29. Set incident.financialLossState to YES only when money leaving the citizen's account or a payment is supported, NO when the citizen explicitly says no payment or loss occurred, and UNKNOWN when payment status is not established. Keep incident.moneyLost and classification.moneyLost aligned with this state.
+30. A financial scam, financial targeting, a prize amount, a request for bank details, or a bank name does not by itself establish financial loss. When financialLossState is NO or UNKNOWN, transactions must be empty and incident.reportedAmount must be null.
+31. Record requests for bank details, identity documents, OTPs, payment links and UPI collect requests in financialExposure. Exposure is not a transaction.
+32. Put institutions mentioned as incident context in mentionedInstitutions. Put an institution in transactions[].institution only when it belongs to an actual supported payment or debit.
+33. Preserve every independently supported payment in transactions. Give each transaction a stable sequential id, use INR when rupees are stated, and set status to KNOWN, MISSING or NEEDS_CONFIRMATION from the supplied facts.
+34. incident.reportedAmount is the total loss, not an additional transaction. If the citizen says “I lost ₹20,000; first ₹5,000, then ₹15,000”, create two transactions totalling ₹20,000 and do not double-count the stated total.
+35. Never use the current browser time, server time or report generation time for incidentDate, incident time, transactionDate or transaction time. Unknown remains null. Preserve approximate expressions without inventing exact minutes.
+36. accountCompromiseBasis records only the supported sign of possible access, such as changed recovery details, an unfamiliar security alert, changed messages/settings, or the citizen simply forgetting a password. Use null when unclear.`;
 
 type InputContent =
   | { type: "input_text"; text: string }

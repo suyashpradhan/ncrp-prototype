@@ -53,13 +53,15 @@ export function generateNcrpFields(draft: IncidentDraft): GeneratedNcrpField[] {
   const familyFields: GeneratedNcrpField[] = draft.classification.reportFamily === "FINANCIAL_FRAUD"
     ? [
         { label: "Have you lost money?", value: display(draft.incident.moneyLost) },
-        { label: "Victim bank/wallet/merchant", value: transactionValues(draft, (item) => item.institution) },
-        { label: "Account / wallet / merchant / UPI ID", value: transactionValues(draft, (item) => item.accountOrUpiId) },
-        { label: "Transaction ID / UTR", value: transactionValues(draft, (item) => item.transactionIdOrUtr) },
-        { label: "Amount", value: transactionAmounts(draft) },
-        { label: "Transaction date", value: transactionValues(draft, (item) => item.transactionDate) },
-        { label: "Approximate transaction time", value: transactionValues(draft, (item) => item.approximateTime) },
-        { label: "Reference number", value: transactionValues(draft, (item) => item.referenceNumber) },
+        ...(draft.incident.financialLossState === "YES" ? [
+          { label: "Victim bank/wallet/merchant", value: transactionValues(draft, (item) => item.institution) },
+          { label: "Account / wallet / merchant / UPI ID", value: transactionValues(draft, (item) => item.accountOrUpiId) },
+          { label: "Transaction ID / UTR", value: transactionValues(draft, (item) => item.transactionIdOrUtr) },
+          { label: "Amount", value: transactionAmounts(draft) },
+          { label: "Transaction date", value: transactionValues(draft, (item) => item.transactionDate) },
+          { label: "Approximate transaction time", value: transactionValues(draft, (item) => item.approximateTime) },
+          { label: "Reference number", value: transactionValues(draft, (item) => item.referenceNumber) },
+        ] : []),
       ]
     : draft.classification.reportFamily === "OTHER_CYBER_CRIME"
       ? [

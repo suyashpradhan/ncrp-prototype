@@ -640,7 +640,7 @@ function SourceSummary({
 }
 
 function ReportInputPane(props: ReportWorkspaceProps) {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   const processing = props.mode === "PROCESSING";
 
   return (
@@ -738,22 +738,6 @@ function ReportInputPane(props: ReportWorkspaceProps) {
             ) : null}
           </div>
           <p className="composer-safety">{t("workspace.safety")}</p>
-          <button
-            className="primary-button prepare-report-button"
-            type="button"
-            disabled={
-              processing ||
-              !props.reporterName.trim() ||
-              (!props.narrative.trim() &&
-                !props.hasAudio &&
-                props.screenshots.length === 0)
-            }
-            onClick={props.onOrganizeReport}
-          >
-            {processing
-              ? t("workspace.preparingReport")
-              : t("workspace.organise")}
-          </button>
         </div>
       ) : props.mode === "REVIEW" ? (
         <p className="review-source-intro">{t("workspace.reviewIntro")}</p>
@@ -768,12 +752,34 @@ function ReportInputPane(props: ReportWorkspaceProps) {
         demoNarrationLanguage={props.demoNarrationLanguage}
         onDemoNarrationLanguageChange={props.onDemoNarrationLanguageChange}
         onRemoveScreenshot={props.onRemoveScreenshot}
-        compact={props.mode === "REVIEW"}
+        compact={props.mode === "REVIEW" || Boolean(props.draft)}
       />
       {props.formError && props.mode !== "ERROR" ? (
         <p className="form-error" role="alert">
           {props.formError}
         </p>
+      ) : null}
+      {props.mode !== "REVIEW" && props.experienceMode !== "DEMO_CASE" ? (
+        <div className="prepare-report-sticky-action">
+          <button
+            className="primary-button prepare-report-button"
+            type="button"
+            disabled={
+              processing ||
+              !props.reporterName.trim() ||
+              (!props.narrative.trim() &&
+                !props.hasAudio &&
+                props.screenshots.length === 0)
+            }
+            onClick={props.onOrganizeReport}
+          >
+            {processing
+              ? t("workspace.preparingReport")
+              : props.draft
+                ? locale === "hi" ? "रिपोर्ट अपडेट करें" : "Update report"
+                : t("workspace.organise")}
+          </button>
+        </div>
       ) : null}
     </section>
   );
@@ -793,6 +799,7 @@ function MissingFieldEditor({
   const { locale, t } = useI18n();
   const question = field.missingQuestion;
   const [chooseAnotherYear, setChooseAnotherYear] = useState(false);
+  const [showOtherCompromiseBasis, setShowOtherCompromiseBasis] = useState(false);
   if (!question) return null;
 
   if (question.field === "incidentDateYear") {
@@ -872,7 +879,9 @@ function MissingFieldEditor({
             type="button"
             onClick={() => onSave("yes")}
           >
-            {t("field.yes")}
+            {question.field === "moneyLost"
+              ? locale === "hi" ? "हाँ, पैसे दिए या डेबिट हुए" : "Yes, money was paid or debited"
+              : t("field.yes")}
           </button>
           <button
             className="secondary-button"
@@ -881,7 +890,65 @@ function MissingFieldEditor({
           >
             {t("field.no")}
           </button>
+          {question.field === "moneyLost" ? (
+            <button
+              className="secondary-button"
+              type="button"
+              onClick={() => onSave("unknown")}
+            >
+              {locale === "hi" ? "मुझे पक्का नहीं पता" : "I'm not sure"}
+            </button>
+          ) : null}
         </div>
+      </div>
+    );
+  }
+
+  if (question.field === "accountCompromiseBasis") {
+    const options = locale === "hi"
+      ? [
+          "रिकवरी जानकारी बदल गई",
+          "अनजान लॉगिन या सुरक्षा चेतावनी",
+          "मेरी जानकारी के बिना संदेश या सेटिंग बदली",
+          "मैं केवल पासवर्ड भूल गया/गई",
+        ]
+      : [
+          "Recovery details changed",
+          "Unfamiliar login or security alert",
+          "Messages or settings changed without me",
+          "I simply forgot the password",
+        ];
+    return (
+      <div className="report-missing-editor" data-missing-field={question.field}>
+        <p className="report-field-state">
+          {locale === "hi" ? question.questionHi : question.question}
+        </p>
+        <div className="clarification-options">
+          {options.map((option) => (
+            <button className="secondary-button" type="button" key={option} onClick={() => onSave(option)}>
+              {option}
+            </button>
+          ))}
+          <button className="secondary-button" type="button" onClick={() => setShowOtherCompromiseBasis(true)}>
+            {locale === "hi" ? "कुछ और" : "Something else"}
+          </button>
+        </div>
+        {showOtherCompromiseBasis ? (
+          <div className="year-confirmation-input">
+            <label htmlFor="missing-accountCompromiseBasis">
+              {locale === "hi" ? "क्या हुआ?" : "What happened?"}
+            </label>
+            <input
+              id="missing-accountCompromiseBasis"
+              type="text"
+              value={value}
+              onChange={(event) => onChange(event.target.value)}
+            />
+            <button className="secondary-button" type="button" onClick={() => onSave()}>
+              {t("field.save")}
+            </button>
+          </div>
+        ) : null}
       </div>
     );
   }
@@ -1135,6 +1202,11 @@ function ReportGroup({
               <strong>
                 {formatCurrency(reportedAmount)}{" "}
                 {locale === "hi" ? "का नुकसान" : "lost"}
+              </strong>
+            ) : draft.classification.reportFamily === "FINANCIAL_FRAUD" &&
+              draft.incident.financialLossState === "NO" ? (
+              <strong>
+                {locale === "hi" ? "पैसे गए: नहीं" : "Money lost: No"}
               </strong>
             ) : null}
             <span>{channel?.value}</span>
@@ -1907,6 +1979,8 @@ function ReportDetailsPane({
     accountAccessStatus: locale === "hi" ? "खाते तक पहुँच" : "Account access",
     recoveryInformationChanged:
       locale === "hi" ? "रिकवरी जानकारी" : "Recovery information",
+    accountCompromiseBasis:
+      locale === "hi" ? "खाते तक पहुँच का संकेत" : "Sign of account access",
     affectedSystem: locale === "hi" ? "प्रभावित सिस्टम" : "Affected system",
   };
   const evidenceMissing = contractMissing.some(
@@ -2016,7 +2090,7 @@ function ReportDetailsPane({
       aria-labelledby="report-details-heading"
     >
       <div className="report-pane-heading">
-        <h2 id="report-details-heading">{t("workspace.reportInfo")}</h2>
+        <h2 id="report-details-heading" tabIndex={-1}>{t("workspace.reportInfo")}</h2>
         <p>{t("workspace.reportInfoSupport")}</p>
       </div>
 

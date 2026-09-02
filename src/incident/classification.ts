@@ -3,6 +3,7 @@ import type {
   IncidentClassification,
   ReportFamily,
 } from "./schema";
+import { deriveFinancialFactsFromText } from "./normalization";
 
 export type DeterministicIncidentInterpretation = {
   classification: IncidentClassification;
@@ -18,6 +19,7 @@ const EMPTY_ADAPTIVE_FACTS: AdaptiveIncidentFacts = {
   affectedSystem: null,
   filesEncrypted: null,
   ransomMessagePresent: null,
+  accountCompromiseBasis: null,
   sensitiveEvidenceRedacted: null,
 };
 
@@ -77,12 +79,15 @@ function classification(
 export function interpretIncidentText(input: string): DeterministicIncidentInterpretation {
   const text = input.trim();
   const lower = text.toLowerCase();
-  const reportedAmount = amountFromText(text);
+  const financialFacts = deriveFinancialFactsFromText(text);
+  const mentionedAmount = amountFromText(text);
+  const reportedAmount = financialFacts.reportedAmount;
   const platform = platformFromText(text);
   const cyberTerms = /online|cyber|digital|internet|account|profile|instagram|whats?app|telegram|facebook|email|message|link|website|app|laptop|computer|files?|ransom/i;
   const sensitiveTerms = /intimate images?|private images?|nude|sexual|woman|girl/i;
-  const paymentDemand = /demand(?:ing|ed)?|asking.*(?:pay|₹|rs\.?|rupees?)|blackmail/i.test(lower) && reportedAmount !== null;
-  const financialHarm = /transferred|debited|lost|paid|investment|bank|kyc|upi|payment/i.test(lower) && reportedAmount !== null;
+  const paymentDemand = /demand(?:ing|ed)?|asking.*(?:pay|₹|rs\.?|rupees?)|blackmail/i.test(lower) && mentionedAmount !== null;
+  const financialHarm = financialFacts.financialLossState === "YES";
+  const financialTargeting = /lottery|prize|won\b|bank details?|aadhaar|aadhar|otp|upi collect|payment link|kyc/i.test(lower);
 
   if (text.split(/\s+/).length < 5 || /\b(?:asking for my|someone was asking for my)\s*$/i.test(text)) {
     return {
@@ -127,8 +132,10 @@ export function interpretIncidentText(input: string): DeterministicIncidentInter
   }
 
   // Primary financial harm wins over the platform used to make contact.
-  if (financialHarm) {
-    const subCategory = /investment|trading/.test(lower)
+  if (financialHarm || financialTargeting) {
+    const subCategory = /lottery|prize|won\b/.test(lower)
+      ? "Online Lottery Scam"
+      : /investment|trading/.test(lower)
       ? "Investment / Trading Fraud"
       : /kyc|bank|debited|transferred/.test(lower)
         ? "Internet Banking Related Fraud"
@@ -138,9 +145,13 @@ export function interpretIncidentText(input: string): DeterministicIncidentInter
         category: "Financial Fraud",
         subCategory,
         cyberElementPresent: true,
-        moneyLost: true,
+        moneyLost: financialFacts.financialLossState === "UNKNOWN"
+          ? null
+          : financialFacts.financialLossState === "YES",
         platform,
-        explanation: "The primary reported harm is a financial loss through a digital interaction.",
+        explanation: financialHarm
+          ? "The primary reported harm is a financial loss through a digital interaction."
+          : "The account describes a financial scam or request for sensitive financial information.",
       }),
       adaptiveFacts: { ...EMPTY_ADAPTIVE_FACTS, platform },
       reportedAmount,
@@ -187,7 +198,7 @@ export function interpretIncidentText(input: string): DeterministicIncidentInter
     };
   }
 
-  if (/hack(?:ed|ing)|account takeover|lost access/.test(lower) && /account|profile|instagram|facebook|social/.test(lower)) {
+  if (/hack(?:ed|ing)|account takeover|lost access|cannot access|can't access/.test(lower) && /account|profile|instagram|facebook|social|gmail|email/.test(lower)) {
     const handle = text.match(/@[a-z0-9._]+/i)?.[0] ?? null;
     return {
       classification: classification("OTHER_CYBER_CRIME", {
@@ -202,8 +213,17 @@ export function interpretIncidentText(input: string): DeterministicIncidentInter
         ...EMPTY_ADAPTIVE_FACTS,
         platform,
         affectedAccount: handle,
-        accountAccessStatus: /lost access|hacked/i.test(text) ? "Lost" : null,
+        accountAccessStatus: /lost access|cannot access|can't access|hacked/i.test(text) ? "Lost" : null,
         recoveryInformationChanged: /recovery (?:email|phone|information).*(?:changed|removed)|changed.*recovery/i.test(text) ? true : null,
+        accountCompromiseBasis: /recovery (?:email|phone|information).*(?:changed|removed)|changed.*recovery/i.test(text)
+          ? "Recovery details changed"
+          : /unfamiliar (?:login|security alert)|security alert/i.test(text)
+            ? "Unfamiliar login or security alert"
+            : /messages?|settings?.*(?:changed|sent)|changed.*(?:messages?|settings?)/i.test(text)
+              ? "Messages or settings changed without me"
+              : /forgot.*password|password.*forgot/i.test(text)
+                ? "I simply forgot the password"
+                : null,
       },
       reportedAmount,
     };

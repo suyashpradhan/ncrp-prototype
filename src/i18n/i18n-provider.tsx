@@ -203,7 +203,7 @@ const EN_TEXT: Record<string, string> = {
   "field.occurredOn": "Where the conversation happened",
   "field.description": "Incident description",
   "field.amount": "Amount",
-  "field.institution": "Bank or payment app",
+  "field.institution": "Bank / payment institution",
   "field.account": "Account, wallet or UPI ID",
   "field.transactionReference": "Transaction reference",
   "field.transactionReferenceHelp": "Also called UTR on many bank receipts.",

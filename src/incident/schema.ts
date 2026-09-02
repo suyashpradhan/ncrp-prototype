@@ -8,6 +8,18 @@ export const ReportFamilySchema = z.enum([
 ]);
 export type ReportFamily = z.infer<typeof ReportFamilySchema>;
 
+export const FinancialLossStateSchema = z.enum(["YES", "NO", "UNKNOWN"]);
+export type FinancialLossState = z.infer<typeof FinancialLossStateSchema>;
+
+export const FinancialExposureSchema = z.object({
+  bankDetailsRequested: z.boolean().nullable(),
+  identityDocumentRequested: z.boolean().nullable(),
+  otpRequested: z.boolean().nullable(),
+  paymentLinkReceived: z.boolean().nullable(),
+  upiCollectRequestReceived: z.boolean().nullable(),
+}).strict();
+export type FinancialExposure = z.infer<typeof FinancialExposureSchema>;
+
 export const IncidentClassificationSchema = z.object({
   reportFamily: ReportFamilySchema,
   category: z.string().nullable(),
@@ -34,6 +46,7 @@ export const AdaptiveIncidentFactsSchema = z.object({
   affectedSystem: z.string().nullable(),
   filesEncrypted: z.boolean().nullable(),
   ransomMessagePresent: z.boolean().nullable(),
+  accountCompromiseBasis: z.string().nullable(),
   sensitiveEvidenceRedacted: z.boolean().nullable(),
 }).strict();
 export type AdaptiveIncidentFacts = z.infer<typeof AdaptiveIncidentFactsSchema>;
@@ -52,6 +65,7 @@ export const IncidentDraftSchema = z.object({
     mappingConfidence: z.enum(["HIGH", "MEDIUM", "LOW"]),
   }),
   incident: z.object({
+    financialLossState: FinancialLossStateSchema,
     moneyLost: z.boolean().nullable(),
     reportedAmount: z.number().positive().nullable(),
     incidentDate: z.string().nullable(),
@@ -62,14 +76,20 @@ export const IncidentDraftSchema = z.object({
     occurredOn: z.string().nullable(),
     narrative: z.string().nullable(),
   }),
+  financialExposure: FinancialExposureSchema,
+  mentionedInstitutions: z.array(z.string()),
   transactions: z.array(z.object({
+    id: z.string(),
     institution: z.string().nullable(),
+    currency: z.string().nullable(),
+    paymentMethod: z.string().nullable(),
     accountOrUpiId: z.string().nullable(),
     transactionIdOrUtr: z.string().nullable(),
     amount: z.number().nullable(),
     transactionDate: z.string().nullable(),
     approximateTime: z.string().nullable(),
     referenceNumber: z.string().nullable(),
+    status: z.enum(["KNOWN", "MISSING", "NEEDS_CONFIRMATION"]),
   })),
   suspectIdentifiers: z.array(z.object({
     type: z.enum([

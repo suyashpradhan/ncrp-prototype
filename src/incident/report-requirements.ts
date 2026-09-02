@@ -17,6 +17,7 @@ export type ReportRequirementKey =
   | "affectedAccount"
   | "accountAccessStatus"
   | "recoveryInformationChanged"
+  | "accountCompromiseBasis"
   | "affectedSystem";
 
 export type ReportRequirement = {
@@ -30,10 +31,13 @@ const COMMON_INCIDENT_REQUIREMENTS: readonly ReportRequirement[] = [
   { key: "occurredOn", group: "INCIDENT" },
 ];
 
-const FINANCIAL_FRAUD_REQUIREMENTS: readonly ReportRequirement[] = [
+const FINANCIAL_FRAUD_BASE_REQUIREMENTS: readonly ReportRequirement[] = [
   { key: "moneyLost", group: "INCIDENT" },
   ...COMMON_INCIDENT_REQUIREMENTS,
   { key: "delayInReporting", group: "INCIDENT" },
+];
+
+const FINANCIAL_TRANSACTION_REQUIREMENTS: readonly ReportRequirement[] = [
   { key: "institution", group: "TRANSACTIONS" },
   { key: "accountOrUpiId", group: "TRANSACTIONS" },
   { key: "transactionAmount", group: "TRANSACTIONS" },
@@ -48,6 +52,7 @@ const SOCIAL_ACCOUNT_REQUIREMENTS: readonly ReportRequirement[] = [
   { key: "affectedAccount", group: "ACCOUNT_SYSTEM" },
   { key: "accountAccessStatus", group: "ACCOUNT_SYSTEM" },
   { key: "recoveryInformationChanged", group: "ACCOUNT_SYSTEM" },
+  { key: "accountCompromiseBasis", group: "ACCOUNT_SYSTEM" },
 ];
 
 const RANSOMWARE_REQUIREMENTS: readonly ReportRequirement[] = [
@@ -68,7 +73,7 @@ export const requirementsByReportFamily: Record<
   Exclude<ReportFamily, "OUT_OF_SCOPE_OR_UNCLEAR">,
   readonly ReportRequirement[]
 > = {
-  FINANCIAL_FRAUD: FINANCIAL_FRAUD_REQUIREMENTS,
+  FINANCIAL_FRAUD: FINANCIAL_FRAUD_BASE_REQUIREMENTS,
   OTHER_CYBER_CRIME: SOCIAL_ACCOUNT_REQUIREMENTS,
   WOMEN_CHILDREN_RELATED_CRIME: SENSITIVE_REQUIREMENTS,
 };
@@ -83,16 +88,20 @@ export function requirementsForIncident(draft: IncidentDraft): readonly ReportRe
     return GENERIC_OTHER_CYBER_REQUIREMENTS;
   }
   const requirements = requirementsByReportFamily[reportFamily];
+  const applicableRequirements = reportFamily === "FINANCIAL_FRAUD" && draft.incident.financialLossState === "YES"
+    ? [...requirements, ...FINANCIAL_TRANSACTION_REQUIREMENTS]
+    : requirements;
   if (reportFamily === "FINANCIAL_FRAUD" && draft.incident.delayInReporting === true) {
-    return requirements.flatMap((requirement) =>
+    return applicableRequirements.flatMap((requirement) =>
       requirement.key === "delayInReporting"
         ? [requirement, { key: "delayReason", group: "INCIDENT" as const }]
         : [requirement],
     );
   }
-  return requirements;
+  return applicableRequirements;
 }
 
 export function reportRequiresFinancialFields(draft: IncidentDraft): boolean {
-  return draft.classification.reportFamily === "FINANCIAL_FRAUD";
+  return draft.classification.reportFamily === "FINANCIAL_FRAUD" &&
+    draft.incident.financialLossState === "YES";
 }

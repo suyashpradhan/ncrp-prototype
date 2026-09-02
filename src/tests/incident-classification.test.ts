@@ -8,11 +8,13 @@ import { requirementsForIncident } from "../incident/report-requirements";
 import type { IncidentDraft } from "../incident/schema";
 import { generateNcrpFields } from "../incident/ncrp-mapping";
 import { deriveReportGroups } from "../presentation/report-details";
+import { deriveFinancialFactsFromText, normalizeIncidentDraft } from "../incident/normalization";
 
 function draftFor(input: string): IncidentDraft {
   const base = createUnknownIncidentDraft();
   const interpreted = interpretIncidentText(input);
-  return {
+  const financialFacts = deriveFinancialFactsFromText(input);
+  return normalizeIncidentDraft({
     ...base,
     classification: interpreted.classification,
     adaptiveFacts: interpreted.adaptiveFacts,
@@ -30,23 +32,28 @@ function draftFor(input: string): IncidentDraft {
     },
     incident: {
       ...base.incident,
+      financialLossState: financialFacts.financialLossState,
       moneyLost: interpreted.classification.moneyLost,
       reportedAmount: interpreted.reportedAmount,
       occurredOn: interpreted.adaptiveFacts.platform,
       narrative: input,
     },
-    transactions: interpreted.classification.reportFamily === "FINANCIAL_FRAUD"
-      ? [{
+    financialExposure: financialFacts.financialExposure,
+    mentionedInstitutions: financialFacts.mentionedInstitutions,
+    transactions: financialFacts.transactionAmounts.map((amount, index) => ({
+          id: `transaction-${index + 1}`,
           institution: /sbi/i.test(input) ? "SBI" : null,
+          currency: "INR",
+          paymentMethod: null,
           accountOrUpiId: null,
           transactionIdOrUtr: null,
-          amount: interpreted.reportedAmount,
+          amount,
           transactionDate: null,
           approximateTime: null,
           referenceNumber: null,
-        }]
-      : [],
-  };
+          status: "KNOWN",
+        })),
+  });
 }
 
 describe("adaptive incident understanding", () => {

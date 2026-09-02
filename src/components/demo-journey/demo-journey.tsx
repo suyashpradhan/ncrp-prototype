@@ -292,8 +292,10 @@ export function DemoJourney() {
   const recorderRef = useRef<MediaRecorder | null>(null);
   const recorderChunksRef = useRef<Blob[]>([]);
   const recordingStartedAtRef = useRef<number | null>(null);
+  const pendingReportFocusRef = useRef(false);
   const amountResolution =
-    draft?.classification.reportFamily === "FINANCIAL_FRAUD"
+    draft?.classification.reportFamily === "FINANCIAL_FRAUD" &&
+    draft.incident.financialLossState === "YES"
       ? resolveReportedAmount(draft, selectedReportedAmount)
       : null;
   const baseProfile = reporterProfile ?? SYNTHETIC_NCRP_PROFILE;
@@ -412,6 +414,24 @@ export function DemoJourney() {
       document.querySelector<HTMLElement>("[data-journey-focus]")?.focus();
     }
   }, [view]);
+
+  useEffect(() => {
+    if (view !== "ANALYSIS_RESULT" || !draft || !pendingReportFocusRef.current) return;
+    pendingReportFocusRef.current = false;
+    const frame = window.requestAnimationFrame(() => {
+      const heading = document.querySelector<HTMLElement>("#report-details-heading");
+      if (!heading) return;
+      heading.focus({ preventScroll: true });
+      if (window.matchMedia("(max-width: 820px)").matches) {
+        const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        heading.scrollIntoView({
+          behavior: reduceMotion ? "auto" : "smooth",
+          block: "start",
+        });
+      }
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [draft, view]);
 
   useEffect(() => {
     posthog.capture("sachet_journey_viewed", {
@@ -537,6 +557,7 @@ export function DemoJourney() {
     setRecordingSeconds(DEMO_NARRATIONS["hi-IN"].durationSeconds);
     setIsDemoIncident(true);
     setDraft(structuredClone(DEMO_INCIDENT_DRAFT));
+    pendingReportFocusRef.current = true;
     journeyHistoryRef.current = ["ENTRY"];
     setCurrentView("ANALYSIS_RESULT");
   }
@@ -793,6 +814,7 @@ export function DemoJourney() {
       if (!response.ok) throw new Error("REPORT_PREPARATION_FAILED");
       setDraft(normalizeIncidentDraft(IncidentDraftSchema.parse(result)));
       setSelectedReportedAmount(null);
+      pendingReportFocusRef.current = true;
       replaceView("ANALYSIS_RESULT");
     } catch {
       if (analysisRunRef.current !== analysisRun) return;
@@ -871,7 +893,10 @@ export function DemoJourney() {
       if (complaint.groups.declaration.accepted.status !== "CONFIRMED") {
         throw new Error("Confirm the synthetic declaration before submitting.");
       }
-      if (draft.classification.reportFamily !== "FINANCIAL_FRAUD") {
+      if (
+        draft.classification.reportFamily !== "FINANCIAL_FRAUD" ||
+        draft.incident.financialLossState !== "YES"
+      ) {
         setSubmittedReference(`SACHET-DEMO-${Date.now().toString().slice(-8)}`);
         setFormError(null);
         navigateTo("SUCCESS");
@@ -979,7 +1004,7 @@ export function DemoJourney() {
         isDemoIncident={isDemoIncident}
         experienceMode={experienceMode}
         reporterProfile={activeProfile}
-        identityDocumentProvided
+        identityDocumentProvided={isDemoIncident}
         demoNarrationLanguage={demoNarrationLanguage}
         isTranscriptionError={isTranscriptionError}
         draft={draft}

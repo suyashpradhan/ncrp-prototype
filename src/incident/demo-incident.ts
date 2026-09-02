@@ -57,6 +57,7 @@ export const DEMO_INCIDENT_DRAFT = {
     affectedSystem: null,
     filesEncrypted: null,
     ransomMessagePresent: null,
+    accountCompromiseBasis: null,
     sensitiveEvidenceRedacted: null,
   },
   citizenSummary: {
@@ -71,6 +72,7 @@ export const DEMO_INCIDENT_DRAFT = {
     mappingConfidence: "HIGH",
   },
   incident: {
+    financialLossState: "YES",
     moneyLost: true,
     reportedAmount: 40_000,
     incidentDate: "2026-08-22",
@@ -82,15 +84,27 @@ export const DEMO_INCIDENT_DRAFT = {
     narrative:
       "Asha received a message claiming that the KYC for her SBI account needed to be updated. She opened the supplied link and followed the app instructions. At about 7:05 AM on 22 August 2026, ₹40,000 was transferred from her account. She later tried to contact the sender but received no response.",
   },
+  financialExposure: {
+    bankDetailsRequested: null,
+    identityDocumentRequested: null,
+    otpRequested: null,
+    paymentLinkReceived: true,
+    upiCollectRequestReceived: null,
+  },
+  mentionedInstitutions: ["SBI"],
   transactions: [
     {
+      id: "transaction-1",
       institution: "SBI",
+      currency: "INR",
+      paymentMethod: "Bank transfer",
       accountOrUpiId: "Synthetic SBI account ending 0024",
       transactionIdOrUtr: "DEMO-UTR-40000-220826",
       amount: 40_000,
       transactionDate: "2026-08-22",
       approximateTime: "07:05",
       referenceNumber: "DEMO-TXN-220826-0705",
+      status: "KNOWN",
     },
   ],
   suspectIdentifiers: [
@@ -143,6 +157,7 @@ export function createUnknownIncidentDraft(): IncidentDraft {
       affectedSystem: null,
       filesEncrypted: null,
       ransomMessagePresent: null,
+      accountCompromiseBasis: null,
       sensitiveEvidenceRedacted: null,
     },
     citizenSummary: { incidentLabel: "Incident details not yet known", shortSummary: "" },
@@ -153,6 +168,7 @@ export function createUnknownIncidentDraft(): IncidentDraft {
       mappingConfidence: "LOW",
     },
     incident: {
+      financialLossState: "UNKNOWN",
       moneyLost: null,
       reportedAmount: null,
       incidentDate: null,
@@ -163,6 +179,14 @@ export function createUnknownIncidentDraft(): IncidentDraft {
       occurredOn: null,
       narrative: null,
     },
+    financialExposure: {
+      bankDetailsRequested: null,
+      identityDocumentRequested: null,
+      otpRequested: null,
+      paymentLinkReceived: null,
+      upiCollectRequestReceived: null,
+    },
+    mentionedInstitutions: [],
     transactions: [],
     suspectIdentifiers: [],
     evidence: [],

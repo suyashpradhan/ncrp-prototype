@@ -365,7 +365,7 @@ export const HI_TEXT: Record<string, string> = {
   "field.occurredOn": "बातचीत कहाँ हुई",
   "field.description": "घटना का विवरण",
   "field.amount": "राशि",
-  "field.institution": "बैंक या भुगतान ऐप",
+  "field.institution": "बैंक / भुगतान संस्था",
   "field.account": "खाता, वॉलेट या यूपीआई आईडी",
   "field.transactionReference": "लेन-देन संदर्भ संख्या",
   "field.transactionReferenceHelp": "इसे कई बैंक रसीदों में यूटीआर भी कहा जाता है।",

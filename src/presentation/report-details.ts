@@ -78,6 +78,7 @@ const MISSING_GROUP: Record<MissingQuestion["field"], ReportGroupId> = {
   affectedAccount: "ACCOUNT_SYSTEM",
   accountAccessStatus: "ACCOUNT_SYSTEM",
   recoveryInformationChanged: "ACCOUNT_SYSTEM",
+  accountCompromiseBasis: "ACCOUNT_SYSTEM",
   affectedSystem: "ACCOUNT_SYSTEM",
 };
 
@@ -255,9 +256,30 @@ export function deriveReportGroups(
     makeField(
       "money-lost",
       copy("field.moneyLost"),
-      draft.incident.moneyLost === null ? null : draft.incident.moneyLost ? copy("field.yes") : copy("field.no"),
+      draft.incident.financialLossState === "UNKNOWN"
+        ? null
+        : draft.incident.financialLossState === "YES" ? copy("field.yes") : copy("field.no"),
       { missingQuestion: missingByField.get("moneyLost") },
     ),
+    ...(draft.incident.financialLossState !== "YES" && draft.mentionedInstitutions.length > 0
+      ? [makeField(
+          "mentioned-institutions",
+          locale === "hi" ? "बताया गया बैंक" : "Bank mentioned",
+          draft.mentionedInstitutions.join(", "),
+          { source: copy("field.fromShared") },
+        )]
+      : []),
+    ...([
+      ["bank-details-requested", locale === "hi" ? "बैंक विवरण मांगा गया" : "Bank details requested", draft.financialExposure.bankDetailsRequested],
+      ["identity-requested", locale === "hi" ? "पहचान दस्तावेज़ मांगा गया" : "Identity document requested", draft.financialExposure.identityDocumentRequested],
+      ["otp-requested", locale === "hi" ? "OTP मांगा गया" : "OTP requested", draft.financialExposure.otpRequested],
+      ["payment-link-received", locale === "hi" ? "भुगतान लिंक मिला" : "Payment link received", draft.financialExposure.paymentLinkReceived],
+      ["upi-collect-received", locale === "hi" ? "UPI कलेक्ट अनुरोध मिला" : "UPI collect request received", draft.financialExposure.upiCollectRequestReceived],
+    ] as const)
+      .filter(([, , supported]) => supported === true)
+      .map(([id, label]) => makeField(id, label, copy("field.yes"), {
+        source: copy("field.fromShared"),
+      })),
     makeField(
       "incident-date",
       copy("field.incidentDate"),
@@ -313,18 +335,7 @@ export function deriveReportGroups(
     ? incidentFields
     : incidentFields.filter((item) => commonIncidentIds.has(item.id));
 
-  const reportTransactions = draft.transactions.length > 0
-    ? draft.transactions
-    : [{
-        institution: null,
-        accountOrUpiId: null,
-        transactionIdOrUtr: null,
-        amount: draft.incident.reportedAmount,
-        transactionDate: draft.incident.incidentDate,
-        approximateTime: draft.incident.approximateTime,
-        referenceNumber: null,
-      }];
-  const transactionSections: ReportFieldSection[] = reportTransactions.map((transaction, index) => ({
+  const transactionSections: ReportFieldSection[] = draft.transactions.map((transaction, index) => ({
         id: `transaction-${index + 1}`,
         title: copy("field.transaction", { number: index + 1 }),
         fields: [
@@ -483,6 +494,12 @@ export function deriveReportGroups(
             : draft.adaptiveFacts.recoveryInformationChanged ? copy("field.yes") : copy("field.no"),
           { missingQuestion: missingByField.get("recoveryInformationChanged") },
         ),
+        makeField(
+          "account-compromise-basis",
+          locale === "hi" ? "खाता किसी और के उपयोग में होने का संकेत" : "Sign of possible account access",
+          draft.adaptiveFacts.accountCompromiseBasis,
+          { missingQuestion: missingByField.get("accountCompromiseBasis") },
+        ),
         ]
       : [
           makeField(
@@ -563,7 +580,14 @@ export function deriveReportGroups(
     };
 
   if (draft.classification.reportFamily === "FINANCIAL_FRAUD") {
-    return [incidentGroup, transactionGroup, evidenceGroup, reporterGroup];
+    return [
+      incidentGroup,
+      ...(draft.incident.financialLossState === "YES" && draft.transactions.length > 0
+        ? [transactionGroup]
+        : []),
+      evidenceGroup,
+      reporterGroup,
+    ];
   }
   if (draft.classification.reportFamily === "OTHER_CYBER_CRIME") {
     return [incidentGroup, accountSystemGroup, evidenceGroup, reporterGroup];

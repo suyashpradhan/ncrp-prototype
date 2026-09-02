@@ -188,6 +188,7 @@ describe("AI-assisted incident reporting boundary", () => {
       },
       incident: {
         ...DEMO_INCIDENT_DRAFT.incident,
+        financialLossState: "UNKNOWN",
         moneyLost: null,
         delayInReporting: null,
       },

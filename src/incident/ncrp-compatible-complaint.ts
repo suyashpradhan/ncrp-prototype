@@ -130,7 +130,16 @@ export const NcrpCompatibleComplaintSchema = z.object({
       affectedSystem: ComplaintFieldSchema,
       filesEncrypted: ComplaintFieldSchema,
       ransomMessagePresent: ComplaintFieldSchema,
+      accountCompromiseBasis: ComplaintFieldSchema,
       sensitiveEvidenceRedacted: ComplaintFieldSchema,
+      financialExposure: z.object({
+        bankDetailsRequested: ComplaintFieldSchema,
+        identityDocumentRequested: ComplaintFieldSchema,
+        otpRequested: ComplaintFieldSchema,
+        paymentLinkReceived: ComplaintFieldSchema,
+        upiCollectRequestReceived: ComplaintFieldSchema,
+      }),
+      mentionedInstitutions: z.array(ComplaintFieldSchema),
     }),
     evidence: z.object({
       citizenStatement: ComplaintFieldSchema,
@@ -399,7 +408,18 @@ export function buildNcrpCompatibleComplaint({
         affectedSystem: valueField(draft.adaptiveFacts.affectedSystem, [structuredSource]),
         filesEncrypted: valueField(draft.adaptiveFacts.filesEncrypted, [structuredSource]),
         ransomMessagePresent: valueField(draft.adaptiveFacts.ransomMessagePresent, [structuredSource]),
+        accountCompromiseBasis: valueField(draft.adaptiveFacts.accountCompromiseBasis, [structuredSource]),
         sensitiveEvidenceRedacted: valueField(draft.adaptiveFacts.sensitiveEvidenceRedacted, [structuredSource]),
+        financialExposure: {
+          bankDetailsRequested: valueField(draft.financialExposure.bankDetailsRequested, [structuredSource]),
+          identityDocumentRequested: valueField(draft.financialExposure.identityDocumentRequested, [structuredSource]),
+          otpRequested: valueField(draft.financialExposure.otpRequested, [structuredSource]),
+          paymentLinkReceived: valueField(draft.financialExposure.paymentLinkReceived, [structuredSource]),
+          upiCollectRequestReceived: valueField(draft.financialExposure.upiCollectRequestReceived, [structuredSource]),
+        },
+        mentionedInstitutions: draft.mentionedInstitutions.map((institution) =>
+          valueField(institution, [structuredSource]),
+        ),
       },
       evidence: {
         citizenStatement: valueField(
@@ -498,6 +518,12 @@ export function complaintFieldApplies(
   complaint: NcrpCompatibleComplaint,
   definition: NcrpFieldDefinition,
 ): boolean {
+  if (
+    definition.group === "TRANSACTIONS" &&
+    complaint.groups.incident.moneyLost.value !== true
+  ) {
+    return false;
+  }
   if (definition.reportFamilies && !definition.reportFamilies.includes(complaint.reportFamily)) {
     return false;
   }
