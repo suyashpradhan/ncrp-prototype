@@ -3,7 +3,13 @@ import type { UiLocale } from "../i18n/i18n-provider";
 import { formatCurrency } from "./format";
 
 export type TimelineSourceRef = {
-  type: "STATEMENT" | "EVIDENCE" | "TRANSACTION" | "USER_CONFIRMED";
+  type:
+    | "STATEMENT"
+    | "EVIDENCE"
+    | "TRANSACTION"
+    | "USER_CONFIRMED"
+    | "SYSTEM"
+    | "PROTOTYPE";
   label: string;
   evidenceId?: string;
 };

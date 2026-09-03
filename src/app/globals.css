@@ -1893,6 +1893,102 @@ dd {
   text-align: left;
 }
 
+.post-submission-shell {
+  width: min(calc(100% - 40px), 900px);
+}
+
+.post-submission-content {
+  overflow: hidden;
+}
+
+.post-submission-header {
+  padding-bottom: 30px;
+}
+
+.post-submission-header > p:not(.prototype-boundary) {
+  color: var(--secondary);
+}
+
+.prototype-reference-block {
+  width: fit-content;
+  max-width: 100%;
+  margin-top: 22px;
+  padding: 13px 15px;
+  display: grid;
+  gap: 4px;
+  background: #f2f1ee;
+  border-radius: 10px;
+}
+
+.prototype-reference-block span {
+  color: var(--secondary);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.prototype-reference-block strong {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  overflow-wrap: anywhere;
+}
+
+.prototype-boundary {
+  margin: 16px 0 0;
+  display: grid;
+  gap: 2px;
+  font-size: 14px;
+}
+
+.prototype-boundary span {
+  color: var(--secondary);
+}
+
+.post-report-process-part + .post-report-process-part {
+  margin-top: 24px;
+}
+
+.post-report-process-part h3 {
+  margin-bottom: 8px;
+  font-size: 17px;
+}
+
+.post-report-process-part ul,
+.citizen-actions-list {
+  padding-left: 22px;
+}
+
+.post-report-process-part li,
+.citizen-actions-list li {
+  margin-bottom: 9px;
+}
+
+.citizen-actions-list a {
+  color: var(--primary);
+  font-weight: 700;
+  text-underline-offset: 3px;
+}
+
+.post-report-timeline-section > .incident-timeline {
+  margin: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.post-report-contributed-label {
+  margin: 12px 0 4px;
+  color: var(--secondary);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.post-report-evidence .evidence-contribution-list {
+  margin-top: 18px;
+}
+
+.post-submission-content > .success-companion-prompt {
+  margin: 0;
+  border-bottom: 0;
+}
+
 .success-mark {
   width: 34px;
   height: 34px;

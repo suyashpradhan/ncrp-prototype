@@ -46,8 +46,10 @@ import {
   type AddedAcknowledgement,
 } from "../../presentation/case-companion";
 import { deriveReportReadiness } from "../../presentation/report-readiness";
+import type { PostReportMilestones } from "../../presentation/post-report-case";
 import { DEMO_CASE_ACCESS, useDemoCase } from "../demo-case/demo-case-provider";
 import { AcknowledgementForm, CaseCompanion } from "./case-companion";
+import { PostSubmissionCaseHome } from "./post-submission-case-home";
 import {
   ReportWorkspace,
   type ReportMethod,
@@ -67,6 +69,11 @@ type JourneyView =
 
 const SACHET_DEMO_REFERENCE = "सचेत-DEMO-REPORT-00124";
 const DEMO_SESSION_KEY = "sachet-deterministic-demo-v1";
+const DEMO_POST_REPORT_MILESTONES: PostReportMilestones = {
+  preparedAt: "2026-08-22T02:24:00.000Z",
+  reviewedAt: "2026-08-22T02:27:00.000Z",
+  submittedAt: "2026-08-22T02:30:00.000Z",
+};
 const DEMO_RESTORABLE_VIEWS = new Set<JourneyView>([
   "ANALYSIS_RESULT",
   "REVIEW",
@@ -85,6 +92,7 @@ type PersistedDemoSession = {
   recordingSeconds: number;
   submittedReference: string;
   officialAcknowledgement: AddedAcknowledgement | null;
+  postReportMilestones?: PostReportMilestones | null;
 };
 
 function restoredJourneyHistory(view: JourneyView): JourneyView[] {
@@ -304,6 +312,9 @@ export function DemoJourney() {
   );
   const [officialAcknowledgement, setOfficialAcknowledgement] =
     useState<AddedAcknowledgement | null>(null);
+  const [postReportMilestones, setPostReportMilestones] =
+    useState<PostReportMilestones | null>(null);
+  const preparedAtRef = useRef<string | null>(null);
   const [preparedSourceSignature, setPreparedSourceSignature] = useState<
     string | null
   >(null);
@@ -389,6 +400,19 @@ export function DemoJourney() {
       setRecordingSeconds(candidate.recordingSeconds);
       setSubmittedReference(candidate.submittedReference);
       setOfficialAcknowledgement(acknowledgement);
+      const restoredMilestones = candidate.postReportMilestones;
+      if (
+        restoredMilestones &&
+        typeof restoredMilestones.preparedAt === "string" &&
+        typeof restoredMilestones.reviewedAt === "string" &&
+        typeof restoredMilestones.submittedAt === "string"
+      ) {
+        setPostReportMilestones(restoredMilestones);
+        preparedAtRef.current = restoredMilestones.preparedAt;
+      } else {
+        setPostReportMilestones(DEMO_POST_REPORT_MILESTONES);
+        preparedAtRef.current = DEMO_POST_REPORT_MILESTONES.preparedAt;
+      }
       setIsDemoIncident(true);
       setPreparedSourceSignature(
         reportSourceSignature({
@@ -431,6 +455,7 @@ export function DemoJourney() {
       recordingSeconds,
       submittedReference,
       officialAcknowledgement,
+      postReportMilestones,
     };
     try {
       window.sessionStorage.setItem(DEMO_SESSION_KEY, JSON.stringify(session));
@@ -444,6 +469,7 @@ export function DemoJourney() {
     isDemoIncident,
     narrative,
     officialAcknowledgement,
+    postReportMilestones,
     recordingSeconds,
     submittedReference,
     transcription,
@@ -515,6 +541,8 @@ export function DemoJourney() {
     setIsDemoIncident(false);
     setSubmittedReference(SACHET_DEMO_REFERENCE);
     setOfficialAcknowledgement(null);
+    setPostReportMilestones(null);
+    preparedAtRef.current = null;
     setPreparedSourceSignature(null);
     setReportMethod("TYPE");
   }
@@ -599,6 +627,7 @@ export function DemoJourney() {
     setRecordingSeconds(DEMO_NARRATIONS["hi-IN"].durationSeconds);
     setIsDemoIncident(true);
     setDraft(structuredClone(DEMO_INCIDENT_DRAFT));
+    preparedAtRef.current = DEMO_POST_REPORT_MILESTONES.preparedAt;
     setPreparedSourceSignature(
       reportSourceSignature({
         narrative: DEMO_TYPED_DESCRIPTION,
@@ -864,6 +893,7 @@ export function DemoJourney() {
       if (analysisRunRef.current !== analysisRun) return;
       if (!response.ok) throw new Error("REPORT_PREPARATION_FAILED");
       setDraft(normalizeIncidentDraft(IncidentDraftSchema.parse(result)));
+      preparedAtRef.current = new Date().toISOString();
       setPreparedSourceSignature(
         reportSourceSignature({
           narrative,
@@ -954,28 +984,45 @@ export function DemoJourney() {
       if (complaint.groups.declaration.accepted.status !== "CONFIRMED") {
         throw new Error("Confirm the synthetic declaration before submitting.");
       }
+      const submissionTime = isDemoIncident
+        ? DEMO_POST_REPORT_MILESTONES.submittedAt
+        : new Date().toISOString();
+      const milestones: PostReportMilestones = {
+        preparedAt: preparedAtRef.current ?? submissionTime,
+        reviewedAt: isDemoIncident
+          ? DEMO_POST_REPORT_MILESTONES.reviewedAt
+          : submissionTime,
+        submittedAt: submissionTime,
+      };
       if (
         draft.classification.reportFamily !== "FINANCIAL_FRAUD" ||
         draft.incident.financialLossState !== "YES"
       ) {
-        setSubmittedReference(`SACHET-DEMO-${Date.now().toString().slice(-8)}`);
+        setSubmittedReference(
+          isDemoIncident
+            ? SACHET_DEMO_REFERENCE
+            : `SACHET-DEMO-${Date.now().toString().slice(-8)}`,
+        );
+        setPostReportMilestones(milestones);
         setFormError(null);
         navigateTo("SUCCESS");
         return;
       }
-      const submittedAt = isDemoIncident
-        ? "2026-08-22T02:30:00.000Z"
-        : new Date().toISOString();
       const built = buildSyntheticCaseFromComplaint({
         incidentDraft: draft,
         syntheticCitizen: { displayName: activeProfile.displayName },
         acknowledgementId: DEMO_CASE_ACCESS.acknowledgementNumber,
-        submittedAt,
+        submittedAt: submissionTime,
         caseOrigin: isDemoIncident ? "DEMO_INCIDENT" : "LIVE_TEST",
         selectedReportedAmount,
       });
       hydrateComplaintCase(built.caseData, built.now);
-      setSubmittedReference(SACHET_DEMO_REFERENCE);
+      setSubmittedReference(
+        isDemoIncident
+          ? SACHET_DEMO_REFERENCE
+          : `SACHET-DEMO-${Date.now().toString().slice(-8)}`,
+      );
+      setPostReportMilestones(milestones);
       setFormError(null);
       navigateTo("SUCCESS");
     } catch (error) {
@@ -1129,102 +1176,29 @@ export function DemoJourney() {
         onRestartDemo={isDemoIncident ? restartDemo : undefined}
       />
     );
-  } else {
+  } else if (view === "SUCCESS" && draft && postReportMilestones) {
     content = (
-      <section
-        className="journey-stage section-pad"
-        data-journey-focus
-        tabIndex={-1}
-      >
-        <div className="shell reading-shell complaint-success-content">
-          <span className="success-mark" aria-hidden="true">
-            ✓
-          </span>
-          <h1>
-            {locale === "hi"
-              ? "रिपोर्ट सफलतापूर्वक तैयार हुई"
-              : "Report prepared successfully"}
-          </h1>
-          <p className="companion-eyebrow">
-            {locale === "hi" ? "सचेत डेमो संदर्भ" : "सचेत demo reference"}
-          </p>
-          <p className="journey-identifier">{submittedReference}</p>
-          <p>
-            {locale === "hi"
-              ? "यह डेमो शिकायत किसी सरकारी सेवा को नहीं भेजी गई।"
-              : "This demo complaint was not sent to a government service."}
-          </p>
-          <div className="success-companion-prompt">
-            <h2>
-              {locale === "hi"
-                ? "क्या आपने NCRP पर पहले ही शिकायत दर्ज कर दी है?"
-                : "Already submitted on NCRP?"}
-            </h2>
-            <p>
-              {locale === "hi"
-                ? "आगे क्या हो सकता है, यह समझने के लिए अपनी आधिकारिक पावती जोड़ें।"
-                : "Add your official acknowledgement to understand what may happen next."}
-            </p>
-            <div className="entry-actions">
-              <button
-                className="primary-button"
-                type="button"
-                onClick={() => navigateTo("ACKNOWLEDGEMENT")}
-              >
-                {locale === "hi" ? "पावती जोड़ें" : "Add acknowledgement"}
-              </button>
-              <button
-                className="secondary-button"
-                type="button"
-                onClick={() => {
-                  setOfficialAcknowledgement({
-                    number: DEMO_OFFICIAL_ACKNOWLEDGEMENT,
-                    receiptName: null,
-                    source: "SYNTHETIC_DEMO",
-                    synthetic: true,
-                  });
-                  navigateTo("CASE_COMPANION");
-                }}
-              >
-                {locale === "hi"
-                  ? "डेमो पावती का उपयोग करें"
-                  : "Use demo acknowledgement"}
-              </button>
-            </div>
-            <p className="demo-data-note">
-              {locale === "hi"
-                ? "डेमो पावती पूरी तरह सिंथेटिक है और वास्तविक NCRP संख्या नहीं है।"
-                : "The demo acknowledgement is fully synthetic and is not a real NCRP number."}
-            </p>
-          </div>
-          <div className="entry-actions">
-            <button
-              className="primary-button"
-              type="button"
-              onClick={() => navigateTo("REVIEW")}
-            >
-              {locale === "hi" ? "रिपोर्ट देखें" : "View report"}
-            </button>
-            <button
-              className="secondary-button"
-              type="button"
-              onClick={returnHome}
-            >
-              {locale === "hi" ? "फिर से शुरू करें" : "Start again"}
-            </button>
-            {isDemoIncident ? (
-              <button
-                className="text-button"
-                type="button"
-                onClick={restartDemo}
-              >
-                {locale === "hi" ? "डेमो फिर से शुरू करें" : "Restart demo"}
-              </button>
-            ) : null}
-          </div>
-        </div>
-      </section>
+      <PostSubmissionCaseHome
+        draft={draft}
+        prototypeReference={submittedReference}
+        screenshots={screenshots}
+        isDemoIncident={isDemoIncident}
+        milestones={postReportMilestones}
+        onReviewReport={() => navigateTo("REVIEW")}
+        onAddAcknowledgement={() => navigateTo("ACKNOWLEDGEMENT")}
+        onUseDemoAcknowledgement={() => {
+          setOfficialAcknowledgement({
+            number: DEMO_OFFICIAL_ACKNOWLEDGEMENT,
+            receiptName: null,
+            source: "SYNTHETIC_DEMO",
+            synthetic: true,
+          });
+          navigateTo("CASE_COMPANION");
+        }}
+      />
     );
+  } else {
+    content = null;
   }
 
   return content;
