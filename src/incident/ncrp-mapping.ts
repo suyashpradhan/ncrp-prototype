@@ -56,11 +56,10 @@ export function generateNcrpFields(draft: IncidentDraft): GeneratedNcrpField[] {
         ...(draft.incident.financialLossState === "YES" ? [
           { label: "Victim bank/wallet/merchant", value: transactionValues(draft, (item) => item.institution) },
           { label: "Account / wallet / merchant / UPI ID", value: transactionValues(draft, (item) => item.accountOrUpiId) },
-          { label: "Transaction ID / UTR", value: transactionValues(draft, (item) => item.transactionIdOrUtr) },
+          { label: "Transaction reference / UTR", value: transactionValues(draft, (item) => item.transactionIdOrUtr ?? item.referenceNumber) },
           { label: "Amount", value: transactionAmounts(draft) },
           { label: "Transaction date", value: transactionValues(draft, (item) => item.transactionDate) },
           { label: "Approximate transaction time", value: transactionValues(draft, (item) => item.approximateTime) },
-          { label: "Reference number", value: transactionValues(draft, (item) => item.referenceNumber) },
         ] : []),
       ]
     : draft.classification.reportFamily === "OTHER_CYBER_CRIME"

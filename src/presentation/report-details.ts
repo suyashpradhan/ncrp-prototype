@@ -4,6 +4,7 @@ import { CITIZEN_DOES_NOT_HAVE, type IncidentDraft } from "../incident/schema";
 import type { ReporterProfile } from "../experience/profile";
 import { SYNTHETIC_NCRP_PROFILE } from "../experience/profile";
 import { sanitizeSensitiveText } from "../incident/sensitive-text";
+import { deriveFinancialFactsFromText } from "../incident/normalization";
 import { textForLocale, type UiLocale } from "../i18n/i18n-provider";
 import { formatCurrency } from "./format";
 
@@ -244,6 +245,9 @@ export function deriveReportGroups(
         "Other supported cyber incident": "अन्य समर्थित साइबर घटना",
       } as Record<string, string>)[draft.officialMapping.subCategoryLabel ?? ""] ?? draft.officialMapping.subCategoryLabel
     : draft.officialMapping.subCategoryLabel;
+  const financialFacts = deriveFinancialFactsFromText(
+    draft.incident.narrative ?? draft.citizenSummary.shortSummary,
+  );
 
   const incidentFields: ReportFieldView[] = [
     makeField("category", copy("field.category"), localizedCategory, {
@@ -258,9 +262,18 @@ export function deriveReportGroups(
       "money-lost",
       copy("field.moneyLost"),
       draft.incident.financialLossState === "UNKNOWN"
-        ? null
+        ? financialFacts.lossUncertaintyExplicit
+          ? locale === "hi" ? "पता नहीं" : "Not sure"
+          : null
         : draft.incident.financialLossState === "YES" ? copy("field.yes") : copy("field.no"),
-      { missingQuestion: missingByField.get("moneyLost") },
+      {
+        missingQuestion: missingByField.get("moneyLost"),
+        helpText: financialFacts.lossUncertaintyExplicit
+          ? locale === "hi"
+            ? "जब संभव हो, अपने हाल के बैंक या UPI लेन-देन जाँचें।"
+            : "Check your recent bank or UPI transactions when you can."
+          : undefined,
+      },
     ),
     ...(draft.incident.financialLossState !== "YES" && draft.mentionedInstitutions.length > 0
       ? [makeField(
@@ -340,7 +353,7 @@ export function deriveReportGroups(
   const transactionSections: ReportFieldSection[] = draft.transactions.map((transaction, index) => ({
         id: `transaction-${index + 1}`,
         title: copy("field.transaction", { number: index + 1 }),
-        fields: [
+        fields: ([
           makeField(`transaction-${index}-amount`, copy("field.amount"), transaction.amount === null ? null : formatCurrency(transaction.amount), {
             source: copy("field.fromShared"),
             missingQuestion: index === 0 ? missingByField.get("transactionAmount") : undefined,
@@ -369,16 +382,17 @@ export function deriveReportGroups(
               : "Helpful if available. Approximate time is okay.",
           }),
           makeField(`transaction-${index}-reference`, copy("field.reference"), transaction.referenceNumber),
-        ],
+        ] as ReportFieldView[]).filter((item) =>
+          item.state !== "NOT_PROVIDED_OPTIONAL" || Boolean(item.missingQuestion),
+        ),
       }));
 
   const transactionTotal = draft.transactions.reduce(
     (total, transaction) => total + (transaction.amount ?? 0),
     0,
   );
-  const displayedReportedAmount = transactionTotal > 0
-    ? transactionTotal
-    : draft.incident.reportedAmount;
+  const displayedReportedAmount = draft.incident.reportedAmount ??
+    (transactionTotal > 0 ? transactionTotal : null);
 
   const evidenceFields = draft.classification.reportFamily === "WOMEN_CHILDREN_RELATED_CRIME" && draft.evidence.length > 0
     ? [makeField(
@@ -402,14 +416,6 @@ export function deriveReportGroups(
         item.value,
         { source: draft.evidence.length > 0 ? copy("field.fromEvidence") : copy("field.fromShared") },
       ));
-  for (const [id, label] of [
-    ["suspect-name", copy("field.name")],
-    ["suspect-email", copy("field.email")],
-  ] as const) {
-    if (!suspectFields.some((item) => item.label === label)) {
-      suspectFields.push(makeField(id, label, null));
-    }
-  }
   const evidenceFactFields = draft.evidence.flatMap((item, evidenceIndex) =>
     item.extractedFacts.map((fact, factIndex) => makeField(
       `evidence-fact-${evidenceIndex}-${factIndex}`,

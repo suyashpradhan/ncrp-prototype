@@ -48,7 +48,19 @@ Rules:
 34. incident.reportedAmount is the total loss, not an additional transaction. If the citizen says “I lost ₹20,000; first ₹5,000, then ₹15,000”, create two transactions totalling ₹20,000 and do not double-count the stated total.
 35. Never use the current browser time, server time or report generation time for incidentDate, incident time, transactionDate or transaction time. Unknown remains null. Preserve approximate expressions without inventing exact minutes.
 36. accountCompromiseBasis records only the supported sign of possible access, such as changed recovery details, an unfamiliar security alert, changed messages/settings, or the citizen simply forgetting a password. Use null when unclear.
-37. citizenConfirmedFields is application-owned follow-up metadata. Always return it as an empty array during initial extraction.`;
+37. citizenConfirmedFields is application-owned follow-up metadata. Always return it as an empty array during initial extraction.
+38. A monetary mention is not automatically a transaction. Classify its meaning before deciding whether it belongs in transactions.
+39. Only actual completed money movement belongs in transactions: paid, sent, transferred, debited, deducted, charged, withdrawn, or a completed UPI/payment event.
+40. Never create transactions from an opening or remaining balance, stated total loss, requested or demanded amount, promised prize/salary/refund, attempted debit, or blocked/failed payment.
+41. When a stated total and component payments are both supplied, incident.reportedAmount is the stated total and transactions contains only the component payments. Never add the stated total as another transaction.
+42. A promised lottery/prize amount is not loss. For example, a ₹25 lakh prize plus a completed ₹10,000 processing payment means one ₹10,000 transaction and ₹10,000 reported loss.
+43. A demanded amount is not loss. For example, a ₹2 lakh demand plus a completed ₹50,000 transfer means one ₹50,000 transaction and ₹50,000 reported loss.
+44. An attempted debit explicitly described as blocked or declined means no completed transaction. Keep transactions empty unless another completed movement is supported.
+45. Preserve two same-value payments when the account describes two distinct events. Do not deduplicate solely by amount.
+46. Use the transaction reference/UTR as the canonical reference. Do not duplicate it into referenceNumber unless a distinct second reference is explicitly supplied.
+47. Suspicious phishing/KYC link or app-download behaviour is enough to recognize a likely financial cyber incident even when debit status is unknown. Keep financialLossState UNKNOWN and transactions empty; do not require the exact app name first.
+48. Benign text with no meaningful cybercrime indicator must remain OUT_OF_SCOPE_OR_UNCLEAR. Do not turn it into a fraud report that is merely missing an app, account, or device.
+49. Reconstruct transactions from supported source events. Repeated analysis of the same source must return the same transaction count and stable sequential identities.`;
 
 type InputContent =
   | { type: "input_text"; text: string }

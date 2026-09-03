@@ -49,8 +49,7 @@ body {
 }
 
 html[data-ui-locale="hi"] body {
-  font-family:
-    var(--font-devanagari), system-ui, sans-serif;
+  font-family: var(--font-devanagari), system-ui, sans-serif;
 }
 
 button,
@@ -111,7 +110,7 @@ h3 {
 }
 
 .reading-shell {
-  max-width: 760px;
+  max-width: 1480px;
 }
 
 .section-pad {
@@ -2407,7 +2406,7 @@ dd {
 }
 
 .save-report-copy {
-  margin-top: 22px;
+  margin: 22px 0;
 }
 
 .complaint-packet {

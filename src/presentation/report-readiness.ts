@@ -180,7 +180,13 @@ export function deriveReportReadiness(input: {
     };
   });
 
-  if (draft.classification.ambiguity !== "NONE") {
+  if (
+    draft.classification.ambiguity !== "NONE" &&
+    (
+      draft.classification.cyberElementPresent === true ||
+      draft.classification.ambiguity === "MULTIPLE_PLAUSIBLE_PATHS"
+    )
+  ) {
     items.unshift({
       id: "classification.clarification",
       fieldId: "reporting-path-clarification",

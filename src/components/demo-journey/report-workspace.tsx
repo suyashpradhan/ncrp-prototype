@@ -2030,6 +2030,7 @@ function ReportingPathControl({
   };
 
   if (classification.ambiguity === "INSUFFICIENT_INFORMATION") {
+    const noIncidentIdentified = classification.cyberElementPresent !== true;
     return (
       <section
         className="classification-guidance"
@@ -2037,17 +2038,21 @@ function ReportingPathControl({
         data-report-field-id="reporting-path-clarification"
       >
         <h3>
-          {locale === "hi"
-            ? "क्या हुआ, थोड़ा और बताएं"
-            : "Tell us a little more about what happened"}
+          {noIncidentIdentified
+            ? locale === "hi" ? "अभी रिपोर्ट करने योग्य घटना नहीं मिली" : "Nothing to report yet"
+            : locale === "hi" ? "क्या हुआ, थोड़ा और बताएं" : "Tell us a little more about what happened"}
         </h3>
         <p>
-          {locale === "hi"
-            ? "घटना किस ऐप, वेबसाइट, खाते या उपकरण से जुड़ी थी?"
-            : "Which app, website, account or device was involved?"}
+          {noIncidentIdentified
+            ? locale === "hi"
+              ? "आपने जो बताया, उसमें अभी साइबर अपराध की घटना पहचानने के लिए पर्याप्त जानकारी नहीं मिली।"
+              : "I couldn't identify a cybercrime incident from what you shared."
+            : locale === "hi"
+              ? "घटना के बारे में जो जानकारी आपको याद हो, वह जोड़ें।"
+              : "Add any incident details you remember."}
         </p>
         <button className="secondary-button" type="button" onClick={focusStory}>
-          {locale === "hi" ? "विवरण जारी रखें" : "Continue editing"}
+          {locale === "hi" ? "जानकारी जोड़ें" : "Add details"}
         </button>
       </section>
     );
@@ -2233,6 +2238,11 @@ function ReportStatusCard({
   const { locale, t } = useI18n();
   const hi = locale === "hi";
   const isEmpty = !props.draft && props.mode === "INPUT";
+  const noIncidentIdentified = Boolean(
+    props.draft?.classification.reportFamily === "OUT_OF_SCOPE_OR_UNCLEAR" &&
+    props.draft.classification.ambiguity === "INSUFFICIENT_INFORMATION" &&
+    props.draft.classification.cyberElementPresent !== true,
+  );
   const title = props.mode === "PROCESSING"
     ? hi ? "आपकी रिपोर्ट तैयार हो रही है…" : "Preparing your report…"
     : props.mode === "ERROR"
@@ -2243,6 +2253,8 @@ function ReportStatusCard({
         : hi ? "हम अभी रिपोर्ट तैयार नहीं कर पाए" : "We couldn't prepare the report right now"
       : isEmpty
         ? hi ? "आपकी रिपोर्ट यहाँ दिखाई देगी" : "Your report will appear here"
+        : noIncidentIdentified
+          ? hi ? "अभी रिपोर्ट करने योग्य घटना नहीं मिली" : "Nothing to report yet"
         : readiness?.state === "STALE"
           ? hi ? "आपकी जानकारी बदल गई है" : "Your information changed"
           : readiness?.state === "NEEDS_CLARIFICATION"
@@ -2262,6 +2274,10 @@ function ReportStatusCard({
         ? hi
           ? "हम जानकारी को आपकी समीक्षा के लिए व्यवस्थित करेंगे।"
           : "We'll organise the details for you to review."
+        : noIncidentIdentified
+          ? hi
+            ? "आपने जो बताया, उसमें अभी साइबर अपराध की घटना पहचानने के लिए पर्याप्त जानकारी नहीं मिली।"
+            : "I couldn't identify a cybercrime incident from what you shared."
         : readiness?.state === "STALE"
           ? hi ? "आगे बढ़ने से पहले रिपोर्ट को नई जानकारी के साथ अपडेट करें।" : "Update the report with the new information before continuing."
           : readiness?.state === "NEEDS_CLARIFICATION"
@@ -2281,6 +2297,8 @@ function ReportStatusCard({
         : t("workspace.tryAgain")
       : !props.draft
         ? t("workspace.organise")
+        : noIncidentIdentified
+          ? hi ? "जानकारी जोड़ें" : "Add details"
         : readiness?.state === "STALE"
           ? hi ? "रिपोर्ट अपडेट करें" : "Update report"
           : readiness?.state === "NEEDS_CLARIFICATION"
@@ -2867,6 +2885,19 @@ export function ReportWorkspace(props: ReportWorkspaceProps) {
     if (props.mode === "PROCESSING") return;
     if (!props.draft || props.mode === "ERROR" || readiness?.state === "STALE") {
       props.onOrganizeReport();
+      return;
+    }
+    if (
+      props.draft.classification.reportFamily === "OUT_OF_SCOPE_OR_UNCLEAR" &&
+      props.draft.classification.ambiguity === "INSUFFICIENT_INFORMATION" &&
+      props.draft.classification.cyberElementPresent !== true
+    ) {
+      const input = document.querySelector<HTMLTextAreaElement>("#incident-narrative");
+      input?.scrollIntoView({
+        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+        block: "center",
+      });
+      input?.focus({ preventScroll: true });
       return;
     }
     if (readiness?.state === "READY") {

@@ -1,4 +1,5 @@
 import type { IncidentDraft } from "./schema";
+import { deriveFinancialFactsFromText } from "./normalization";
 import {
   requirementsForIncident,
   type ReportRequirementKey,
@@ -172,12 +173,16 @@ export function deriveMissingQuestions(draft: IncidentDraft): MissingQuestion[] 
   if (draft.classification.ambiguity !== "NONE") return [];
   const requirements = requirementsForIncident(draft);
   const missing: MissingQuestion[] = [];
+  const financialFacts = deriveFinancialFactsFromText(
+    draft.incident.narrative ?? draft.citizenSummary.shortSummary,
+  );
 
   if (requirements.some((item) => item.key === "incidentDate") && !draft.incident.incidentDate && draft.incident.incidentDateWithoutYear) {
     missing.push(QUESTIONS.incidentDateYear);
   }
   for (const requirement of requirements) {
     if (requirement.key === "incidentDate" && draft.incident.incidentDateWithoutYear) continue;
+    if (requirement.key === "moneyLost" && financialFacts.lossUncertaintyExplicit) continue;
     if (requirementMissing(draft, requirement.key)) missing.push(QUESTIONS[requirement.key]);
   }
 
@@ -349,6 +354,17 @@ export function applyMissingAnswer(
           : field === "transactionDate"
             ? { ...firstTransaction, transactionDate: answer }
             : { ...firstTransaction, approximateTime: answer };
+  const confirmedTransactionField = field === "institution"
+    ? "institution"
+    : field === "accountOrUpiId"
+      ? "accountOrUpiId"
+      : field === "transactionAmount"
+        ? "amount"
+        : field === "transactionIdOrUtr"
+          ? "transactionIdOrUtr"
+          : field === "transactionDate"
+            ? "transactionDate"
+            : "approximateTime";
 
   return {
     ...draft,
@@ -356,6 +372,10 @@ export function applyMissingAnswer(
       { ...updatedTransaction, status: "KNOWN" as const },
       ...draft.transactions.slice(1),
     ],
+    citizenConfirmedFields: Array.from(new Set([
+      ...draft.citizenConfirmedFields,
+      `transactions.0.${confirmedTransactionField}`,
+    ])),
     missingRequiredFields: draft.missingRequiredFields.filter((item) => item !== field),
   };
 }

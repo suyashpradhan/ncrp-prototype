@@ -24,19 +24,38 @@ const INSTITUTION_PATTERNS: ReadonlyArray<[RegExp, string]> = [
   [/\bgoogle pay\b|\bgpay\b/i, "Google Pay"],
 ];
 
-type ExtractedAmount = {
+export type MonetaryRole =
+  | "ACTUAL_OUTFLOW"
+  | "STATED_TOTAL_LOSS"
+  | "REQUESTED_AMOUNT"
+  | "DEMANDED_AMOUNT"
+  | "PROMISED_AMOUNT"
+  | "PRIZE_AMOUNT"
+  | "BALANCE_BEFORE"
+  | "BALANCE_AFTER"
+  | "ATTEMPTED_AMOUNT"
+  | "BLOCKED_AMOUNT"
+  | "REFUND_PROMISED"
+  | "REFUND_RECEIVED"
+  | "UNKNOWN_FINANCIAL_MENTION";
+
+export type MonetaryMention = {
   amount: number;
   index: number;
   context: string;
-  prizeAmount: boolean;
+  sourceKey: string;
+  role: MonetaryRole;
 };
 
 export type DeterministicFinancialFacts = {
   financialLossState: FinancialLossState;
   financialExposure: FinancialExposure;
   mentionedInstitutions: string[];
+  monetaryMentions: MonetaryMention[];
   transactionAmounts: number[];
   reportedAmount: number | null;
+  lossStateExplicit: boolean;
+  lossUncertaintyExplicit: boolean;
 };
 
 export type IncidentNormalizationOptions = {
@@ -86,36 +105,146 @@ function parseAmount(raw: string, unit: string | undefined): number | null {
     ? 10_000_000
     : /lakh|lac/i.test(unit ?? "")
       ? 100_000
-      : /thousand|k\b/i.test(unit ?? "")
+    : /thousand|hazaar|hazar|k\b/i.test(unit ?? "")
         ? 1_000
         : 1;
   return Math.round(numeric * multiplier);
 }
 
-function amountsFromText(text: string): ExtractedAmount[] {
-  const pattern = /(?:₹|rs\.?|inr)\s*([\d,.]+)\s*(crores?|lakhs?|lacs?|thousand|k)?|([\d,.]+)\s*(crores?|lakhs?|lacs?|thousand|k)?\s*(?:rupees?|रुपये)/gi;
-  const matches: ExtractedAmount[] = [];
+function stableSourceKey(index: number, amount: number): string {
+  return `statement-${index}-${amount}`;
+}
+
+function classifyMonetaryRole(text: string, index: number, length: number): MonetaryRole {
+  const sentenceStart = Math.max(
+    text.lastIndexOf(".", index - 1),
+    text.lastIndexOf("!", index - 1),
+    text.lastIndexOf("?", index - 1),
+    text.lastIndexOf("\n", index - 1),
+  ) + 1;
+  const nextStops = [".", "!", "?", "\n"]
+    .map((stop) => text.indexOf(stop, index + length))
+    .filter((position) => position >= 0);
+  const sentenceEnd = nextStops.length > 0 ? Math.min(...nextStops) : text.length;
+  const sentence = text.slice(sentenceStart, sentenceEnd).toLowerCase();
+  const before = text.slice(Math.max(sentenceStart, index - 55), index).toLowerCase();
+  const after = text.slice(index + length, Math.min(sentenceEnd, index + length + 55)).toLowerCase();
+  const near = `${before} amount ${after}`;
+  const actualMovement = /\b(?:paid|transferred|sent|debited|deducted|charged|withdrew|withdrawn|money left|made (?:a |two |three )?payments?|payments? (?:was|were )?completed|actual transfer)\b/;
+
+  if (/\b(?:attempted|tried|trying)\b/.test(before) && /\b(?:debit|deduct|charge|transfer|payment|pay)\b/.test(before)) {
+    return /\b(?:blocked|declined|stopped|prevented)\b/.test(after)
+      ? "BLOCKED_AMOUNT"
+      : "ATTEMPTED_AMOUNT";
+  }
+  if (/\b(?:blocked|declined|stopped|prevented)\b/.test(sentence) && !actualMovement.test(sentence) && /\b(?:debit|deduct|charge|transfer|payment|pay)\b/.test(sentence)) {
+    return "BLOCKED_AMOUNT";
+  }
+  if (/\b(?:balance|account had|had in (?:my|the) account|starting with|started with)\b/.test(before)) {
+    return /\b(?:now|remaining|left|after|current)\b/.test(near)
+      ? "BALANCE_AFTER"
+      : "BALANCE_BEFORE";
+  }
+  if (/\b(?:refund|reimburse)\b/.test(sentence)) {
+    return /\b(?:received|credited|got)\b/.test(sentence)
+      ? "REFUND_RECEIVED"
+      : "REFUND_PROMISED";
+  }
+  if (
+    /\b(?:total(?: loss)?|altogether)\b/.test(near) ||
+    /\b(?:lost|loss of)\s*$/.test(before) ||
+    /^\s*(?:was|is)?\s*(?:in\s+)?total\b/.test(after)
+  ) {
+    return "STATED_TOTAL_LOSS";
+  }
+  if (
+    actualMovement.test(before.slice(-45)) ||
+    /^\s*(?:was\s+)?(?:debited|deducted|charged|transferred|sent|withdrawn)\b/.test(after)
+  ) {
+    return "ACTUAL_OUTFLOW";
+  }
+  if (/\b(?:demanded|demanding|demand)(?:\s+(?:me\s+)?(?:to\s+)?(?:pay|transfer|send))?\s*$/.test(before)) {
+    return "DEMANDED_AMOUNT";
+  }
+  if (/\b(?:asked|request(?:ed|ing)?|required|told me to)[^.!?\n]{0,35}(?:pay|transfer|send|fee|for)?\s*$/.test(before)) {
+    return "REQUESTED_AMOUNT";
+  }
+  if (/\b(?:won|winnings?|prize|lottery|reward)(?:\s+(?:of|worth))?\s*$/.test(before)) {
+    return "PRIZE_AMOUNT";
+  }
+  if (/\b(?:promised|offered|salary)[^.!?\n]{0,25}$/.test(before)) {
+    return "PROMISED_AMOUNT";
+  }
+  if (actualMovement.test(sentence)) {
+    return "ACTUAL_OUTFLOW";
+  }
+  return "UNKNOWN_FINANCIAL_MENTION";
+}
+
+function amountsFromText(text: string): MonetaryMention[] {
+  const number = "(\\d[\\d,]*(?:\\.\\d+)?)";
+  const unit = "(crores?|lakhs?|lacs?|thousand|hazaar|hazar|k)";
+  const pattern = new RegExp(`(?:₹|rs\\.?|inr)\\s*${number}\\s*${unit}?|${number}\\s*${unit}?\\s*(?:rupees?|रुपये)|${number}\\s*${unit}|\\b(\\d[\\d,]{2,}(?:\\.\\d+)?)\\b`, "gi");
+  const matches: MonetaryMention[] = [];
   for (const match of text.matchAll(pattern)) {
-    const raw = match[1] ?? match[3];
-    const amount = raw ? parseAmount(raw, match[2] ?? match[4]) : null;
+    const raw = match[1] ?? match[3] ?? match[5] ?? match[7];
+    const amount = raw ? parseAmount(raw, match[2] ?? match[4] ?? match[6]) : null;
     if (!amount || match.index === undefined) continue;
+    const role = classifyMonetaryRole(text, match.index, match[0].length);
+    if (role === "UNKNOWN_FINANCIAL_MENTION" && !/[₹]|rs\.?|inr|rupees?|रुपये|lakh|lac|crore|thousand|hazaar|hazar/i.test(match[0])) {
+      continue;
+    }
     matches.push({
       amount,
       index: match.index,
       context: text.slice(Math.max(0, match.index - 70), match.index + match[0].length + 45),
-      prizeAmount: /\b(?:won|win|prize|lottery|reward)(?:\s+(?:of|worth))?\s*$/i.test(
-        text.slice(Math.max(0, match.index - 35), match.index),
-      ),
+      sourceKey: stableSourceKey(match.index, amount),
+      role,
     });
   }
-  return matches;
+  const wordValues: Record<string, number> = {
+    one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7,
+    eight: 8, nine: 9, ten: 10, fifteen: 15, twenty: 20, twentyfive: 25,
+    thirty: 30, forty: 40, fifty: 50,
+  };
+  const wordPattern = /\b(one|two|three|four|five|six|seven|eight|nine|ten|fifteen|twenty(?:[ -]?five)?|thirty|forty|fifty)\s+(thousand|hazaar|hazar|lakhs?|lacs?|crores?)\b/gi;
+  for (const match of text.matchAll(wordPattern)) {
+    if (match.index === undefined) continue;
+    const word = match[1].toLowerCase().replace(/[ -]/g, "");
+    const numeric = wordValues[word];
+    const amount = numeric ? parseAmount(String(numeric), match[2]) : null;
+    if (!amount) continue;
+    matches.push({
+      amount,
+      index: match.index,
+      context: text.slice(Math.max(0, match.index - 70), match.index + match[0].length + 45),
+      sourceKey: stableSourceKey(match.index, amount),
+      role: classifyMonetaryRole(text, match.index, match[0].length),
+    });
+  }
+  matches.sort((left, right) => left.index - right.index);
+  return matches.map((mention) => {
+    if (mention.role !== "REQUESTED_AMOUNT") return mention;
+    const sourceFollowing = text.slice(mention.index, mention.index + 180);
+    if (/\b(?:paid|transferred|sent)\s+(?:it|that|the fee|this amount)\b/i.test(sourceFollowing)) {
+      return { ...mention, role: "ACTUAL_OUTFLOW" };
+    }
+    return mention;
+  });
 }
 
 export function deriveFinancialFactsFromText(text: string): DeterministicFinancialFacts {
   const normalized = text.trim();
+  const explicitUncertainLoss = /\b(?:not sure|unsure|do not know|don't know|cannot tell|can't tell)\b[^.!?\n]{0,70}\b(?:money|payment|paid|debit(?:ed)?|deducted|transfer(?:red)?|loss|lost)\b|\b(?:money|payment|debit|transfer|loss)\b[^.!?\n]{0,70}\b(?:not sure|unsure|unknown)\b/i.test(normalized);
   const explicitNoLoss = /\b(?:did not|didn't|have not|haven't|no)\s+(?:pay|paid|transfer|transferred|lose|lost|make (?:a )?payment)|\bno money (?:was )?(?:lost|paid|debited|transferred)|\bwithout (?:paying|losing)\b/i.test(normalized);
-  const explicitLoss = /\b(?:paid|transferred|sent|debited|deducted|lost|made (?:a )?payment)\b/i.test(normalized) && !explicitNoLoss;
-  const financialLossState: FinancialLossState = explicitNoLoss
+  const monetaryMentions = amountsFromText(normalized);
+  const actualOutflows = monetaryMentions.filter(({ role }) => role === "ACTUAL_OUTFLOW");
+  const statedTotalMention = monetaryMentions.find(({ role }) => role === "STATED_TOTAL_LOSS");
+  const blockedOnly = monetaryMentions.some(({ role }) => role === "BLOCKED_AMOUNT") && actualOutflows.length === 0;
+  const explicitLoss = actualOutflows.length > 0 || Boolean(statedTotalMention);
+  const financialLossState: FinancialLossState = explicitUncertainLoss
+    ? "UNKNOWN"
+    : explicitNoLoss || blockedOnly
     ? "NO"
     : explicitLoss
       ? "YES"
@@ -133,54 +262,35 @@ export function deriveFinancialFactsFromText(text: string): DeterministicFinanci
     .filter(([pattern]) => pattern.test(normalized))
     .map(([, label]) => label);
 
-  const amounts = amountsFromText(normalized);
-  const nonPrizeAmounts = amounts.filter(({ prizeAmount }) => !prizeAmount);
-  const explicitTotal = nonPrizeAmounts.find(({ index }) => {
-    const before = normalized.slice(Math.max(0, index - 36), index);
-    const after = normalized.slice(index, index + 48);
-    return (
-      /\b(?:lost|total(?: loss)?|altogether)(?:\s+(?:was|is|of))?\s*$/i.test(
-        before,
-      ) ||
-      /^(?:₹|rs\.?|inr)?\s*[\d,.]+(?:\s*(?:rupees?))?\s+(?:in\s+)?total\b/i.test(
-        after,
-      )
-    );
-  });
-  let transactionAmounts = financialLossState === "YES"
-    ? nonPrizeAmounts.map(({ amount }) => amount)
+  const unknownComponents = monetaryMentions.filter(({ role, context }) =>
+    role === "UNKNOWN_FINANCIAL_MENTION" && /\b(?:first|then|later|next|after that)\b/i.test(context),
+  );
+  const componentMentions = actualOutflows.length > 0
+    ? actualOutflows
+    : statedTotalMention && unknownComponents.length > 0
+      ? unknownComponents
+      : [];
+  const transactionAmounts = financialLossState === "YES"
+    ? componentMentions.map(({ amount }) => amount)
     : [];
-  if (explicitTotal && transactionAmounts.length > 1) {
-    const components = nonPrizeAmounts
-      .filter((item) => item !== explicitTotal)
-      .map(({ amount }) => amount);
-    if (
-      components.length > 0 &&
-      components.reduce((sum, amount) => sum + amount, 0) ===
-        explicitTotal.amount
-    ) {
-      transactionAmounts = components;
-    }
-  }
-  if (
-    transactionAmounts.length > 2 &&
-    transactionAmounts[0] === transactionAmounts.slice(1).reduce((sum, amount) => sum + amount, 0)
-  ) {
-    transactionAmounts = transactionAmounts.slice(1);
-  }
-  const statedTotal = explicitTotal?.amount ??
-    amounts.find(({ context }) => /\b(?:lost|total(?: loss)?|altogether)\b/i.test(context))?.amount ??
-    null;
+  const statedTotal = statedTotalMention?.amount ?? null;
   const componentTotal = transactionAmounts.reduce((sum, amount) => sum + amount, 0);
 
   return {
     financialLossState,
     financialExposure,
     mentionedInstitutions,
+    monetaryMentions: monetaryMentions.map((mention) =>
+      componentMentions.includes(mention) && mention.role === "UNKNOWN_FINANCIAL_MENTION"
+        ? { ...mention, role: "ACTUAL_OUTFLOW" }
+        : mention,
+    ),
     transactionAmounts,
     reportedAmount: financialLossState === "YES"
       ? statedTotal ?? (componentTotal > 0 ? componentTotal : null)
       : null,
+    lossStateExplicit: explicitUncertainLoss || explicitNoLoss || blockedOnly || explicitLoss,
+    lossUncertaintyExplicit: explicitUncertainLoss,
   };
 }
 
@@ -217,26 +327,55 @@ export function normalizeIncidentDraft(
   draft: IncidentDraft,
   options: IncidentNormalizationOptions = {},
 ): IncidentDraft {
-  const reportCategory = draft.classification.reportFamily === "OUT_OF_SCOPE_OR_UNCLEAR"
-    ? null
-    : draft.classification.reportFamily;
   const platform = draft.adaptiveFacts.platform ?? draft.classification.platform;
   const supportedText = [
     draft.incident.narrative,
     draft.citizenSummary.shortSummary,
     ...draft.evidence.flatMap((item) => item.extractedFacts),
   ].filter(Boolean).join("\n");
-  const extracted = deriveFinancialFactsFromText(supportedText);
+  // The narrative is the canonical event source. Summaries and extracted evidence
+  // often repeat the same payment and must not multiply canonical transactions.
+  const financialSourceText = draft.incident.narrative?.trim() ||
+    draft.citizenSummary.shortSummary.trim() ||
+    draft.evidence.flatMap((item) => item.extractedFacts).join("\n");
+  const extracted = deriveFinancialFactsFromText(financialSourceText);
+  const likelyFinancialCyberIncident = /\b(?:kyc|phishing|otp|upi collect|banking link)\b/i.test(financialSourceText) &&
+    /\b(?:message|link|clicked|opened|downloaded|installed|shared|asked|request)\b/i.test(financialSourceText);
+  const classification =
+    draft.classification.reportFamily === "OUT_OF_SCOPE_OR_UNCLEAR" &&
+    draft.classification.ambiguity === "INSUFFICIENT_INFORMATION" &&
+    likelyFinancialCyberIncident
+      ? {
+          ...draft.classification,
+          reportFamily: "FINANCIAL_FRAUD" as const,
+          category: "Financial Fraud",
+          subCategory: /\bkyc\b/i.test(financialSourceText)
+            ? "Internet Banking Related Fraud"
+            : "Online Financial Fraud",
+          cyberElementPresent: true,
+          moneyLost: extracted.financialLossState === "YES"
+            ? true
+            : extracted.financialLossState === "NO"
+              ? false
+              : null,
+          ambiguity: "NONE" as const,
+          explanation: "The account describes a likely financial cyber incident; whether money moved may still be unknown.",
+          requiresCitizenConfirmation: false,
+        }
+      : draft.classification;
+  const reportCategory = classification.reportFamily === "OUT_OF_SCOPE_OR_UNCLEAR"
+    ? null
+    : classification.reportFamily;
   const relativeContext = resolveRelativeIncidentContext(
     supportedText,
     options.reportingDate,
   );
-  const isFinancialIncident = draft.classification.reportFamily === "FINANCIAL_FRAUD";
+  const isFinancialIncident = classification.reportFamily === "FINANCIAL_FRAUD";
   const financialLossState = isFinancialIncident
-    ? extracted.financialLossState !== "UNKNOWN"
+    ? extracted.lossStateExplicit
       ? extracted.financialLossState
       : draft.incident.financialLossState
-    : draft.classification.moneyLost === false || draft.incident.moneyLost === false
+    : classification.moneyLost === false || draft.incident.moneyLost === false
       ? "NO"
       : draft.incident.financialLossState;
   const moneyLost = isFinancialIncident
@@ -245,26 +384,56 @@ export function normalizeIncidentDraft(
       : financialLossState === "NO"
         ? false
         : null
-    : draft.incident.moneyLost ?? draft.classification.moneyLost;
+    : draft.incident.moneyLost ?? classification.moneyLost;
   const existingTransactions = financialLossState === "YES" ? draft.transactions : [];
-  const transactionSource =
-    extracted.transactionAmounts.length > existingTransactions.length
-      ? extracted.transactionAmounts.map((amount, index) => ({
-          ...(existingTransactions[index] ?? {
-            id: `transaction-${index + 1}`,
-            institution: null,
-            currency: "INR",
-            paymentMethod: null,
-            accountOrUpiId: null,
-            transactionIdOrUtr: null,
-            transactionDate: null,
-            approximateTime: null,
-            referenceNumber: null,
-            status: "KNOWN" as const,
-          }),
-          amount,
-        }))
-      : existingTransactions;
+  const hasTransactionEvidence = draft.evidence.some(
+    (item) => item.type === "TRANSACTION_SCREENSHOT",
+  );
+  const hasCitizenConfirmedTransaction = draft.citizenConfirmedFields.some((field) =>
+    field.startsWith("transactions."),
+  );
+  const canonicalMentions = extracted.monetaryMentions.filter(
+    ({ role }) => role === "ACTUAL_OUTFLOW",
+  );
+  const claimedExistingIndexes = new Set<number>();
+  const transactionSource = financialLossState !== "YES"
+    ? []
+    : canonicalMentions.length > 0
+      ? canonicalMentions.map((mention, index) => {
+          const exactIndex = existingTransactions.findIndex(
+            (transaction, transactionIndex) =>
+              !claimedExistingIndexes.has(transactionIndex) &&
+              transaction.amount === mention.amount,
+          );
+          const fallbackIndex = existingTransactions[index] &&
+            existingTransactions[index].amount === null &&
+            !claimedExistingIndexes.has(index)
+            ? index
+            : -1;
+          const matchedIndex = exactIndex >= 0 ? exactIndex : fallbackIndex;
+          if (matchedIndex >= 0) claimedExistingIndexes.add(matchedIndex);
+          const existing = matchedIndex >= 0 ? existingTransactions[matchedIndex] : null;
+          return {
+            ...(existing ?? {
+              id: `transaction-${mention.sourceKey}`,
+              institution: null,
+              currency: "INR",
+              paymentMethod: null,
+              accountOrUpiId: null,
+              transactionIdOrUtr: null,
+              transactionDate: null,
+              approximateTime: null,
+              referenceNumber: null,
+              status: "KNOWN" as const,
+            }),
+            amount: mention.amount,
+          };
+        })
+      : hasCitizenConfirmedTransaction
+        ? existingTransactions
+      : extracted.monetaryMentions.length > 0 && !hasTransactionEvidence
+        ? []
+        : existingTransactions;
   const normalizedIncidentDate = draft.incident.incidentDate ?? relativeContext.incidentDate;
   const evidenceHasSeparateTransactionDate = draft.evidence.some(
     (item) => item.type === "TRANSACTION_SCREENSHOT" &&
@@ -275,30 +444,29 @@ export function normalizeIncidentDraft(
     !evidenceHasSeparateTransactionDate &&
     /\b(?:after that|then|later|subsequently)\b[\s\S]*\b(?:paid|debited|transferred|sent)\b|\b(?:paid|debited|transferred|sent)\b[\s\S]*\b(?:after that|then|later|subsequently)\b/i.test(supportedText),
   );
-  const transactions = transactionSource.length > 0
-    ? transactionSource.map((transaction, index) => ({
+  const seenTransactionIds = new Set<string>();
+  const transactions = transactionSource.map((transaction, index) => {
+      const preferredId = transaction.id || `transaction-${index + 1}`;
+      const id = seenTransactionIds.has(preferredId)
+        ? `${preferredId}-${index + 1}`
+        : preferredId;
+      seenTransactionIds.add(id);
+      const normalizedUtr = transaction.transactionIdOrUtr?.replace(/[^a-z0-9]/gi, "").toLowerCase();
+      const normalizedReference = transaction.referenceNumber?.replace(/[^a-z0-9]/gi, "").toLowerCase();
+      return {
         ...transaction,
-        id: transaction.id || `transaction-${index + 1}`,
+        id,
         currency: transaction.currency ?? "INR",
         transactionDate: transaction.transactionDate ??
           (transactionDateFromIncident ? normalizedIncidentDate : null),
+        referenceNumber: normalizedUtr && normalizedUtr === normalizedReference
+          ? null
+          : transaction.referenceNumber,
         status: transaction.amount || transaction.transactionIdOrUtr || transaction.referenceNumber
           ? "KNOWN" as const
           : "MISSING" as const,
-      }))
-    : extracted.transactionAmounts.map((amount, index) => ({
-        id: `transaction-${index + 1}`,
-        institution: null,
-        currency: "INR",
-        paymentMethod: null,
-        accountOrUpiId: null,
-        transactionIdOrUtr: null,
-        amount,
-        transactionDate: transactionDateFromIncident ? normalizedIncidentDate : null,
-        approximateTime: null,
-        referenceNumber: null,
-        status: "KNOWN" as const,
-      }));
+      };
+    });
   const mentionedInstitutions = Array.from(new Set([
     ...draft.mentionedInstitutions,
     ...extracted.mentionedInstitutions,
@@ -306,14 +474,14 @@ export function normalizeIncidentDraft(
   return {
     ...draft,
     classification: {
-      ...draft.classification,
+      ...classification,
       moneyLost,
     },
     officialMapping: {
       ...draft.officialMapping,
       category: reportCategory,
-      categoryLabel: draft.classification.category,
-      subCategoryLabel: draft.classification.subCategory,
+      categoryLabel: classification.category,
+      subCategoryLabel: classification.subCategory,
     },
     adaptiveFacts: {
       ...draft.adaptiveFacts,
@@ -331,7 +499,7 @@ export function normalizeIncidentDraft(
       financialLossState,
       moneyLost,
       reportedAmount: financialLossState === "YES"
-        ? draft.incident.reportedAmount ?? extracted.reportedAmount
+        ? extracted.reportedAmount ?? draft.incident.reportedAmount
         : null,
       incidentDate: normalizedIncidentDate,
       approximateTime: draft.incident.approximateTime ?? relativeContext.approximateTime,
