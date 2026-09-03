@@ -20,7 +20,8 @@ export type CaseSummaryItem = {
 
 export type PostReportAction = {
   id: string;
-  text: string;
+  title: string;
+  description: string;
   href?: string;
 };
 
@@ -178,6 +179,22 @@ export function getPostReportActions(
   locale: UiLocale,
 ): PostReportAction[] {
   const hi = locale === "hi";
+  const story = draft.incident.narrative ?? "";
+  const explicitlyShared = (subject: RegExp) => {
+    return story
+      .split(/(?:[.!?;\n]+|\bbut\b|लेकिन|परंतु)/i)
+      .some(
+        (clause) =>
+          subject.test(clause) &&
+          /(shared|gave|sent|provided|बताया|दिया|भेजा|साझा)/i.test(clause) &&
+          !/(did not|didn't|never|नहीं)\s+(share|give|send|provide|बताया|दिया|भेजा|साझा)/i.test(
+            clause,
+          ),
+      );
+  };
+  const bankDetailsShared = explicitlyShared(/bank details|account details|बैंक विवरण|खाते? का विवरण/i);
+  const identityShared = explicitlyShared(/aadhaar|identity|id document|आधार|पहचान/i);
+  const otpShared = explicitlyShared(/otp|one[ -]?time password|ओटीपी/i);
   const hasFinancialLoss =
     draft.classification.reportFamily === "FINANCIAL_FRAUD" &&
     draft.incident.financialLossState === "YES";
@@ -187,31 +204,207 @@ export function getPostReportActions(
     ) ||
     Boolean(draft.adaptiveFacts.affectedAccount) ||
     Boolean(draft.adaptiveFacts.accountAccessStatus);
+  const isRansomware = /ransomware/i.test(
+    `${draft.classification.subCategory ?? ""} ${draft.citizenSummary.incidentLabel}`,
+  ) || Boolean(draft.adaptiveFacts.ransomMessagePresent);
+  const isSensitiveAbuse =
+    draft.classification.reportFamily === "WOMEN_CHILDREN_RELATED_CRIME";
+  const hasEvidence = draft.evidence.some(
+    (item) => item.type !== "VOICE_STATEMENT",
+  );
+
+  if (draft.classification.reportFamily === "OUT_OF_SCOPE_OR_UNCLEAR") {
+    return [
+      {
+        id: "use-appropriate-service",
+        title: hi ? "सही सहायता सेवा से संपर्क करें" : "Use the appropriate support service",
+        description: hi
+          ? "यह घटना साइबर अपराध रिपोर्टिंग के दायरे से बाहर मानी गई थी। तत्काल खतरे में स्थानीय आपातकालीन या पुलिस सहायता लें।"
+          : "This incident was considered outside the cyber-reporting scope. Use local emergency or police support if there is immediate danger.",
+      },
+      {
+        id: "preserve-record",
+        title: hi ? "घटना का रिकॉर्ड सुरक्षित रखें" : "Preserve a record of the incident",
+        description: hi
+          ? "संबंधित संदेश, तस्वीरें या अन्य जानकारी सुरक्षित रखें।"
+          : "Keep relevant messages, images or other information available.",
+      },
+    ];
+  }
+
+  if (isSensitiveAbuse) {
+    const actions: PostReportAction[] = [
+      {
+        id: "preserve-threatening-evidence",
+        title: hi ? "धमकी वाले संदेश और सबूत सुरक्षित रखें" : "Preserve threatening messages and evidence",
+        description: hi
+          ? "मूल संदेश, प्रोफ़ाइल, URL और उपलब्ध स्क्रीनशॉट सुरक्षित रखें।"
+          : "Keep the original messages, profiles, URLs and available screenshots.",
+      },
+      {
+        id: "avoid-engagement",
+        title: hi ? "अनावश्यक बातचीत जारी न रखें" : "Avoid unnecessary continued engagement",
+        description: hi
+          ? "सबूत सुरक्षित करने के बाद भेजने वाले से संपर्क सीमित या बंद करें।"
+          : "After preserving evidence, limit or stop contact with the sender.",
+      },
+      {
+        id: "official-safety-path",
+        title: hi ? "संबंधित आधिकारिक रिपोर्टिंग रास्ते का उपयोग करें" : "Use the relevant official reporting path",
+        description: hi
+          ? "यदि तत्काल शारीरिक खतरा है, तो तुरंत पुलिस या आपातकालीन सहायता लें।"
+          : "Seek immediate police or emergency assistance if there is immediate physical danger.",
+      },
+    ];
+    if (draft.incident.financialLossState === "YES") {
+      actions.push({
+        id: "call-1930",
+        title: hi ? "वित्तीय नुकसान के लिए 1930 पर कॉल करें" : "Call 1930 for the financial loss",
+        description: hi
+          ? "यदि आपने अभी तक नहीं किया है, तो वित्तीय धोखाधड़ी की तत्काल रिपोर्टिंग के लिए राष्ट्रीय हेल्पलाइन का उपयोग करें।"
+          : "If you have not already, use the national helpline for urgent financial-fraud reporting.",
+        href: "tel:1930",
+      });
+    }
+    return actions;
+  }
 
   if (hasFinancialLoss) {
+    const totalLoss = totalReportedLoss(draft);
+    const transactionCount = draft.transactions.length;
+    const knownReferences = draft.transactions.filter(
+      (transaction) =>
+        transaction.transactionIdOrUtr &&
+        transaction.transactionIdOrUtr !== "__CITIZEN_DOES_NOT_HAVE__",
+    ).length;
     return [
       {
         id: "call-1930",
-        text: hi
-          ? "यदि आपने अभी तक नहीं किया है, तो तुरंत 1930 पर कॉल करें।"
-          : "Call 1930 promptly if you have not already.",
+        title: hi ? "यदि अभी तक नहीं किया है, तो तुरंत 1930 पर कॉल करें" : "Call 1930 promptly if you have not already",
+        description: hi
+          ? "तत्काल वित्तीय धोखाधड़ी रिपोर्टिंग के लिए राष्ट्रीय साइबर-धोखाधड़ी हेल्पलाइन का उपयोग करें।"
+          : "Use the national cyber-fraud helpline for urgent financial-fraud reporting.",
         href: "tel:1930",
       },
       {
         id: "keep-transactions",
-        text: draft.transactions.length > 1
+        title: knownReferences > 0
           ? hi
-            ? "रिपोर्ट किए गए सभी लेन-देन के संदर्भ और बैंक से हुई बातचीत तैयार रखें।"
-            : "Keep the references for all reported transactions and bank communication available."
+            ? "लेन-देन के सभी उपलब्ध संदर्भ तैयार रखें"
+            : "Keep all available transaction references ready"
           : hi
-            ? "लेन-देन संदर्भ और बैंक से हुई बातचीत तैयार रखें।"
-            : "Keep the transaction reference and bank communication available.",
+            ? "लेन-देन की उपलब्ध जानकारी तैयार रखें"
+            : "Keep the transaction details you have available",
+        description: transactionCount > 0 && totalLoss
+          ? hi
+            ? `आपने ${transactionCount} लेन-देन में कुल ${formatCurrency(totalLoss)} का नुकसान बताया है।`
+            : `You reported ${transactionCount} ${transactionCount === 1 ? "transaction" : "transactions"} totalling ${formatCurrency(totalLoss)}.`
+          : hi
+            ? "बैंक से हुई बातचीत और आपके पास मौजूद भुगतान विवरण सुरक्षित रखें।"
+            : "Keep bank communication and the payment details you have available.",
+      },
+      {
+        id: "contact-bank",
+        title: hi ? "अपने बैंक से उसके आधिकारिक माध्यम से संपर्क करें" : "Contact your bank through its official channel",
+        description: hi
+          ? "उन्हें बताएं कि लेन-देन संदिग्ध साइबर धोखाधड़ी से जुड़ा है।"
+          : `Tell them the ${transactionCount === 1 ? "transaction is" : "transactions are"} connected to suspected cyber fraud.`,
       },
       {
         id: "preserve-evidence",
-        text: hi
-          ? "धोखाधड़ी से जुड़े संदेश, लिंक, फोन नंबर और स्क्रीनशॉट सुरक्षित रखें।"
-          : "Preserve the messages, links, phone numbers and screenshots connected to the fraud.",
+        title: hi ? "भुगतान से जुड़े सबूत सुरक्षित रखें" : "Preserve the evidence connected to the payment",
+        description: hasEvidence
+          ? hi
+            ? "संदेश, लिंक, फोन नंबर, स्क्रीनशॉट और लेन-देन रिकॉर्ड की मूल प्रतियाँ रखें।"
+            : "Keep the original messages, links, phone numbers, screenshots and transaction records."
+          : hi
+            ? "संदेश, लिंक, फोन नंबर और उपलब्ध लेन-देन रिकॉर्ड सुरक्षित रखें।"
+            : "Keep messages, links, phone numbers and available transaction records.",
+      },
+    ];
+  }
+
+  if (
+    draft.classification.reportFamily === "FINANCIAL_FRAUD" &&
+    draft.incident.financialLossState === "NO"
+  ) {
+    const actions: PostReportAction[] = [];
+    if (bankDetailsShared || otpShared) {
+      actions.push({
+        id: "contact-bank-security",
+        title: hi ? "संबंधित बैंक से उसके आधिकारिक माध्यम से संपर्क करें" : "Contact the relevant bank through its official channel",
+        description: hi
+          ? `${otpShared ? "OTP" : "बैंक विवरण"} साझा होने की जानकारी दें और खाते की सुरक्षा की समीक्षा करें।`
+          : `Explain that ${otpShared ? "an OTP" : "bank details"} was shared and review your account security.`,
+      });
+    } else {
+      const requestedDetails = [
+        draft.financialExposure.bankDetailsRequested ? (hi ? "बैंक विवरण" : "bank details") : null,
+        draft.financialExposure.identityDocumentRequested ? (hi ? "पहचान दस्तावेज़" : "identity documents") : null,
+        draft.financialExposure.otpRequested ? "OTP" : null,
+      ].filter((item): item is string => Boolean(item));
+      actions.push({
+        id: "do-not-share",
+        title: hi ? "पैसे या संवेदनशील बैंकिंग जानकारी न भेजें" : "Do not send money or sensitive banking information",
+        description: requestedDetails.length > 0
+          ? hi
+            ? `इस मामले में कोई वित्तीय नुकसान दर्ज नहीं हुआ। मांगी गई जानकारी (${requestedDetails.join(", ")}) साझा न करें।`
+            : `No financial loss was reported. Do not share the requested ${requestedDetails.join(", ")}.`
+          : hi
+            ? "इस मामले में कोई वित्तीय नुकसान दर्ज नहीं हुआ। आगे पैसे या बैंकिंग जानकारी साझा न करें।"
+            : "No financial loss was reported. Do not send money or banking information in further contact.",
+      });
+    }
+    if (identityShared) {
+      actions.push({
+        id: "record-identity-share",
+        title: hi ? "साझा की गई पहचान जानकारी का रिकॉर्ड रखें" : "Keep a record of the identity information shared",
+        description: hi
+          ? "संदिग्ध आगे के संपर्क पर नज़र रखें, लेकिन पहचान चोरी का अनुमान न लगाएं।"
+          : "Watch for suspicious follow-up contact without assuming identity theft has occurred.",
+      });
+    }
+    actions.push(
+      {
+        id: "block-contact",
+        title: hi ? "भेजने वाले से आगे का संपर्क बंद करें" : "Stop further contact with the sender",
+        description: hi
+          ? "संपर्क में उपयोग किए गए नंबर, प्रोफ़ाइल या खाते को ब्लॉक करें।"
+          : "Block the number, profile or account used to contact you.",
+      },
+      {
+        id: "preserve-contact",
+        title: hi ? "संदेश और भेजने वाले की जानकारी सुरक्षित रखें" : "Preserve the message and sender details",
+        description: hi
+          ? "उपलब्ध संदेश, फोन नंबर, प्रोफ़ाइल, URL या स्क्रीनशॉट रखें।"
+          : "Keep the message, phone number, profile, URL or screenshot if available.",
+      },
+    );
+    return actions.slice(0, 4);
+  }
+
+  if (isRansomware) {
+    return [
+      {
+        id: "disconnect-device",
+        title: hi ? "प्रभावित उपकरण को नेटवर्क से अलग करें" : "Disconnect the affected device from networks",
+        description: hi
+          ? "यदि उपकरण अभी भी प्रभावित है, तो उसे इंटरनेट और साझा नेटवर्क से अलग करें।"
+          : "If it is still actively compromised, disconnect it from the internet and shared networks.",
+      },
+      {
+        id: "preserve-ransom-message",
+        title: hi ? "फिरौती का संदेश और स्क्रीनशॉट सुरक्षित रखें" : "Preserve the ransom message and screenshots",
+        description: hi
+          ? "सबूत सुरक्षित होने से पहले संबंधित फ़ाइलें या संदेश न हटाएं।"
+          : "Do not delete relevant files or messages before the evidence is safely preserved.",
+      },
+      {
+        id: "official-ransomware-path",
+        title: hi ? "संबंधित आधिकारिक रिपोर्टिंग रास्ते का उपयोग करें" : "Use the relevant official reporting path",
+        description: hi
+          ? "फिरौती न दें और इस पेज की सलाह को विस्तृत मालवेयर हटाने के निर्देश न मानें।"
+          : "Do not pay the ransom or treat this guidance as detailed malware-removal instructions.",
       },
     ];
   }
@@ -221,47 +414,33 @@ export function getPostReportActions(
     return [
       {
         id: "account-recovery",
-        text: hi
-          ? `${platform ?? "प्रभावित प्लेटफ़ॉर्म"} की आधिकारिक खाता-रिकवरी प्रक्रिया शुरू करें।`
-          : `Start ${platform ? `${platform}'s` : "the affected platform's"} official account-recovery process.`,
+        title: hi
+          ? `${platform ?? "प्रभावित प्लेटफ़ॉर्म"} की आधिकारिक खाता-रिकवरी प्रक्रिया का उपयोग करें`
+          : `Use ${platform ? `${platform}'s` : "the affected platform's"} official account-recovery process`,
+        description: hi
+          ? "रिकवरी सीधे प्रभावित प्लेटफ़ॉर्म की आधिकारिक सेटिंग या सहायता से शुरू करें।"
+          : "Start recovery directly through the affected platform's official settings or support.",
       },
       {
         id: "secure-email",
-        text: hi
-          ? "प्रभावित खाते से जुड़े ईमेल खाते को सुरक्षित करें।"
-          : "Secure the email account connected to the compromised account.",
+        title: hi ? "इससे जुड़े ईमेल खाते को सुरक्षित करें" : "Secure the email account connected to it",
+        description: hi
+          ? "आधिकारिक सेटिंग से संदिग्ध क्रेडेंशियल बदलें और खाते की सुरक्षा जाँचें।"
+          : "Change compromised credentials and review account security using official settings.",
       },
       {
         id: "review-security",
-        text: hi
-          ? "हाल की लॉगिन या सुरक्षा गतिविधि देखें और संदिग्ध सूचनाएँ सुरक्षित रखें।"
-          : "Review recent security or login activity and preserve suspicious notifications.",
-      },
-    ];
-  }
-
-  if (
-    draft.classification.reportFamily === "FINANCIAL_FRAUD" &&
-    draft.incident.financialLossState === "NO"
-  ) {
-    return [
-      {
-        id: "do-not-share",
-        text: hi
-          ? "बैंक विवरण, पहचान दस्तावेज़, OTP या भुगतान साझा न करें।"
-          : "Do not send bank details, identity documents, OTPs or payment.",
+        title: hi ? "हाल की लॉगिन और सुरक्षा गतिविधि देखें" : "Review recent login and security activity",
+        description: hi
+          ? "अनजान सत्र, रिकवरी बदलाव या सुरक्षा चेतावनियाँ देखें।"
+          : "Look for unfamiliar sessions, recovery changes or security alerts.",
       },
       {
-        id: "block-contact",
-        text: hi
-          ? "भेजने वाले से आगे का संपर्क ब्लॉक करें।"
-          : "Block further contact from the sender.",
-      },
-      {
-        id: "preserve-contact",
-        text: hi
-          ? "रिपोर्टिंग के लिए संदेश, फोन नंबर या प्रोफ़ाइल सुरक्षित रखें।"
-          : "Preserve the message, phone number or profile if you need it for reporting.",
+        id: "preserve-account-evidence",
+        title: hi ? "खाते से जुड़े सबूत सुरक्षित रखें" : "Preserve account evidence",
+        description: hi
+          ? "संदिग्ध संदेश, प्रोफ़ाइल URL, ईमेल और सुरक्षा सूचनाएँ रखें।"
+          : "Keep suspicious messages, profile URLs, emails and security notifications.",
       },
     ];
   }
@@ -269,15 +448,17 @@ export function getPostReportActions(
   return [
     {
       id: "secure-service",
-      text: hi
-        ? "प्रभावित खाते, उपकरण या जानकारी को संबंधित आधिकारिक सेवा से सुरक्षित करें।"
-        : "Secure the affected account, device or information through the relevant official service.",
+      title: hi ? "प्रभावित सेवा या उपकरण को सुरक्षित करें" : "Secure the affected service or device",
+      description: hi
+        ? "संबंधित आधिकारिक सेवा की सुरक्षा या रिकवरी सेटिंग का उपयोग करें।"
+        : "Use the relevant official service's security or recovery settings.",
     },
     {
       id: "preserve-records",
-      text: hi
-        ? "मूल संदेश, सूचनाएँ और अन्य सबूत सुरक्षित रखें।"
-        : "Preserve the original messages, notifications and other evidence.",
+      title: hi ? "उपलब्ध सबूत सुरक्षित रखें" : "Preserve the available evidence",
+      description: hi
+        ? "मूल संदेश, सूचनाएँ और अन्य संबंधित रिकॉर्ड रखें।"
+        : "Keep the original messages, notifications and other relevant records.",
     },
   ];
 }

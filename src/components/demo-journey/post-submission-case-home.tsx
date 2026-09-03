@@ -21,9 +21,7 @@ type PostSubmissionCaseHomeProps = {
   screenshots: File[];
   isDemoIncident: boolean;
   milestones: PostReportMilestones;
-  onReviewReport: () => void;
-  onAddAcknowledgement: () => void;
-  onUseDemoAcknowledgement: () => void;
+  onStartNewReport: () => void;
 };
 
 const DEMO_EVIDENCE_PATHS: Record<string, string> = {
@@ -172,9 +170,7 @@ export function PostSubmissionCaseHome({
   screenshots,
   isDemoIncident,
   milestones,
-  onReviewReport,
-  onAddAcknowledgement,
-  onUseDemoAcknowledgement,
+  onStartNewReport,
 }: PostSubmissionCaseHomeProps) {
   const { locale } = useI18n();
   const hi = locale === "hi";
@@ -233,13 +229,23 @@ export function PostSubmissionCaseHome({
 
           <section className="companion-section" aria-labelledby="post-report-actions-heading">
             <h2 id="post-report-actions-heading">{hi ? "अभी क्या करें" : "What to do now"}</h2>
-            <ul className="citizen-actions-list">
-              {actions.map((action) => (
+            <ol className="post-report-action-list">
+              {actions.map((action, index) => (
                 <li key={action.id}>
-                  {action.href ? <a href={action.href}>{action.text}</a> : action.text}
+                  <span aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>
+                  <div>
+                    <h3>
+                      {action.href ? (
+                        <a href={action.href}>{action.title}</a>
+                      ) : (
+                        action.title
+                      )}
+                    </h3>
+                    <p>{action.description}</p>
+                  </div>
                 </li>
               ))}
-            </ul>
+            </ol>
           </section>
 
           <section className="companion-section" aria-labelledby="post-report-process-heading">
@@ -273,25 +279,8 @@ export function PostSubmissionCaseHome({
             isDemoIncident={isDemoIncident}
           />
 
-          <section className="companion-section success-companion-prompt">
-            <h2>{hi ? "क्या आपने NCRP पर भी शिकायत जमा की है?" : "Also submitted on NCRP?"}</h2>
-            <p>
-              {hi
-                ? "अपनी आधिकारिक पावती जोड़कर उसमें दिखाई गई स्थिति को समझें।"
-                : "Add your official acknowledgement to understand the status shown there."}
-            </p>
-            <div className="entry-actions">
-              <button className="primary-button" type="button" onClick={onAddAcknowledgement}>
-                {hi ? "पावती जोड़ें" : "Add acknowledgement"}
-              </button>
-              <button className="secondary-button" type="button" onClick={onUseDemoAcknowledgement}>
-                {hi ? "डेमो पावती का उपयोग करें" : "Use demo acknowledgement"}
-              </button>
-            </div>
-          </section>
-
-          <button className="text-button" type="button" onClick={onReviewReport}>
-            {hi ? "जमा की गई रिपोर्ट देखें" : "View submitted report"} →
+          <button className="secondary-button" type="button" onClick={onStartNewReport}>
+            {hi ? "नई रिपोर्ट शुरू करें" : "Start new report"}
           </button>
         </div>
       </div>

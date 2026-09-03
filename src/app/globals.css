@@ -1205,40 +1205,35 @@ textarea {
 }
 
 .incident-timeline > ol > li {
-  position: relative;
   min-height: 72px;
-  padding: 0 0 22px 132px;
+  padding: 0 0 22px;
+  display: grid;
+  grid-template-columns: minmax(100px, 112px) 24px minmax(0, 1fr);
+  align-items: stretch;
+  column-gap: 8px;
 }
 
-.incident-timeline > ol > li::before {
-  content: "";
-  position: absolute;
-  top: 7px;
-  left: 108px;
-  width: 8px;
-  height: 8px;
-  background: #817d78;
-  border-radius: 50%;
+.timeline-marker {
+  min-height: 50px;
+  display: block;
+  background:
+    radial-gradient(circle at 50% 6px, #817d78 0 4px, transparent 4.5px),
+    linear-gradient(var(--border), var(--border)) 50% 15px / 1px calc(100% - 10px) no-repeat;
 }
 
-.incident-timeline > ol > li:not(:last-child)::after {
-  content: "";
-  position: absolute;
-  top: 18px;
-  bottom: -1px;
-  left: 111px;
-  width: 1px;
-  background: var(--border);
+.incident-timeline > ol > li:last-child .timeline-marker {
+  background: radial-gradient(circle at 50% 6px, #817d78 0 4px, transparent 4.5px);
 }
 
 .incident-timeline time {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 94px;
   color: var(--secondary);
   font-size: 12px;
   font-weight: 650;
+  line-height: 1.45;
+}
+
+.incident-timeline time span {
+  display: block;
 }
 
 .incident-timeline p {
@@ -1961,6 +1956,43 @@ dd {
   margin-bottom: 9px;
 }
 
+.post-report-action-list {
+  margin: 20px 0 0;
+  padding: 0;
+  display: grid;
+  list-style: none;
+}
+
+.post-report-action-list > li {
+  padding-block: 18px;
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.post-report-action-list > li > span {
+  color: var(--secondary);
+  font-size: 13px;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+}
+
+.post-report-action-list h3 {
+  margin-bottom: 4px;
+  font-size: 17px;
+}
+
+.post-report-action-list h3 a {
+  color: var(--primary);
+  text-underline-offset: 3px;
+}
+
+.post-report-action-list p {
+  margin: 0;
+  color: var(--secondary);
+}
+
 .citizen-actions-list a {
   color: var(--primary);
   font-weight: 700;
@@ -2613,20 +2645,12 @@ html[data-ui-locale="hi"] .companion-eyebrow {
   }
 
   .incident-timeline > ol > li {
-    padding-left: 26px;
-  }
-
-  .incident-timeline > ol > li::before {
-    left: 0;
-  }
-
-  .incident-timeline > ol > li:not(:last-child)::after {
-    left: 3px;
+    padding-left: 0;
+    grid-template-columns: minmax(72px, 84px) 18px minmax(0, 1fr);
+    column-gap: 5px;
   }
 
   .incident-timeline time {
-    position: static;
-    width: auto;
     display: block;
     margin-bottom: 3px;
   }

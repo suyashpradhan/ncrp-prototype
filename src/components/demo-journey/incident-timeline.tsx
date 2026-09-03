@@ -27,7 +27,12 @@ export function IncidentTimeline({
       <ol>
         {events.map((event) => (
           <li key={event.id}>
-            <time>{event.timeLabel ?? ""}</time>
+            <time>
+              {event.timeLabel?.split(" · ").map((part) => (
+                <span key={part}>{part}</span>
+              ))}
+            </time>
+            <span className="timeline-marker" aria-hidden="true" />
             <div>
               <p>{event.title}</p>
               <ul className="timeline-sources" aria-label="Sources">

@@ -41,14 +41,9 @@ import {
 } from "../../experience/profile";
 import { useI18n } from "../../i18n/i18n-provider";
 import { useJourneyNavigation } from "../../navigation/journey-navigation";
-import {
-  DEMO_OFFICIAL_ACKNOWLEDGEMENT,
-  type AddedAcknowledgement,
-} from "../../presentation/case-companion";
 import { deriveReportReadiness } from "../../presentation/report-readiness";
 import type { PostReportMilestones } from "../../presentation/post-report-case";
 import { DEMO_CASE_ACCESS, useDemoCase } from "../demo-case/demo-case-provider";
-import { AcknowledgementForm, CaseCompanion } from "./case-companion";
 import { PostSubmissionCaseHome } from "./post-submission-case-home";
 import {
   ReportWorkspace,
@@ -63,8 +58,6 @@ type JourneyView =
   | "ANALYSIS_RESULT"
   | "REVIEW"
   | "SUCCESS"
-  | "ACKNOWLEDGEMENT"
-  | "CASE_COMPANION"
   | "ANALYSIS_ERROR";
 
 const SACHET_DEMO_REFERENCE = "सचेत-DEMO-REPORT-00124";
@@ -78,8 +71,6 @@ const DEMO_RESTORABLE_VIEWS = new Set<JourneyView>([
   "ANALYSIS_RESULT",
   "REVIEW",
   "SUCCESS",
-  "ACKNOWLEDGEMENT",
-  "CASE_COMPANION",
 ]);
 
 type PersistedDemoSession = {
@@ -91,40 +82,16 @@ type PersistedDemoSession = {
   demoNarrationLanguage: DemoNarrationLanguage;
   recordingSeconds: number;
   submittedReference: string;
-  officialAcknowledgement: AddedAcknowledgement | null;
   postReportMilestones?: PostReportMilestones | null;
 };
 
 function restoredJourneyHistory(view: JourneyView): JourneyView[] {
   const history: JourneyView[] = ["ENTRY"];
   if (view === "ANALYSIS_RESULT") return history;
+  if (view === "SUCCESS") return history;
   history.push("ANALYSIS_RESULT");
   if (view === "REVIEW") return history;
-  history.push("REVIEW");
-  if (view === "SUCCESS") return history;
-  history.push("SUCCESS");
-  if (view === "ACKNOWLEDGEMENT") return history;
   return history;
-}
-
-function parsePersistedAcknowledgement(
-  value: unknown,
-): AddedAcknowledgement | null {
-  if (value === null) return null;
-  if (!value || typeof value !== "object") return null;
-  const candidate = value as Partial<AddedAcknowledgement>;
-  if (
-    typeof candidate.number !== "string" ||
-    (candidate.receiptName !== null &&
-      typeof candidate.receiptName !== "string") ||
-    !["NUMBER_ENTERED", "RECEIPT_SUPPLIED", "SYNTHETIC_DEMO"].includes(
-      candidate.source ?? "",
-    ) ||
-    typeof candidate.synthetic !== "boolean"
-  ) {
-    return null;
-  }
-  return candidate as AddedAcknowledgement;
 }
 
 function clearPersistedDemoSession() {
@@ -310,8 +277,6 @@ export function DemoJourney() {
   const [submittedReference, setSubmittedReference] = useState<string>(
     SACHET_DEMO_REFERENCE,
   );
-  const [officialAcknowledgement, setOfficialAcknowledgement] =
-    useState<AddedAcknowledgement | null>(null);
   const [postReportMilestones, setPostReportMilestones] =
     useState<PostReportMilestones | null>(null);
   const preparedAtRef = useRef<string | null>(null);
@@ -350,6 +315,7 @@ export function DemoJourney() {
   const isReportStale = Boolean(
     draft && preparedSourceSignature && currentSourceSignature !== preparedSourceSignature,
   );
+  const hasSubmittedCase = Boolean(draft && postReportMilestones);
 
   useEffect(() => {
     if (attemptedDemoRestoreRef.current) return;
@@ -378,14 +344,7 @@ export function DemoJourney() {
       const restoredTranscription = TranscriptionResultSchema.safeParse(
         candidate.transcription,
       );
-      const acknowledgement = parsePersistedAcknowledgement(
-        candidate.officialAcknowledgement,
-      );
       if (!restoredDraft.success || !restoredTranscription.success) {
-        clearPersistedDemoSession();
-        return;
-      }
-      if (candidate.view === "CASE_COMPANION" && !acknowledgement) {
         clearPersistedDemoSession();
         return;
       }
@@ -399,7 +358,6 @@ export function DemoJourney() {
       );
       setRecordingSeconds(candidate.recordingSeconds);
       setSubmittedReference(candidate.submittedReference);
-      setOfficialAcknowledgement(acknowledgement);
       const restoredMilestones = candidate.postReportMilestones;
       if (
         restoredMilestones &&
@@ -454,7 +412,6 @@ export function DemoJourney() {
       demoNarrationLanguage,
       recordingSeconds,
       submittedReference,
-      officialAcknowledgement,
       postReportMilestones,
     };
     try {
@@ -468,7 +425,6 @@ export function DemoJourney() {
     experienceMode,
     isDemoIncident,
     narrative,
-    officialAcknowledgement,
     postReportMilestones,
     recordingSeconds,
     submittedReference,
@@ -540,7 +496,6 @@ export function DemoJourney() {
     setIsTranscriptionError(false);
     setIsDemoIncident(false);
     setSubmittedReference(SACHET_DEMO_REFERENCE);
-    setOfficialAcknowledgement(null);
     setPostReportMilestones(null);
     preparedAtRef.current = null;
     setPreparedSourceSignature(null);
@@ -592,6 +547,11 @@ export function DemoJourney() {
       recorderRef.current.stop();
     }
     recorderRef.current?.stream.getTracks().forEach((track) => track.stop());
+    if (hasSubmittedCase) {
+      journeyHistoryRef.current = [];
+      setCurrentView("ENTRY");
+      return;
+    }
     clearPersistedDemoSession();
     resetDemo();
     resetInputs();
@@ -605,7 +565,13 @@ export function DemoJourney() {
       onBack: goBackInJourney,
       onHome: returnHome,
     });
-  }, [registerControls, view]);
+  }, [hasSubmittedCase, registerControls, view]);
+
+  function openSubmittedCase() {
+    if (!hasSubmittedCase) return;
+    journeyHistoryRef.current = ["ENTRY"];
+    setCurrentView("SUCCESS");
+  }
 
   function startReport() {
     clearPersistedDemoSession();
@@ -640,10 +606,6 @@ export function DemoJourney() {
     pendingReportFocusRef.current = true;
     journeyHistoryRef.current = ["ENTRY"];
     setCurrentView("ANALYSIS_RESULT");
-  }
-
-  function restartDemo() {
-    useDemoIncident();
   }
 
   function chooseDemoNarration(language: DemoNarrationLanguage) {
@@ -1005,7 +967,8 @@ export function DemoJourney() {
         );
         setPostReportMilestones(milestones);
         setFormError(null);
-        navigateTo("SUCCESS");
+        journeyHistoryRef.current = ["ENTRY"];
+        setCurrentView("SUCCESS");
         return;
       }
       const built = buildSyntheticCaseFromComplaint({
@@ -1024,7 +987,8 @@ export function DemoJourney() {
       );
       setPostReportMilestones(milestones);
       setFormError(null);
-      navigateTo("SUCCESS");
+      journeyHistoryRef.current = ["ENTRY"];
+      setCurrentView("SUCCESS");
     } catch (error) {
       setFormError(
         error instanceof Error
@@ -1057,16 +1021,20 @@ export function DemoJourney() {
                 <button
                   className="primary-button"
                   type="button"
-                  onClick={startReport}
+                  onClick={hasSubmittedCase ? openSubmittedCase : startReport}
                 >
-                  {locale === "hi" ? "रिपोर्ट शुरू करें" : "Start a report"}
+                  {hasSubmittedCase
+                    ? locale === "hi" ? "मामला देखें" : "View case"
+                    : locale === "hi" ? "रिपोर्ट शुरू करें" : "Start a report"}
                 </button>
                 <button
                   className="secondary-button"
                   type="button"
-                  onClick={useDemoIncident}
+                  onClick={hasSubmittedCase ? startReport : useDemoIncident}
                 >
-                  {locale === "hi" ? "डेमो देखें" : "Try demo"}
+                  {hasSubmittedCase
+                    ? locale === "hi" ? "नई रिपोर्ट शुरू करें" : "Start new report"
+                    : locale === "hi" ? "डेमो देखें" : "Try demo"}
                 </button>
               </div>
               <UrgentMoneyGuidance />
@@ -1149,33 +1117,6 @@ export function DemoJourney() {
         onSubmit={submitComplaint}
       />
     );
-  } else if (view === "ACKNOWLEDGEMENT") {
-    content = (
-      <AcknowledgementForm
-        onContinue={(acknowledgement) => {
-          setOfficialAcknowledgement(acknowledgement);
-          navigateTo("CASE_COMPANION");
-        }}
-        onUseDemo={() => {
-          setOfficialAcknowledgement({
-            number: DEMO_OFFICIAL_ACKNOWLEDGEMENT,
-            receiptName: null,
-            source: "SYNTHETIC_DEMO",
-            synthetic: true,
-          });
-          navigateTo("CASE_COMPANION");
-        }}
-      />
-    );
-  } else if (view === "CASE_COMPANION" && draft && officialAcknowledgement) {
-    content = (
-      <CaseCompanion
-        acknowledgement={officialAcknowledgement}
-        draft={draft}
-        reporterName={activeProfile.displayName}
-        onRestartDemo={isDemoIncident ? restartDemo : undefined}
-      />
-    );
   } else if (view === "SUCCESS" && draft && postReportMilestones) {
     content = (
       <PostSubmissionCaseHome
@@ -1184,17 +1125,7 @@ export function DemoJourney() {
         screenshots={screenshots}
         isDemoIncident={isDemoIncident}
         milestones={postReportMilestones}
-        onReviewReport={() => navigateTo("REVIEW")}
-        onAddAcknowledgement={() => navigateTo("ACKNOWLEDGEMENT")}
-        onUseDemoAcknowledgement={() => {
-          setOfficialAcknowledgement({
-            number: DEMO_OFFICIAL_ACKNOWLEDGEMENT,
-            receiptName: null,
-            source: "SYNTHETIC_DEMO",
-            synthetic: true,
-          });
-          navigateTo("CASE_COMPANION");
-        }}
+        onStartNewReport={startReport}
       />
     );
   } else {
