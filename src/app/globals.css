@@ -596,9 +596,6 @@ textarea {
 
 /* Journey and workspace */
 .journey-progress {
-  position: sticky;
-  top: 0;
-  z-index: 8;
   max-width: 600px;
   margin: 0 0 28px;
   padding: 8px 0 0;
@@ -631,7 +628,7 @@ textarea {
 }
 
 .report-workspace-stage {
-  padding-block: 32px 150px;
+  padding-block: 32px;
 }
 
 .report-workspace-shell {
@@ -658,7 +655,6 @@ textarea {
 .report-input-pane {
   background: #fdfdfb;
   border-right: 1px solid var(--border);
-  padding-bottom: 0;
 }
 
 .report-input-pane > h1 {
@@ -763,15 +759,6 @@ textarea {
 
 .prepare-report-button {
   width: 100%;
-}
-
-.prepare-report-sticky-action {
-  position: sticky;
-  bottom: 0;
-  z-index: 4;
-  margin: 28px -32px 0;
-  padding: 16px 32px 32px;
-  background: linear-gradient(to bottom, rgba(253, 253, 251, 0), #fdfdfb 14px);
 }
 
 .report-sources {
@@ -954,66 +941,8 @@ textarea {
   font-weight: 700;
 }
 
-.report-pane-heading {
-  position: sticky;
-  top: 62px;
-  z-index: 3;
-  margin-bottom: 22px;
-  padding: 4px 0 12px;
-  background: var(--surface);
-}
-
-.report-pane-readiness {
-  display: block;
-  margin-top: 5px;
-  color: var(--secondary);
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.workspace-action-bar {
-  position: fixed;
-  left: 50%;
-  bottom: 0;
-  z-index: 20;
-  width: min(calc(100% - 40px), 1160px);
-  min-height: 88px;
-  padding: 14px 18px calc(14px + env(safe-area-inset-bottom));
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20px;
-  background: rgba(253, 253, 251, 0.97);
-  border: 1px solid var(--border);
-  border-bottom: 0;
-  border-radius: 14px 14px 0 0;
-  box-shadow: 0 -8px 28px rgba(30, 20, 20, 0.06);
-  transform: translateX(-50%);
-  backdrop-filter: blur(8px);
-}
-
-.workspace-action-bar > div {
-  min-width: 0;
-  display: grid;
-  gap: 3px;
-}
-
-.workspace-action-bar strong,
-.workspace-action-bar span {
-  display: block;
-}
-
-.workspace-action-bar span {
-  color: var(--secondary);
-  font-size: 13px;
-}
-
-.workspace-action-bar .primary-button {
-  flex: 0 0 auto;
-}
-
 [data-report-field-id] {
-  scroll-margin-block: 92px 130px;
+  scroll-margin-block: 32px;
 }
 
 .report-field-target-highlight {
@@ -1023,9 +952,105 @@ textarea {
   transition: outline-color 240ms ease;
 }
 
+.report-status-card {
+  margin-bottom: 26px;
+  padding: 20px;
+  background: #faf9f6;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.report-status-label {
+  margin: 0 0 12px;
+  color: var(--secondary);
+  font-size: 13px;
+  font-weight: 750;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.report-status-card h2 {
+  margin-bottom: 7px;
+  font-size: 22px;
+}
+
+.report-status-card > p:not(.report-status-label) {
+  max-width: 54ch;
+  margin: 0 0 16px;
+  color: var(--secondary);
+}
+
+.report-status-card .primary-button {
+  width: fit-content;
+}
+
+.report-status-card-empty {
+  text-align: center;
+}
+
+.report-status-card-empty > p:not(.report-status-label) {
+  margin-inline: auto;
+}
+
+.report-status-card-empty .report-status-label {
+  text-align: left;
+}
+
+.empty-report-illustration {
+  width: min(100%, 260px);
+  height: auto;
+  margin: 0 auto 16px;
+  color: #8d8983;
+}
+
+.report-pane-heading {
+  margin-bottom: 22px;
+}
+
 .report-pane-heading h2 {
   margin-bottom: 6px;
   font-size: 30px;
+}
+
+.draft-recovery-card {
+  padding: 32px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+
+.draft-recovery-card h1 {
+  margin-bottom: 8px;
+}
+
+.draft-recovery-card .entry-actions {
+  margin-top: 22px;
+}
+
+.draft-saved-indicator {
+  margin: 18px 0 0;
+  color: var(--secondary);
+  font-size: 13px;
+}
+
+.draft-saved-indicator::before {
+  content: "✓";
+  margin-right: 6px;
+  color: var(--success);
+}
+
+.evidence-reattach-note {
+  margin-top: 18px;
+  padding: 14px;
+  background: #faf9f6;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.evidence-reattach-note p {
+  margin: 4px 0 8px;
+  color: var(--secondary);
+  font-size: 13px;
 }
 
 .suggested-reporting-path,
@@ -1369,26 +1394,26 @@ textarea {
   flex: 0 0 auto;
 }
 
-.evidence-contribution dl {
-  margin: 14px 0;
-  display: grid;
-  gap: 10px;
-}
-
-.evidence-contribution dl > div {
-  min-width: 0;
-  display: grid;
-  grid-template-columns: minmax(120px, 0.85fr) minmax(0, 1.15fr);
-  gap: 14px;
-}
-
-.evidence-contribution dt {
+.evidence-used-label {
+  margin: 14px 0 5px;
+  color: var(--secondary);
   font-size: 12px;
+  font-weight: 700;
 }
 
-.evidence-contribution dd {
+.evidence-used-list {
+  margin: 0 0 14px;
+  padding-left: 18px;
+}
+
+.evidence-used-list li {
+  margin-block: 4px;
   overflow-wrap: anywhere;
   font-size: 14px;
+}
+
+.evidence-used-list span {
+  color: var(--secondary);
 }
 
 .evidence-contribution > p {
@@ -2460,10 +2485,6 @@ html[data-ui-locale="hi"] .companion-eyebrow {
     overflow: visible;
   }
 
-  .report-pane-heading {
-    top: 60px;
-  }
-
   .report-input-pane {
     border-right: 0;
     border-bottom: 1px solid var(--border);
@@ -2472,12 +2493,6 @@ html[data-ui-locale="hi"] .companion-eyebrow {
   .report-input-pane,
   .report-details-pane {
     padding: 26px;
-  }
-
-  .prepare-report-sticky-action {
-    margin-inline: -26px;
-    padding-inline: 26px;
-    padding-bottom: calc(18px + env(safe-area-inset-bottom));
   }
 
   .report-workspace-review .report-input-pane {
@@ -2572,26 +2587,11 @@ html[data-ui-locale="hi"] .companion-eyebrow {
 
   .report-workspace-stage {
     padding-top: 20px;
-    padding-bottom: 164px;
+    padding-bottom: 32px;
   }
 
   .journey-progress {
     margin-bottom: 20px;
-  }
-
-  .workspace-action-bar {
-    width: 100%;
-    min-height: 104px;
-    padding: 12px 14px calc(12px + env(safe-area-inset-bottom));
-    align-items: stretch;
-    flex-direction: column;
-    gap: 10px;
-    border-inline: 0;
-    border-radius: 12px 12px 0 0;
-  }
-
-  .workspace-action-bar .primary-button {
-    width: 100%;
   }
 
   .report-input-pane,
@@ -2599,11 +2599,6 @@ html[data-ui-locale="hi"] .companion-eyebrow {
   .journey-stage .reading-shell,
   .secondary-page .reading-shell {
     padding: 20px;
-  }
-
-  .prepare-report-sticky-action {
-    margin-inline: -20px;
-    padding-inline: 20px;
   }
 
   .case-companion-inner {
@@ -2694,11 +2689,6 @@ html[data-ui-locale="hi"] .companion-eyebrow {
   .evidence-contribution-title {
     flex-direction: column;
     gap: 5px;
-  }
-
-  .evidence-contribution dl > div {
-    grid-template-columns: 1fr;
-    gap: 2px;
   }
 
   .call-brief {

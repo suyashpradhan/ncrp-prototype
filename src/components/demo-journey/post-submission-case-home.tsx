@@ -97,17 +97,19 @@ function EvidenceIncluded({
               </div>
               {item.contributions.length > 0 ? (
                 <>
-                  <p className="post-report-contributed-label">
-                    {hi ? "योगदान:" : "Contributed:"}
+                  <p className="evidence-used-label">
+                    {hi ? "इसके लिए उपयोग हुआ" : "Used for"}
                   </p>
-                  <dl>
+                  <ul className="evidence-used-list">
                     {item.contributions.map((fact) => (
-                      <div key={`${item.evidenceId}-${fact.fieldKey}`}>
-                        <dt>{fact.label}</dt>
-                        <dd>{fact.displayValue}</dd>
-                      </div>
+                      <li key={`${item.evidenceId}-${fact.fieldKey}`}>
+                        {/^(Detail found|सबूत में मिली जानकारी)$/.test(fact.label) ? null : (
+                          <span>{fact.label}: </span>
+                        )}
+                        {fact.displayValue}
+                      </li>
                     ))}
-                  </dl>
+                  </ul>
                 </>
               ) : (
                 <p>{hi ? "रिपोर्ट के साथ संलग्न" : "Attached to the report"}</p>

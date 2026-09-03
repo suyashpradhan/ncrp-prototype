@@ -26,6 +26,14 @@ type SarvamErrorPayload = {
   };
 };
 
+type SpeechFailureStage = "TRANSCRIPTION" | "TRANSLATION";
+
+class SpeechStageError extends Error {
+  constructor(readonly stage: SpeechFailureStage) {
+    super(stage);
+  }
+}
+
 function normalizeAudioForSarvam(audio: File): File {
   const normalizedType = audio.type.split(";", 1)[0].trim().toLowerCase();
   if (!normalizedType || normalizedType === audio.type) return audio;
@@ -72,13 +80,16 @@ async function transcribeWithSarvam(
       providerCode,
       requestId,
     });
-    throw new Error(`Sarvam request failed with status ${response.status}.`);
+    throw new SpeechStageError(
+      mode === "translate" ? "TRANSLATION" : "TRANSCRIPTION",
+    );
   }
 
   return response.json() as Promise<SarvamTranscription>;
 }
 
 export async function POST(request: Request) {
+  let originalResult: SarvamTranscription | null = null;
   try {
     const apiKey = process.env.SARVAM_API_KEY;
     if (!apiKey) {
@@ -103,12 +114,16 @@ export async function POST(request: Request) {
     }
 
     const original = await transcribeWithSarvam(audio, apiKey, "transcribe");
+    originalResult = original;
     if (!original.transcript) throw new Error("Sarvam returned no transcript.");
 
     const languageCode = original.language_code ?? "unknown";
     const english = languageCode.startsWith("en")
       ? original
       : await transcribeWithSarvam(audio, apiKey, "translate");
+    if (!english.transcript) {
+      throw new SpeechStageError("TRANSLATION");
+    }
 
     const result = TranscriptionResultSchema.parse({
       originalTranscript: original.transcript,
@@ -117,9 +132,23 @@ export async function POST(request: Request) {
     });
 
     return Response.json(result, { headers: { "Cache-Control": "no-store" } });
-  } catch {
+  } catch (error) {
+    if (error instanceof SpeechStageError && error.stage === "TRANSLATION") {
+      return Response.json(
+        {
+          error: "Translation couldn't be completed. Your statement is saved.",
+          stage: error.stage,
+          originalTranscript: originalResult?.transcript ?? null,
+          languageCode: originalResult?.language_code ?? "unknown",
+        },
+        { status: 502 },
+      );
+    }
     return Response.json(
-      { error: "We couldn't transcribe this recording. Try again or use the demo incident." },
+      {
+        error: "We couldn't transcribe this recording. Try again or use the demo incident.",
+        stage: "TRANSCRIPTION",
+      },
       { status: 502 },
     );
   }

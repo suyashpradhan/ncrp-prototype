@@ -291,6 +291,7 @@ export function deriveReportGroups(
         missingByField.get("incidentDateYear") ?? missingByField.get("incidentDate"),
     }),
     makeField("incident-time", copy("field.approxTime"), draft.incident.approximateTime, {
+      helpText: copy("field.approxTimeHelp"),
       missingQuestion: missingByField.get("incidentApproximateTime"),
     }),
     makeField(
@@ -362,6 +363,7 @@ export function deriveReportGroups(
             missingQuestion: index === 0 ? missingByField.get("transactionDate") : undefined,
           }),
           makeField(`transaction-${index}-time`, copy("field.approxTime"), transaction.approximateTime, {
+            helpText: copy("field.approxTimeHelp"),
             missingQuestion: index === 0 ? missingByField.get("transactionApproximateTime") : undefined,
           }),
           makeField(`transaction-${index}-reference`, copy("field.reference"), transaction.referenceNumber),

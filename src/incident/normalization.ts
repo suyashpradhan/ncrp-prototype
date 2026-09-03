@@ -95,16 +95,42 @@ export function deriveFinancialFactsFromText(text: string): DeterministicFinanci
 
   const amounts = amountsFromText(normalized);
   const nonPrizeAmounts = amounts.filter(({ prizeAmount }) => !prizeAmount);
+  const explicitTotal = nonPrizeAmounts.find(({ index }) => {
+    const before = normalized.slice(Math.max(0, index - 36), index);
+    const after = normalized.slice(index, index + 48);
+    return (
+      /\b(?:lost|total(?: loss)?|altogether)(?:\s+(?:was|is|of))?\s*$/i.test(
+        before,
+      ) ||
+      /^(?:₹|rs\.?|inr)?\s*[\d,.]+(?:\s*(?:rupees?))?\s+(?:in\s+)?total\b/i.test(
+        after,
+      )
+    );
+  });
   let transactionAmounts = financialLossState === "YES"
     ? nonPrizeAmounts.map(({ amount }) => amount)
     : [];
+  if (explicitTotal && transactionAmounts.length > 1) {
+    const components = nonPrizeAmounts
+      .filter((item) => item !== explicitTotal)
+      .map(({ amount }) => amount);
+    if (
+      components.length > 0 &&
+      components.reduce((sum, amount) => sum + amount, 0) ===
+        explicitTotal.amount
+    ) {
+      transactionAmounts = components;
+    }
+  }
   if (
     transactionAmounts.length > 2 &&
     transactionAmounts[0] === transactionAmounts.slice(1).reduce((sum, amount) => sum + amount, 0)
   ) {
     transactionAmounts = transactionAmounts.slice(1);
   }
-  const statedTotal = amounts.find(({ context }) => /\b(?:lost|total(?: loss)?|altogether)\b/i.test(context))?.amount ?? null;
+  const statedTotal = explicitTotal?.amount ??
+    amounts.find(({ context }) => /\b(?:lost|total(?: loss)?|altogether)\b/i.test(context))?.amount ??
+    null;
   const componentTotal = transactionAmounts.reduce((sum, amount) => sum + amount, 0);
 
   return {
@@ -174,8 +200,26 @@ export function normalizeIncidentDraft(draft: IncidentDraft): IncidentDraft {
         : null
     : draft.incident.moneyLost ?? draft.classification.moneyLost;
   const existingTransactions = financialLossState === "YES" ? draft.transactions : [];
-  const transactions = existingTransactions.length > 0
-    ? existingTransactions.map((transaction, index) => ({
+  const transactionSource =
+    extracted.transactionAmounts.length > existingTransactions.length
+      ? extracted.transactionAmounts.map((amount, index) => ({
+          ...(existingTransactions[index] ?? {
+            id: `transaction-${index + 1}`,
+            institution: null,
+            currency: "INR",
+            paymentMethod: null,
+            accountOrUpiId: null,
+            transactionIdOrUtr: null,
+            transactionDate: null,
+            approximateTime: null,
+            referenceNumber: null,
+            status: "KNOWN" as const,
+          }),
+          amount,
+        }))
+      : existingTransactions;
+  const transactions = transactionSource.length > 0
+    ? transactionSource.map((transaction, index) => ({
         ...transaction,
         id: transaction.id || `transaction-${index + 1}`,
         currency: transaction.currency ?? "INR",

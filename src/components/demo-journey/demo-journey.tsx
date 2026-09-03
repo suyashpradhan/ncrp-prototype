@@ -23,6 +23,7 @@ import {
   type MissingQuestion,
 } from "../../incident/missing-information";
 import { normalizeIncidentDraft } from "../../incident/normalization";
+import { sanitizeSensitiveText } from "../../incident/sensitive-text";
 import {
   buildNcrpCompatibleComplaint,
   type NcrpCompatibleComplaint,
@@ -47,6 +48,7 @@ import { DEMO_CASE_ACCESS, useDemoCase } from "../demo-case/demo-case-provider";
 import { PostSubmissionCaseHome } from "./post-submission-case-home";
 import {
   ReportWorkspace,
+  type PreparationFailure,
   type ReportMethod,
   type ReportWorkspaceMode,
 } from "./report-workspace";
@@ -62,6 +64,7 @@ type JourneyView =
 
 const SACHET_DEMO_REFERENCE = "सचेत-DEMO-REPORT-00124";
 const DEMO_SESSION_KEY = "sachet-deterministic-demo-v1";
+const UNFINISHED_REPORT_KEY = "sachet-unfinished-report-v1";
 const DEMO_POST_REPORT_MILESTONES: PostReportMilestones = {
   preparedAt: "2026-08-22T02:24:00.000Z",
   reviewedAt: "2026-08-22T02:27:00.000Z",
@@ -84,6 +87,128 @@ type PersistedDemoSession = {
   submittedReference: string;
   postReportMilestones?: PostReportMilestones | null;
 };
+
+type PersistedEvidenceMetadata = {
+  name: string;
+  type: string;
+  size: number;
+  lastModified: number;
+};
+
+type PersistedUnfinishedReport = {
+  version: 1;
+  view: "REPORT_INPUT" | "ANALYSIS_RESULT" | "REVIEW";
+  reportMethod: ReportMethod;
+  reporterName: string;
+  narrative: string;
+  transcription: TranscriptionResult | null;
+  draft: IncidentDraft | null;
+  missingAnswers: Record<string, string>;
+  selectedReportedAmount: number | null;
+  recordingSeconds: number;
+  hadRecording: boolean;
+  evidenceMetadata: PersistedEvidenceMetadata[];
+  preparedSourceSignature: string | null;
+};
+
+function sanitizeForDeviceStorage<T>(value: T): T {
+  if (typeof value === "string") return sanitizeSensitiveText(value).text as T;
+  if (Array.isArray(value)) {
+    return value.map((item) => sanitizeForDeviceStorage(item)) as T;
+  }
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, item]) => [
+        key,
+        sanitizeForDeviceStorage(item),
+      ]),
+    ) as T;
+  }
+  return value;
+}
+
+function readUnfinishedReport(): PersistedUnfinishedReport | null {
+  try {
+    const stored = window.localStorage.getItem(UNFINISHED_REPORT_KEY);
+    if (!stored) return null;
+    const parsed: unknown = JSON.parse(stored);
+    if (!parsed || typeof parsed !== "object") return null;
+    const candidate = parsed as Partial<PersistedUnfinishedReport>;
+    if (
+      candidate.version !== 1 ||
+      !["REPORT_INPUT", "ANALYSIS_RESULT", "REVIEW"].includes(
+        candidate.view ?? "",
+      ) ||
+      !["SPEAK", "UPLOAD", "TYPE"].includes(candidate.reportMethod ?? "") ||
+      typeof candidate.reporterName !== "string" ||
+      typeof candidate.narrative !== "string" ||
+      typeof candidate.recordingSeconds !== "number" ||
+      typeof candidate.hadRecording !== "boolean" ||
+      !Array.isArray(candidate.evidenceMetadata)
+    ) {
+      window.localStorage.removeItem(UNFINISHED_REPORT_KEY);
+      return null;
+    }
+    const parsedDraft = candidate.draft
+      ? IncidentDraftSchema.safeParse(candidate.draft)
+      : null;
+    const parsedTranscription = candidate.transcription
+      ? TranscriptionResultSchema.safeParse(candidate.transcription)
+      : null;
+    if (
+      (parsedDraft && !parsedDraft.success) ||
+      (parsedTranscription && !parsedTranscription.success)
+    ) {
+      window.localStorage.removeItem(UNFINISHED_REPORT_KEY);
+      return null;
+    }
+    return {
+      version: 1,
+      view: candidate.view as PersistedUnfinishedReport["view"],
+      reportMethod: candidate.reportMethod as ReportMethod,
+      reporterName: candidate.reporterName,
+      narrative: candidate.narrative,
+      transcription: parsedTranscription?.success
+        ? parsedTranscription.data
+        : null,
+      draft: parsedDraft?.success ? parsedDraft.data : null,
+      missingAnswers:
+        candidate.missingAnswers && typeof candidate.missingAnswers === "object"
+          ? candidate.missingAnswers
+          : {},
+      selectedReportedAmount:
+        typeof candidate.selectedReportedAmount === "number"
+          ? candidate.selectedReportedAmount
+          : null,
+      recordingSeconds: candidate.recordingSeconds,
+      hadRecording: candidate.hadRecording,
+      evidenceMetadata: candidate.evidenceMetadata.filter(
+        (item): item is PersistedEvidenceMetadata =>
+          Boolean(
+            item &&
+              typeof item.name === "string" &&
+              typeof item.type === "string" &&
+              typeof item.size === "number" &&
+              typeof item.lastModified === "number",
+          ),
+      ),
+      preparedSourceSignature:
+        typeof candidate.preparedSourceSignature === "string"
+          ? candidate.preparedSourceSignature
+          : null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function clearUnfinishedReport() {
+  try {
+    window.localStorage.removeItem(UNFINISHED_REPORT_KEY);
+  } catch {
+    // Local recovery is optional when storage is unavailable.
+  }
+}
 
 function restoredJourneyHistory(view: JourneyView): JourneyView[] {
   const history: JourneyView[] = ["ENTRY"];
@@ -274,11 +399,19 @@ export function DemoJourney() {
     number | null
   >(null);
   const [isTranscriptionError, setIsTranscriptionError] = useState(false);
+  const [preparationFailure, setPreparationFailure] =
+    useState<PreparationFailure>(null);
   const [submittedReference, setSubmittedReference] = useState<string>(
     SACHET_DEMO_REFERENCE,
   );
   const [postReportMilestones, setPostReportMilestones] =
     useState<PostReportMilestones | null>(null);
+  const [recoverableReport, setRecoverableReport] =
+    useState<PersistedUnfinishedReport | null>(null);
+  const [unavailableEvidenceNames, setUnavailableEvidenceNames] = useState<
+    string[]
+  >([]);
+  const [isDraftSaved, setIsDraftSaved] = useState(false);
   const preparedAtRef = useRef<string | null>(null);
   const [preparedSourceSignature, setPreparedSourceSignature] = useState<
     string | null
@@ -291,6 +424,7 @@ export function DemoJourney() {
   const recorderChunksRef = useRef<Blob[]>([]);
   const recordingStartedAtRef = useRef<number | null>(null);
   const pendingReportFocusRef = useRef(false);
+  const draftRecoveryReadyRef = useRef(false);
   const amountResolution =
     draft?.classification.reportFamily === "FINANCIAL_FRAUD" &&
     draft.incident.financialLossState === "YES"
@@ -316,6 +450,110 @@ export function DemoJourney() {
     draft && preparedSourceSignature && currentSourceSignature !== preparedSourceSignature,
   );
   const hasSubmittedCase = Boolean(draft && postReportMilestones);
+
+  useEffect(() => {
+    const unfinished = readUnfinishedReport();
+    if (unfinished) setRecoverableReport(unfinished);
+    draftRecoveryReadyRef.current = true;
+  }, []);
+
+  useEffect(() => {
+    if (
+      !draftRecoveryReadyRef.current ||
+      experienceMode !== "LIVE_TEST" ||
+      isDemoIncident ||
+      hasSubmittedCase ||
+      view === "ENTRY" ||
+      view === "SUCCESS" ||
+      view === "ANALYSING"
+    ) {
+      return;
+    }
+    const meaningful = Boolean(
+      narrative.trim() ||
+        transcription ||
+        draft ||
+        screenshots.length > 0 ||
+        audio,
+    );
+    if (!meaningful) return;
+    setIsDraftSaved(false);
+    const timer = window.setTimeout(() => {
+      const safeDraft = draft
+        ? IncidentDraftSchema.safeParse(sanitizeForDeviceStorage(draft))
+        : null;
+      const safeTranscription = transcription
+        ? TranscriptionResultSchema.safeParse(
+            sanitizeForDeviceStorage(transcription),
+          )
+        : null;
+      const savedView: PersistedUnfinishedReport["view"] =
+        view === "REVIEW"
+          ? "REVIEW"
+          : draft
+            ? "ANALYSIS_RESULT"
+            : "REPORT_INPUT";
+      const persisted: PersistedUnfinishedReport = {
+        version: 1,
+        view: savedView,
+        reportMethod,
+        reporterName: sanitizeSensitiveText(reporterName).text,
+        narrative: sanitizeSensitiveText(narrative).text,
+        transcription: safeTranscription?.success
+          ? safeTranscription.data
+          : null,
+        draft: safeDraft?.success ? safeDraft.data : null,
+        missingAnswers: sanitizeForDeviceStorage(missingAnswers),
+        selectedReportedAmount,
+        recordingSeconds,
+        hadRecording: Boolean(audio),
+        evidenceMetadata: [
+          ...screenshots.map((file) => ({
+            name: file.name,
+            type: file.type,
+            size: file.size,
+            lastModified: file.lastModified,
+          })),
+          ...unavailableEvidenceNames
+            .filter((name) => !screenshots.some((file) => file.name === name))
+            .map((name) => ({
+              name,
+              type: "",
+              size: 0,
+              lastModified: 0,
+            })),
+        ],
+        preparedSourceSignature,
+      };
+      try {
+        window.localStorage.setItem(
+          UNFINISHED_REPORT_KEY,
+          JSON.stringify(persisted),
+        );
+        setIsDraftSaved(true);
+      } catch {
+        setIsDraftSaved(false);
+      }
+    }, 350);
+    return () => window.clearTimeout(timer);
+  }, [
+    audio,
+    draft,
+    experienceMode,
+    hasSubmittedCase,
+    isDemoIncident,
+    missingAnswers,
+    narrative,
+    preparedSourceSignature,
+    recordingSeconds,
+    reportMethod,
+    reporterName,
+    screenshots,
+    selectedReportedAmount,
+    transcription,
+    unavailableEvidenceNames,
+    view,
+  ]);
 
   useEffect(() => {
     if (attemptedDemoRestoreRef.current) return;
@@ -494,9 +732,12 @@ export function DemoJourney() {
     setMissingAnswers({});
     setSelectedReportedAmount(null);
     setIsTranscriptionError(false);
+    setPreparationFailure(null);
     setIsDemoIncident(false);
     setSubmittedReference(SACHET_DEMO_REFERENCE);
     setPostReportMilestones(null);
+    setUnavailableEvidenceNames([]);
+    setIsDraftSaved(false);
     preparedAtRef.current = null;
     setPreparedSourceSignature(null);
     setReportMethod("TYPE");
@@ -552,6 +793,7 @@ export function DemoJourney() {
       setCurrentView("ENTRY");
       return;
     }
+    setRecoverableReport(readUnfinishedReport());
     clearPersistedDemoSession();
     resetDemo();
     resetInputs();
@@ -575,6 +817,8 @@ export function DemoJourney() {
 
   function startReport() {
     clearPersistedDemoSession();
+    clearUnfinishedReport();
+    setRecoverableReport(null);
     resetDemo();
     resetInputs();
     beginExperience("LIVE_TEST", createEmptyTestProfile());
@@ -584,6 +828,8 @@ export function DemoJourney() {
 
   function useDemoIncident() {
     clearPersistedDemoSession();
+    clearUnfinishedReport();
+    setRecoverableReport(null);
     resetDemo();
     resetInputs();
     beginExperience("DEMO_CASE", SYNTHETIC_NCRP_PROFILE);
@@ -608,6 +854,56 @@ export function DemoJourney() {
     setCurrentView("ANALYSIS_RESULT");
   }
 
+  function continueRecoveredReport() {
+    if (!recoverableReport) return;
+    resetDemo();
+    resetInputs();
+    beginExperience("LIVE_TEST", createEmptyTestProfile());
+    setReportMethod(recoverableReport.reportMethod);
+    setReporterName(recoverableReport.reporterName);
+    setNarrative(recoverableReport.narrative);
+    setTranscription(recoverableReport.transcription);
+    setDraft(recoverableReport.draft);
+    setMissingAnswers(recoverableReport.missingAnswers);
+    setSelectedReportedAmount(recoverableReport.selectedReportedAmount);
+    setRecordingSeconds(recoverableReport.recordingSeconds);
+    setPreparedSourceSignature(
+      recoverableReport.draft && recoverableReport.evidenceMetadata.length === 0
+        ? reportSourceSignature({
+            narrative: recoverableReport.narrative,
+            reporterName: recoverableReport.reporterName,
+            transcription: recoverableReport.transcription,
+            screenshots: [],
+            audio: null,
+          })
+        : recoverableReport.preparedSourceSignature,
+    );
+    setUnavailableEvidenceNames(
+      recoverableReport.evidenceMetadata.map((item) => item.name),
+    );
+    const binarySourceMissing =
+      recoverableReport.evidenceMetadata.length > 0 ||
+      (recoverableReport.hadRecording && !recoverableReport.transcription);
+    const restoredView = binarySourceMissing
+      ? recoverableReport.draft
+        ? "ANALYSIS_RESULT"
+        : "REPORT_INPUT"
+      : recoverableReport.view;
+    if (recoverableReport.hadRecording && !recoverableReport.transcription) {
+      setFormError(
+        locale === "hi"
+          ? "रिकॉर्डिंग ब्राउज़र में सुरक्षित नहीं रह सकती। कृपया इसे दोबारा रिकॉर्ड करें; आपकी दूसरी जानकारी सुरक्षित है।"
+          : "The recording could not be stored by the browser. Record it again; your other details are saved.",
+      );
+    }
+    journeyHistoryRef.current =
+      restoredView === "REVIEW"
+        ? ["ENTRY", "ANALYSIS_RESULT"]
+        : ["ENTRY"];
+    setRecoverableReport(null);
+    setCurrentView(restoredView);
+  }
+
   function chooseDemoNarration(language: DemoNarrationLanguage) {
     setDemoNarrationLanguage(language);
     setTranscription(DEMO_NARRATIONS[language]);
@@ -616,6 +912,7 @@ export function DemoJourney() {
 
   async function startRecording() {
     setFormError(null);
+    setPreparationFailure(null);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const preferredType = MediaRecorder.isTypeSupported(
@@ -668,6 +965,7 @@ export function DemoJourney() {
     setTranscription(null);
     setRecordingSeconds(0);
     setIsTranscriptionError(false);
+    setPreparationFailure(null);
     setFormError(null);
   }
 
@@ -708,6 +1006,11 @@ export function DemoJourney() {
     }
     const prepared = await Promise.all(selected.map(compressScreenshot));
     setScreenshots((current) => [...current, ...prepared]);
+    setUnavailableEvidenceNames((current) =>
+      current.filter(
+        (name) => !prepared.some((file) => file.name === name),
+      ),
+    );
     event.target.value = "";
   }
 
@@ -778,6 +1081,30 @@ export function DemoJourney() {
     });
     const result: unknown = await response.json();
     if (!response.ok) {
+      if (
+        result &&
+        typeof result === "object" &&
+        "stage" in result &&
+        result.stage === "TRANSLATION"
+      ) {
+        const originalTranscript =
+          "originalTranscript" in result &&
+          typeof result.originalTranscript === "string"
+            ? result.originalTranscript
+            : "";
+        const languageCode =
+          "languageCode" in result && typeof result.languageCode === "string"
+            ? result.languageCode
+            : "unknown";
+        if (originalTranscript) {
+          setTranscription({
+            originalTranscript,
+            englishTranscript: "",
+            languageCode,
+          });
+        }
+        throw new Error("TRANSLATION_FAILED");
+      }
       throw new Error(
         typeof result === "object" && result && "error" in result
           ? String(result.error)
@@ -813,6 +1140,7 @@ export function DemoJourney() {
 
     setFormError(null);
     setIsTranscriptionError(false);
+    setPreparationFailure(null);
     setLoadingMessage(
       audio && !transcription
         ? "workspace.readingStatement"
@@ -827,7 +1155,7 @@ export function DemoJourney() {
     }
     try {
       let preparedTranscription = transcription;
-      if (audio && !preparedTranscription) {
+      if (audio && !preparedTranscription?.englishTranscript) {
         preparedTranscription = await transcribeRecording(
           audio,
           recordingSeconds,
@@ -868,10 +1196,17 @@ export function DemoJourney() {
       setSelectedReportedAmount(null);
       pendingReportFocusRef.current = true;
       replaceView("ANALYSIS_RESULT");
-    } catch {
+    } catch (error) {
       if (analysisRunRef.current !== analysisRun) return;
       setFormError(null);
-      setIsTranscriptionError(Boolean(audio && !transcription));
+      const failure: Exclude<PreparationFailure, null> =
+        error instanceof Error && error.message === "TRANSLATION_FAILED"
+          ? "TRANSLATION"
+          : audio && !transcription
+            ? "TRANSCRIPTION"
+            : "REPORT";
+      setPreparationFailure(failure);
+      setIsTranscriptionError(failure === "TRANSCRIPTION");
       replaceView("ANALYSIS_ERROR");
     }
   }
@@ -967,6 +1302,8 @@ export function DemoJourney() {
         );
         setPostReportMilestones(milestones);
         setFormError(null);
+        clearUnfinishedReport();
+        setRecoverableReport(null);
         journeyHistoryRef.current = ["ENTRY"];
         setCurrentView("SUCCESS");
         return;
@@ -987,6 +1324,8 @@ export function DemoJourney() {
       );
       setPostReportMilestones(milestones);
       setFormError(null);
+      clearUnfinishedReport();
+      setRecoverableReport(null);
       journeyHistoryRef.current = ["ENTRY"];
       setCurrentView("SUCCESS");
     } catch (error) {
@@ -1002,7 +1341,29 @@ export function DemoJourney() {
   let content: ReactNode;
 
   if (view === "ENTRY") {
-    content = (
+    content = recoverableReport && !hasSubmittedCase ? (
+      <section className="service-entry section-pad" data-journey-focus tabIndex={-1}>
+        <div className="shell reading-shell draft-recovery-card">
+          <p className="eyebrow">
+            {locale === "hi" ? "इस डिवाइस पर सुरक्षित" : "Saved on this device"}
+          </p>
+          <h1>{locale === "hi" ? "अपनी रिपोर्ट जारी रखें?" : "Continue your report?"}</h1>
+          <p>
+            {locale === "hi"
+              ? "आपकी प्रगति इस डिवाइस पर सुरक्षित है।"
+              : "Your progress was saved on this device."}
+          </p>
+          <div className="entry-actions">
+            <button className="primary-button" type="button" onClick={continueRecoveredReport}>
+              {locale === "hi" ? "जारी रखें" : "Continue"}
+            </button>
+            <button className="secondary-button" type="button" onClick={startReport}>
+              {locale === "hi" ? "फिर से शुरू करें" : "Start over"}
+            </button>
+          </div>
+        </div>
+      </section>
+    ) : (
       <section className="service-entry section-pad">
         <div className="shell service-entry-inner">
           <div className="service-entry-layout">
@@ -1073,6 +1434,7 @@ export function DemoJourney() {
         narrative={narrative}
         reporterName={reporterName}
         screenshots={screenshots}
+        unavailableEvidenceNames={unavailableEvidenceNames}
         transcription={transcription}
         hasAudio={Boolean(audio)}
         isRecording={isRecording}
@@ -1082,8 +1444,10 @@ export function DemoJourney() {
         reporterProfile={activeProfile}
         identityDocumentProvided={isDemoIncident}
         isReportStale={isReportStale}
+        isDraftSaved={isDraftSaved}
         demoNarrationLanguage={demoNarrationLanguage}
         isTranscriptionError={isTranscriptionError}
+        preparationFailure={preparationFailure}
         draft={draft}
         loadingMessage={loadingMessage}
         formError={formError}

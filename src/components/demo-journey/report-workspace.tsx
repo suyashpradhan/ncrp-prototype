@@ -52,6 +52,11 @@ export type ReportWorkspaceMode =
   | "ERROR"
   | "REVIEW";
 export type ReportMethod = "SPEAK" | "UPLOAD" | "TYPE";
+export type PreparationFailure =
+  | "TRANSCRIPTION"
+  | "TRANSLATION"
+  | "REPORT"
+  | null;
 
 const DEMO_EVIDENCE = [
   {
@@ -82,6 +87,7 @@ type ReportWorkspaceProps = {
   narrative: string;
   reporterName: string;
   screenshots: File[];
+  unavailableEvidenceNames: string[];
   transcription: TranscriptionResult | null;
   hasAudio: boolean;
   isRecording: boolean;
@@ -91,8 +97,10 @@ type ReportWorkspaceProps = {
   reporterProfile: ReporterProfile;
   identityDocumentProvided: boolean;
   isReportStale: boolean;
+  isDraftSaved: boolean;
   demoNarrationLanguage: DemoNarrationLanguage;
   isTranscriptionError: boolean;
+  preparationFailure: PreparationFailure;
   draft: IncidentDraft | null;
   loadingMessage: string;
   formError: string | null;
@@ -396,19 +404,21 @@ function EvidenceContributions({
             </div>
 
             {item.contributions.length > 0 ? (
-              <dl>
+              <>
+                <p className="evidence-used-label">
+                  {locale === "hi" ? "इसके लिए उपयोग हुआ" : "Used for"}
+                </p>
+                <ul className="evidence-used-list">
                 {item.contributions.map((fact) => (
-                  <div key={`${item.evidenceId}-${fact.fieldKey}`}>
-                    <dt>
-                      <span className="ready-mark" aria-hidden="true">
-                        ✓
-                      </span>{" "}
-                      {fact.label}
-                    </dt>
-                    <dd>{fact.displayValue}</dd>
-                  </div>
+                  <li key={`${item.evidenceId}-${fact.fieldKey}`}>
+                    {/^(Detail found|सबूत में मिली जानकारी)$/.test(fact.label) ? null : (
+                      <span>{fact.label}: </span>
+                    )}
+                    {fact.displayValue}
+                  </li>
                 ))}
-              </dl>
+                </ul>
+              </>
             ) : (
               <p>
                 {locale === "hi"
@@ -567,7 +577,8 @@ function SourceSummary({
             <p className="source-transcript">
               {transcription.originalTranscript}
             </p>
-            {transcription.englishTranscript !==
+            {transcription.englishTranscript.trim() &&
+            transcription.englishTranscript !==
             transcription.originalTranscript ? (
               <details className="translation-disclosure">
                 <summary>{t("workspace.viewEnglish")}</summary>
@@ -590,7 +601,8 @@ function SourceSummary({
                 ? `${DEMO_NARRATIONS[demoNarrationLanguage].nativeLabel} · ${t("workspace.approxSeconds", { seconds: recordingSeconds || 1 })}`
                 : `${languageLabel(transcription.languageCode)} · ${recordingSeconds || 1} ${locale === "hi" ? "सेकंड" : "seconds"}`}
             </p>
-            {transcription.englishTranscript !==
+            {transcription.englishTranscript.trim() &&
+            transcription.englishTranscript !==
             transcription.originalTranscript ? (
               <details className="translation-disclosure">
                 <summary>{t("workspace.viewEnglish")}</summary>
@@ -645,7 +657,7 @@ function SourceSummary({
 }
 
 function ReportInputPane(props: ReportWorkspaceProps) {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   const processing = props.mode === "PROCESSING";
 
   return (
@@ -772,6 +784,38 @@ function ReportInputPane(props: ReportWorkspaceProps) {
         onRemoveScreenshot={props.onRemoveScreenshot}
         compact={props.mode === "REVIEW" || Boolean(props.draft)}
       />
+      {props.unavailableEvidenceNames.length > 0 ? (
+        <aside className="evidence-reattach-note" role="status">
+          <strong>
+            {locale === "hi"
+              ? "सबूत दोबारा जोड़ें"
+              : "Reattach saved evidence"}
+          </strong>
+          <p>
+            {locale === "hi"
+              ? `ब्राउज़र फ़ाइल सुरक्षित नहीं रख सका: ${props.unavailableEvidenceNames.join(", ")}`
+              : `The browser saved the file details, but not the files: ${props.unavailableEvidenceNames.join(", ")}`}
+          </p>
+          <button
+            className="text-button"
+            type="button"
+            onClick={() =>
+              document
+                .querySelector<HTMLInputElement>("#incident-screenshots")
+                ?.click()
+            }
+          >
+            {locale === "hi" ? "फ़ाइलें दोबारा जोड़ें" : "Reattach files"} →
+          </button>
+        </aside>
+      ) : null}
+      {props.isDraftSaved && props.mode !== "REVIEW" ? (
+        <p className="draft-saved-indicator" role="status">
+          {locale === "hi"
+            ? "प्रगति इस डिवाइस पर सुरक्षित है"
+            : "Progress saved on this device"}
+        </p>
+      ) : null}
       {props.formError && props.mode !== "ERROR" ? (
         <p className="form-error" role="alert">
           {props.formError}
@@ -1919,13 +1963,132 @@ function ReportingPathControl({
   );
 }
 
+function EmptyReportIllustration() {
+  return (
+    <svg
+      className="empty-report-illustration"
+      viewBox="0 0 260 120"
+      role="presentation"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <g fill="none" stroke="currentColor" strokeWidth="1.5">
+        <path d="M18 25h62a8 8 0 0 1 8 8v27a8 8 0 0 1-8 8H50l-12 11 2-11H18a8 8 0 0 1-8-8V33a8 8 0 0 1 8-8Z" />
+        <rect x="28" y="37" width="38" height="4" rx="2" />
+        <rect x="28" y="49" width="48" height="4" rx="2" />
+        <rect x="28" y="61" width="26" height="4" rx="2" />
+        <rect x="35" y="88" width="60" height="20" rx="5" />
+        <path d="M47 98h35M112 60h28m-7-7 7 7-7 7" />
+        <path d="M159 13h70a10 10 0 0 1 10 10v84h-90V23a10 10 0 0 1 10-10Z" />
+        <rect x="166" y="30" width="42" height="5" rx="2.5" />
+        <path d="M166 50h56M166 65h56M166 80h56M166 95h38" />
+        <circle cx="215" cy="95" r="7" />
+        <path d="m212 95 2 2 4-5" />
+      </g>
+    </svg>
+  );
+}
+
+function ReportStatusCard({
+  readiness,
+  sourceReady,
+  onPrimaryAction,
+  ...props
+}: ReportWorkspaceProps & {
+  readiness: ReportReadiness | null;
+  sourceReady: boolean;
+  onPrimaryAction: () => void;
+}) {
+  const { locale, t } = useI18n();
+  const hi = locale === "hi";
+  const isEmpty = !props.draft && props.mode === "INPUT";
+  const title = props.mode === "PROCESSING"
+    ? hi ? "आपकी रिपोर्ट तैयार हो रही है…" : "Preparing your report…"
+    : props.mode === "ERROR"
+      ? props.preparationFailure === "TRANSLATION"
+        ? hi ? "अनुवाद पूरा नहीं हो सका" : "Translation couldn't be completed"
+        : props.isTranscriptionError
+        ? hi ? "हम इस रिकॉर्डिंग को लिखित रूप में नहीं बदल पाए" : "We couldn't transcribe this recording"
+        : hi ? "हम अभी रिपोर्ट तैयार नहीं कर पाए" : "We couldn't prepare the report right now"
+      : isEmpty
+        ? hi ? "आपकी रिपोर्ट यहाँ दिखाई देगी" : "Your report will appear here"
+        : readiness?.state === "STALE"
+          ? hi ? "आपकी जानकारी बदल गई है" : "Your information changed"
+          : readiness?.state === "NEEDS_CLARIFICATION"
+            ? hi ? "एक और जानकारी चाहिए" : "One more detail is needed"
+            : readiness?.state === "MISSING_REQUIRED"
+              ? hi ? "रिपोर्ट लगभग तैयार है" : "Report almost ready"
+              : hi ? "रिपोर्ट समीक्षा के लिए तैयार है" : "Report ready to review";
+  const support = props.mode === "PROCESSING"
+    ? hi ? "हम आपकी साझा की गई जानकारी व्यवस्थित कर रहे हैं।" : "We're organising the information you shared."
+    : props.mode === "ERROR"
+      ? props.preparationFailure === "TRANSLATION"
+        ? hi ? "आपका मूल बयान सुरक्षित है।" : "Your original statement is saved."
+        : props.isTranscriptionError
+        ? hi ? "आपकी दूसरी रिपोर्ट जानकारी सुरक्षित है।" : "Your other report details are saved."
+        : hi ? "आपका बयान और सबूत सुरक्षित हैं।" : "Your statement and evidence are saved."
+      : isEmpty
+        ? hi
+          ? "क्या हुआ बताएं या सबूत जोड़ें। सचेत जानकारी को ऐसी रिपोर्ट में व्यवस्थित करेगा जिसे आप जाँच सकते हैं।"
+          : "Tell us what happened, or add evidence. Sachet will organise the information into a report you can review."
+        : readiness?.state === "STALE"
+          ? hi ? "आगे बढ़ने से पहले रिपोर्ट को नई जानकारी के साथ अपडेट करें।" : "Update the report with the new information before continuing."
+          : readiness?.state === "NEEDS_CLARIFICATION"
+            ? hi ? "सचेत को आगे बढ़ने से पहले एक जवाब चाहिए।" : "One answer is needed before Sachet can continue."
+            : readiness?.state === "MISSING_REQUIRED"
+              ? hi
+                ? `${readiness.blockingItems.length} जरूरी जानकारी पर अभी ध्यान देना बाकी है।`
+                : `${readiness.blockingItems.length} required ${readiness.blockingItems.length === 1 ? "detail still needs" : "details still need"} your attention.`
+              : hi ? "इस रिपोर्टिंग रास्ते के लिए जरूरी जानकारी उपलब्ध है।" : "The required information for this reporting path is available.";
+  const actionLabel = props.mode === "PROCESSING"
+    ? t("workspace.preparingReport")
+    : props.mode === "ERROR"
+      ? props.preparationFailure === "TRANSLATION"
+        ? hi ? "अनुवाद फिर से करें" : "Retry translation"
+        : props.isTranscriptionError
+        ? hi ? "फिर से ट्रांसक्राइब करें" : "Retry transcription"
+        : t("workspace.tryAgain")
+      : !props.draft
+        ? t("workspace.organise")
+        : readiness?.state === "STALE"
+          ? hi ? "रिपोर्ट अपडेट करें" : "Update report"
+          : readiness?.state === "NEEDS_CLARIFICATION"
+            ? hi ? "सवाल का जवाब दें" : "Answer question"
+            : readiness?.state === "MISSING_REQUIRED"
+              ? hi ? "अगली जरूरी जानकारी पर जाएँ" : "Go to next missing detail"
+              : hi ? "रिपोर्ट की समीक्षा करें" : "Review report";
+
+  return (
+    <section className={`report-status-card${isEmpty ? " report-status-card-empty" : ""}`} aria-live="polite">
+      <p className="report-status-label" id="report-details-heading" tabIndex={-1}>
+        {t("workspace.reportInfo")}
+      </p>
+      {isEmpty ? <EmptyReportIllustration /> : null}
+      <h2>{title}</h2>
+      <p>{support}</p>
+      <button
+        className="primary-button"
+        type="button"
+        disabled={props.mode === "PROCESSING" || (!props.draft && !sourceReady)}
+        onClick={onPrimaryAction}
+      >
+        {actionLabel}
+      </button>
+    </section>
+  );
+}
+
 function ReportDetailsPane({
   groups,
   readiness,
+  sourceReady,
+  onPrimaryAction,
   ...props
 }: ReportWorkspaceProps & {
   groups: ReportGroupView[];
   readiness: ReportReadiness | null;
+  sourceReady: boolean;
+  onPrimaryAction: () => void;
 }) {
   const { locale, t } = useI18n();
   const amountConflictMissing = Boolean(
@@ -1987,24 +2150,12 @@ function ReportDetailsPane({
       className="report-details-pane"
       aria-labelledby="report-details-heading"
     >
-      <div className="report-pane-heading">
-        <h2 id="report-details-heading" tabIndex={-1}>{t("workspace.reportInfo")}</h2>
-        <p>
-          {props.draft?.officialMapping.subCategoryLabel ??
-            t("workspace.reportInfoSupport")}
-        </p>
-        {readiness && props.mode === "READY" ? (
-          <span className="report-pane-readiness">
-            {readiness.state === "READY"
-              ? locale === "hi" ? "समीक्षा के लिए तैयार" : "Ready to review"
-              : readiness.state === "STALE"
-                ? locale === "hi" ? "रिपोर्ट अपडेट करनी है" : "Report needs updating"
-                : locale === "hi"
-                  ? `${readiness.blockingItems.length} जरूरी जानकारी बाकी`
-                  : `${readiness.blockingItems.length} required ${readiness.blockingItems.length === 1 ? "detail" : "details"} missing`}
-          </span>
-        ) : null}
-      </div>
+      <ReportStatusCard
+        {...props}
+        readiness={readiness}
+        sourceReady={sourceReady}
+        onPrimaryAction={onPrimaryAction}
+      />
 
       {props.mode === "READY" && props.draft ? (
         <ReportingPathControl
@@ -2283,46 +2434,6 @@ function ReportDetailsPane({
             amountResolution={props.amountResolution}
           />
 
-          <section className="report-readiness" aria-live="polite">
-            <h2>
-              {readiness?.state === "READY"
-                ? locale === "hi"
-                  ? "रिपोर्ट समीक्षा के लिए तैयार है ✓"
-                  : "Report ready to review ✓"
-                : readiness?.state === "STALE"
-                  ? locale === "hi"
-                    ? "आपकी जानकारी बदल गई है"
-                    : "Your information changed"
-                  : locale === "hi"
-                    ? "रिपोर्ट लगभग तैयार है"
-                    : "Report almost ready"}
-            </h2>
-            {readiness?.state === "STALE" ? (
-              <p>
-                {locale === "hi"
-                  ? "आगे बढ़ने से पहले रिपोर्ट अपडेट करें।"
-                  : "Update the report before continuing."}
-              </p>
-            ) : amountConflictMissing ? (
-              <p>
-                {locale === "hi"
-                  ? "हमें दो अलग-अलग राशियाँ मिलीं। रिपोर्ट में उपयोग की जाने वाली राशि चुनें।"
-                  : "We found two different amounts. Choose which amount should be used in the report."}
-              </p>
-            ) : readiness?.state === "READY" ? (
-              <p>
-                {locale === "hi"
-                  ? "इस रिपोर्टिंग रास्ते के लिए सभी जरूरी जानकारी उपलब्ध है।"
-                  : "All required information for this reporting path is available."}
-              </p>
-            ) : (
-              <p>
-                {locale === "hi"
-                  ? `${readiness?.preparedRequiredCount ?? 0} जानकारियाँ आपके साझा किए गए विवरण से तैयार हैं। ${readiness?.blockingItems.length ?? 0} जानकारी अभी चाहिए।`
-                  : `${readiness?.preparedRequiredCount ?? 0} details prepared from what you shared. ${readiness?.blockingItems.length ?? 0} ${(readiness?.blockingItems.length ?? 0) === 1 ? "detail is" : "details are"} still needed.`}
-              </p>
-            )}
-          </section>
         </>
       ) : null}
     </section>
@@ -2330,7 +2441,7 @@ function ReportDetailsPane({
 }
 
 export function ReportWorkspace(props: ReportWorkspaceProps) {
-  const { locale, t } = useI18n();
+  const { locale } = useI18n();
   const [pendingTargetId, setPendingTargetId] = useState<string | null>(null);
   const [navigationMessage, setNavigationMessage] = useState("");
   const highlightTimerRef = useRef<number | null>(null);
@@ -2456,38 +2567,6 @@ export function ReportWorkspace(props: ReportWorkspaceProps) {
     document.querySelector<HTMLElement>("#report-details-heading")?.focus();
   }
 
-  const actionTitle = props.mode === "PROCESSING"
-    ? locale === "hi" ? "रिपोर्ट तैयार हो रही है" : "Preparing your report"
-    : props.mode === "ERROR"
-      ? locale === "hi" ? "आपकी जानकारी सुरक्षित है" : "Your information is preserved"
-      : !props.draft
-        ? locale === "hi" ? "अपनी जानकारी से रिपोर्ट तैयार करें" : "Prepare a report from what you shared"
-        : readiness?.state === "STALE"
-          ? locale === "hi" ? "आपकी जानकारी बदल गई है" : "Your information changed"
-          : readiness?.state === "NEEDS_CLARIFICATION"
-            ? locale === "hi" ? "सचेत को आगे बढ़ने के लिए एक जवाब चाहिए" : "One answer is needed before Sachet can continue"
-            : readiness?.state === "MISSING_REQUIRED"
-              ? locale === "hi" ? "रिपोर्ट लगभग तैयार है" : "Report almost ready"
-              : locale === "hi" ? "रिपोर्ट समीक्षा के लिए तैयार है" : "Report ready to review";
-  const actionSupport = readiness?.state === "MISSING_REQUIRED"
-    ? locale === "hi"
-      ? `${readiness.blockingItems.length} जरूरी जानकारी पर ध्यान देना बाकी है।`
-      : `${readiness.blockingItems.length} required ${readiness.blockingItems.length === 1 ? "detail still needs" : "details still need"} your attention.`
-    : null;
-  const actionLabel = props.mode === "PROCESSING"
-    ? t("workspace.preparingReport")
-    : props.mode === "ERROR"
-      ? t("workspace.tryAgain")
-      : !props.draft
-        ? t("workspace.organise")
-        : readiness?.state === "STALE"
-          ? locale === "hi" ? "रिपोर्ट अपडेट करें" : "Update report"
-          : readiness?.state === "NEEDS_CLARIFICATION"
-            ? locale === "hi" ? "सवाल का जवाब दें" : "Answer question"
-            : readiness?.state === "MISSING_REQUIRED"
-              ? locale === "hi" ? "अगली जरूरी जानकारी पर जाएँ" : "Go to next missing detail"
-              : locale === "hi" ? "रिपोर्ट की समीक्षा करें" : "Review report";
-
   return (
     <section
       className="report-workspace-stage section-pad"
@@ -2503,24 +2582,14 @@ export function ReportWorkspace(props: ReportWorkspaceProps) {
           className={`report-workspace report-workspace-${props.mode.toLowerCase()}`}
         >
           <ReportInputPane {...props} />
-          <ReportDetailsPane {...props} groups={groups} readiness={readiness} />
+          <ReportDetailsPane
+            {...props}
+            groups={groups}
+            readiness={readiness}
+            sourceReady={sourceReady}
+            onPrimaryAction={runPrimaryAction}
+          />
         </div>
-        {props.mode !== "REVIEW" ? (
-          <div className="workspace-action-bar" aria-live="polite">
-            <div>
-              <strong>{actionTitle}</strong>
-              {actionSupport ? <span>{actionSupport}</span> : null}
-            </div>
-            <button
-              className="primary-button"
-              type="button"
-              disabled={props.mode === "PROCESSING" || (!props.draft && !sourceReady)}
-              onClick={runPrimaryAction}
-            >
-              {actionLabel}
-            </button>
-          </div>
-        ) : null}
         <p className="visually-hidden" aria-live="polite">
           {navigationMessage}
         </p>
