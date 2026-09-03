@@ -305,6 +305,68 @@ const CHANNEL_PATTERNS: ReadonlyArray<[RegExp, string]> = [
   [/\b(?:mobile app|banking app|application|app)\b/i, "Mobile app"],
 ];
 
+const KNOWN_PLATFORM_PATTERNS: ReadonlyArray<[RegExp, string]> = [
+  [/\bfacebook\b/i, "Facebook"],
+  [/\binstagram\b/i, "Instagram"],
+  [/\bsnapchat\b/i, "Snapchat"],
+  [/\b(?:x\s*\/\s*twitter|twitter)\b/i, "X"],
+  [/\blinkedin\b/i, "LinkedIn"],
+  [/\btelegram\b/i, "Telegram"],
+  [/\bwhats?app\b/i, "WhatsApp"],
+  [/\bgmail\b/i, "Gmail"],
+  [/\boutlook\b/i, "Outlook"],
+  [/\bdiscord\b/i, "Discord"],
+  [/\byoutube\b/i, "YouTube"],
+  [/\bamazon\b/i, "Amazon"],
+  [/\bflipkart\b/i, "Flipkart"],
+];
+
+function platformFromIncidentText(text: string): string | null {
+  for (const [pattern, name] of KNOWN_PLATFORM_PATTERNS) {
+    if (pattern.test(text)) return name;
+  }
+  const raw = text.match(
+    /\b(?:account|profile)\s+(?:on|in)\s+([a-z][a-z0-9._-]{1,39})\b|\bmy\s+([a-z][a-z0-9._-]{1,39})\s+(?:account|profile)\b/i,
+  );
+  const name = raw?.[1] ?? raw?.[2];
+  if (!name || /^(?:the|this|an|online|social)$/i.test(name)) return null;
+  return name.charAt(0).toUpperCase() + name.slice(1);
+}
+
+function sensitiveInformationFacts(text: string): {
+  requested: string[];
+  shared: string[];
+} {
+  const subjects: ReadonlyArray<[RegExp, string]> = [
+    [/\bbank (?:details|account details)\b/i, "Bank details"],
+    [/\botp\b|one[ -]?time password/i, "OTP"],
+    [/\baadhaar\b|\baadhar\b/i, "Aadhaar"],
+    [/\bpan\b|pan card/i, "PAN"],
+    [/\bpassword\b/i, "Password"],
+    [/\bupi id\b/i, "UPI ID"],
+    [/\bemail(?: address)?\b/i, "Email"],
+    [/\bphoto(?:graph)?\b/i, "Photo"],
+  ];
+  const requested = new Set<string>();
+  const shared = new Set<string>();
+  for (const clause of text.split(/[.!?;\n]+/)) {
+    for (const [subject, label] of subjects) {
+      if (!subject.test(clause)) continue;
+      if (/\b(?:asked|requested|required|wanted|demanded)\b/i.test(clause)) requested.add(label);
+      if (
+        /\b(?:shared|gave|provided|sent|entered|disclosed)\b/i.test(clause) &&
+        !/\b(?:did not|didn't|never)\s+(?:share|give|provide|send|enter|disclose)\b/i.test(clause)
+      ) shared.add(label);
+    }
+  }
+  return { requested: [...requested], shared: [...shared] };
+}
+
+function impersonatedEntityFromText(text: string): string | null {
+  const match = text.match(/\b(?:pretended to be|claimed to be|posing as|impersonated?)\s+(?:a |an |the )?([^,.!?\n]{2,50})/i);
+  return match?.[1]?.trim() ?? null;
+}
+
 export function normalizeIncidentChannel(draft: IncidentDraft): string | null {
   const evidenceFacts = draft.evidence.flatMap((item) => item.extractedFacts);
   const supportedSources = [
@@ -327,7 +389,6 @@ export function normalizeIncidentDraft(
   draft: IncidentDraft,
   options: IncidentNormalizationOptions = {},
 ): IncidentDraft {
-  const platform = draft.adaptiveFacts.platform ?? draft.classification.platform;
   const supportedText = [
     draft.incident.narrative,
     draft.citizenSummary.shortSummary,
@@ -339,6 +400,17 @@ export function normalizeIncidentDraft(
     draft.citizenSummary.shortSummary.trim() ||
     draft.evidence.flatMap((item) => item.extractedFacts).join("\n");
   const extracted = deriveFinancialFactsFromText(financialSourceText);
+  const platform = draft.adaptiveFacts.platform ??
+    draft.classification.platform ??
+    platformFromIncidentText(financialSourceText);
+  const sensitiveInformation = sensitiveInformationFacts(financialSourceText);
+  const accountCompromise = /\b(?:hacked|taken over|took over|compromised|lost access)\b/i.test(financialSourceText) &&
+    /\b(?:account|profile|facebook|instagram|snapchat|twitter|linkedin|gmail|outlook|discord|youtube)\b/i.test(financialSourceText);
+  const threatOrExtortion = /\b(?:threatened|threatening|blackmail|extort|coerc)\b/i.test(financialSourceText);
+  const impersonation = /\b(?:pretended to be|claimed to be|posing as|impersonat)\b/i.test(financialSourceText);
+  const demandedAmount = extracted.monetaryMentions.find(
+    ({ role }) => role === "DEMANDED_AMOUNT" || role === "REQUESTED_AMOUNT",
+  )?.amount ?? null;
   const likelyFinancialCyberIncident = /\b(?:kyc|phishing|otp|upi collect|banking link)\b/i.test(financialSourceText) &&
     /\b(?:message|link|clicked|opened|downloaded|installed|shared|asked|request)\b/i.test(financialSourceText);
   const classification =
@@ -398,6 +470,8 @@ export function normalizeIncidentDraft(
   const claimedExistingIndexes = new Set<number>();
   const transactionSource = financialLossState !== "YES"
     ? []
+    : hasCitizenConfirmedTransaction
+      ? existingTransactions
     : canonicalMentions.length > 0
       ? canonicalMentions.map((mention, index) => {
           const exactIndex = existingTransactions.findIndex(
@@ -429,8 +503,6 @@ export function normalizeIncidentDraft(
             amount: mention.amount,
           };
         })
-      : hasCitizenConfirmedTransaction
-        ? existingTransactions
       : extracted.monetaryMentions.length > 0 && !hasTransactionEvidence
         ? []
         : existingTransactions;
@@ -486,6 +558,38 @@ export function normalizeIncidentDraft(
     adaptiveFacts: {
       ...draft.adaptiveFacts,
       platform,
+      accountCompromise: draft.adaptiveFacts.accountCompromise ?? accountCompromise,
+      recoveryEmailChanged: draft.adaptiveFacts.recoveryEmailChanged ??
+        (/recovery email[^.!?\n]{0,30}(?:changed|removed)/i.test(financialSourceText) ? true : null),
+      phoneNumberChanged: draft.adaptiveFacts.phoneNumberChanged ??
+        (/(?:recovery )?phone(?: number)?[^.!?\n]{0,30}(?:changed|removed)/i.test(financialSourceText) ? true : null),
+      credentialExposure: draft.adaptiveFacts.credentialExposure ??
+        (sensitiveInformation.shared.length > 0 ? true : null),
+      maliciousLink: draft.adaptiveFacts.maliciousLink ??
+        (/\b(?:clicked|opened|downloaded from)\b[^.!?\n]{0,45}\blink\b|\blink\b[^.!?\n]{0,45}\b(?:clicked|opened)\b/i.test(financialSourceText) ? true : null),
+      remoteAccess: draft.adaptiveFacts.remoteAccess ??
+        (/\b(?:remote access|screen shar(?:e|ing)|anydesk|teamviewer|quick support)\b/i.test(financialSourceText) ? true : null),
+      threatOrExtortion: draft.adaptiveFacts.threatOrExtortion ?? threatOrExtortion,
+      demandedAmount: draft.adaptiveFacts.demandedAmount ?? demandedAmount,
+      threatChannel: draft.adaptiveFacts.threatChannel ??
+        (threatOrExtortion ? normalizeIncidentChannel(draft) : null),
+      threatDescription: draft.adaptiveFacts.threatDescription ??
+        (threatOrExtortion ? draft.incident.narrative : null),
+      sensitiveMaterialInvolved: draft.adaptiveFacts.sensitiveMaterialInvolved ??
+        (/\b(?:intimate|private|nude|sexual)\s+(?:image|photo|video|material)/i.test(financialSourceText) ? true : null),
+      impersonation: draft.adaptiveFacts.impersonation ?? impersonation,
+      impersonatedEntity: draft.adaptiveFacts.impersonatedEntity ?? impersonatedEntityFromText(financialSourceText),
+      communicationChannels: draft.adaptiveFacts.communicationChannels.length > 0
+        ? draft.adaptiveFacts.communicationChannels
+        : [normalizeIncidentChannel(draft)].filter((value): value is string => Boolean(value)),
+      requestedSensitiveInfo: Array.from(new Set([
+        ...draft.adaptiveFacts.requestedSensitiveInfo,
+        ...sensitiveInformation.requested,
+      ])),
+      sharedSensitiveInfo: Array.from(new Set([
+        ...draft.adaptiveFacts.sharedSensitiveInfo,
+        ...sensitiveInformation.shared,
+      ])),
     },
     financialExposure: Object.fromEntries(
       Object.entries(draft.financialExposure).map(([key, value]) => [

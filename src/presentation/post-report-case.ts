@@ -1,4 +1,5 @@
 import type { IncidentDraft } from "../incident/schema";
+import { getIncidentCapabilities } from "../incident/capabilities";
 import type { UiLocale } from "../i18n/i18n-provider";
 import { deriveIncidentTimeline, type IncidentTimelineEvent } from "./incident-timeline";
 import {
@@ -267,6 +268,7 @@ export function getPostReportActions(
   locale: UiLocale,
 ): PostReportAction[] {
   const hi = locale === "hi";
+  const capabilities = getIncidentCapabilities(draft);
   const story = draft.incident.narrative ?? "";
   const explicitlyShared = (subject: RegExp) => {
     return story
@@ -283,18 +285,9 @@ export function getPostReportActions(
   const bankDetailsShared = explicitlyShared(/bank details|account details|बैंक विवरण|खाते? का विवरण/i);
   const identityShared = explicitlyShared(/aadhaar|identity|id document|आधार|पहचान/i);
   const otpShared = explicitlyShared(/otp|one[ -]?time password|ओटीपी/i);
-  const hasFinancialLoss =
-    draft.classification.reportFamily === "FINANCIAL_FRAUD" &&
-    draft.incident.financialLossState === "YES";
-  const isAccountCompromise =
-    /profile hacking|account takeover|account compromise/i.test(
-      `${draft.classification.subCategory ?? ""} ${draft.citizenSummary.incidentLabel}`,
-    ) ||
-    Boolean(draft.adaptiveFacts.affectedAccount) ||
-    Boolean(draft.adaptiveFacts.accountAccessStatus);
-  const isRansomware = /ransomware/i.test(
-    `${draft.classification.subCategory ?? ""} ${draft.citizenSummary.incidentLabel}`,
-  ) || Boolean(draft.adaptiveFacts.ransomMessagePresent);
+  const hasFinancialLoss = capabilities.financialLoss;
+  const isAccountCompromise = capabilities.accountCompromise;
+  const isRansomware = capabilities.ransomware;
   const isSensitiveAbuse =
     draft.classification.reportFamily === "WOMEN_CHILDREN_RELATED_CRIME";
   const hasEvidence = draft.evidence.some(
@@ -320,7 +313,7 @@ export function getPostReportActions(
     ];
   }
 
-  if (isSensitiveAbuse) {
+  if (isSensitiveAbuse && !hasFinancialLoss) {
     const actions: PostReportAction[] = [
       {
         id: "preserve-threatening-evidence",
@@ -365,7 +358,7 @@ export function getPostReportActions(
         transaction.transactionIdOrUtr &&
         transaction.transactionIdOrUtr !== "__CITIZEN_DOES_NOT_HAVE__",
     ).length;
-    return [
+    const actions: PostReportAction[] = [
       {
         id: "call-1930",
         title: hi ? "यदि अभी तक नहीं किया है, तो तुरंत 1930 पर कॉल करें" : "Call 1930 promptly if you have not already",
@@ -374,6 +367,13 @@ export function getPostReportActions(
           : "Use the national cyber-fraud helpline for urgent financial-fraud reporting.",
         href: "tel:1930",
       },
+      ...(isAccountCompromise ? [{
+        id: "account-recovery",
+        title: hi ? "प्रभावित खाते की रिकवरी शुरू करें" : "Start recovery for the affected account",
+        description: hi
+          ? "प्रभावित प्लेटफ़ॉर्म की आधिकारिक सेटिंग या सहायता से रिकवरी शुरू करें।"
+          : "Start recovery through the affected platform's official settings or support.",
+      }] : []),
       {
         id: "keep-transactions",
         title: knownReferences > 0
@@ -409,6 +409,27 @@ export function getPostReportActions(
             ? "संदेश, लिंक, फोन नंबर और उपलब्ध लेन-देन रिकॉर्ड सुरक्षित रखें।"
             : "Keep messages, links, phone numbers and available transaction records.",
       },
+    ];
+    return actions.slice(0, 4);
+  }
+
+  if (capabilities.threatOrExtortion) {
+    return [
+      {
+        id: "stop-threatening-contact",
+        title: hi ? "धमकी देने वाले से संपर्क सीमित या बंद करें" : "Limit or stop contact with the sender",
+        description: hi ? "पहले संदेश और उपलब्ध सबूत सुरक्षित रखें।" : "Preserve the messages and available evidence first.",
+      },
+      {
+        id: "preserve-threat-evidence",
+        title: hi ? "धमकी और मांग के सबूत सुरक्षित रखें" : "Preserve evidence of the threat and demand",
+        description: hi ? "मूल संदेश, प्रोफ़ाइल, नंबर, URL और स्क्रीनशॉट रखें।" : "Keep original messages, profiles, numbers, URLs and screenshots.",
+      },
+      ...(isAccountCompromise ? [{
+        id: "account-recovery",
+        title: hi ? "प्रभावित खाते की रिकवरी शुरू करें" : "Start recovery for the affected account",
+        description: hi ? "प्लेटफ़ॉर्म की आधिकारिक रिकवरी प्रक्रिया का उपयोग करें।" : "Use the platform's official recovery process.",
+      }] : []),
     ];
   }
 
@@ -764,22 +785,10 @@ export function getProcessExplainer(
   locale: UiLocale,
 ): ProcessExplainer {
   const hi = locale === "hi";
+  const capabilities = getIncidentCapabilities(draft);
   const family = draft.classification.reportFamily;
-  const categoryText = [
-    draft.classification.subCategory,
-    draft.officialMapping.subCategoryLabel,
-    draft.citizenSummary.incidentLabel,
-  ]
-    .filter(Boolean)
-    .join(" ");
-  const isRansomware =
-    /ransomware|ransom|encrypted/i.test(categoryText) ||
-    Boolean(draft.adaptiveFacts.ransomMessagePresent) ||
-    Boolean(draft.adaptiveFacts.filesEncrypted);
-  const isAccountCompromise =
-    /profile hacking|account takeover|account compromise/i.test(categoryText) ||
-    Boolean(draft.adaptiveFacts.affectedAccount) ||
-    Boolean(draft.adaptiveFacts.accountAccessStatus);
+  const isRansomware = capabilities.ransomware;
+  const isAccountCompromise = capabilities.accountCompromise;
   const currentKnownState = {
     title: hi ? "प्रोटोटाइप रिपोर्ट दर्ज हुई" : "Prototype report recorded",
     description: hi

@@ -13,13 +13,31 @@ export type DeterministicIncidentInterpretation = {
 
 const EMPTY_ADAPTIVE_FACTS: AdaptiveIncidentFacts = {
   platform: null,
+  platformType: null,
   affectedAccount: null,
+  profileUrl: null,
   accountAccessStatus: null,
+  accountCompromise: null,
   recoveryInformationChanged: null,
+  recoveryEmailChanged: null,
+  phoneNumberChanged: null,
   affectedSystem: null,
   filesEncrypted: null,
   ransomMessagePresent: null,
   accountCompromiseBasis: null,
+  credentialExposure: null,
+  maliciousLink: null,
+  remoteAccess: null,
+  threatOrExtortion: null,
+  demandedAmount: null,
+  threatChannel: null,
+  threatDescription: null,
+  sensitiveMaterialInvolved: null,
+  impersonation: null,
+  impersonatedEntity: null,
+  communicationChannels: [],
+  requestedSensitiveInfo: [],
+  sharedSensitiveInfo: [],
   sensitiveEvidenceRedacted: null,
 };
 
@@ -132,7 +150,7 @@ export function interpretIncidentText(input: string): DeterministicIncidentInter
   }
 
   // Primary financial harm wins over the platform used to make contact.
-  if (financialHarm || financialTargeting) {
+  if (financialHarm || financialTargeting || paymentDemand) {
     const subCategory = /lottery|prize|won\b/.test(lower)
       ? "Online Lottery Scam"
       : /investment|trading/.test(lower)
@@ -151,9 +169,15 @@ export function interpretIncidentText(input: string): DeterministicIncidentInter
         platform,
         explanation: financialHarm
           ? "The primary reported harm is a financial loss through a digital interaction."
-          : "The account describes a financial scam or request for sensitive financial information.",
+          : paymentDemand
+            ? "The account describes a digitally communicated financial demand; payment may still be unknown or absent."
+            : "The account describes a financial scam or request for sensitive financial information.",
       }),
-      adaptiveFacts: { ...EMPTY_ADAPTIVE_FACTS, platform },
+      adaptiveFacts: {
+        ...EMPTY_ADAPTIVE_FACTS,
+        platform,
+        threatOrExtortion: /\b(?:threatened|threatening|blackmail|extort|coerc)\b/i.test(text) ? true : null,
+      },
       reportedAmount,
     };
   }

@@ -1,4 +1,5 @@
 import type { IncidentDraft } from "./schema";
+import { getIncidentCapabilities } from "./capabilities";
 
 export type GeneratedNcrpField = {
   label: string;
@@ -38,6 +39,7 @@ export function totalIncidentTransactionAmount(draft: IncidentDraft): number {
 
 export function generateNcrpFields(draft: IncidentDraft): GeneratedNcrpField[] {
   if (draft.classification.reportFamily === "OUT_OF_SCOPE_OR_UNCLEAR") return [];
+  const capabilities = getIncidentCapabilities(draft);
   const common: GeneratedNcrpField[] = [
     { label: "Category of complaint", value: display(draft.officialMapping.categoryLabel) },
     { label: "Sub-category", value: display(draft.officialMapping.subCategoryLabel) },
@@ -63,14 +65,7 @@ export function generateNcrpFields(draft: IncidentDraft): GeneratedNcrpField[] {
         ] : []),
       ]
     : draft.classification.reportFamily === "OTHER_CYBER_CRIME"
-      ? [
-          { label: "Platform / service", value: display(draft.adaptiveFacts.platform) },
-          { label: "Affected account", value: display(draft.adaptiveFacts.affectedAccount) },
-          { label: "Account access", value: display(draft.adaptiveFacts.accountAccessStatus) },
-          { label: "Recovery information changed", value: display(draft.adaptiveFacts.recoveryInformationChanged) },
-          { label: "Affected system", value: display(draft.adaptiveFacts.affectedSystem) },
-          { label: "Files encrypted", value: display(draft.adaptiveFacts.filesEncrypted) },
-        ]
+      ? []
       : draft.classification.reportFamily === "WOMEN_CHILDREN_RELATED_CRIME"
         ? [
             { label: "Platform / service", value: display(draft.adaptiveFacts.platform) },
@@ -81,16 +76,46 @@ export function generateNcrpFields(draft: IncidentDraft): GeneratedNcrpField[] {
           ]
         : [];
 
+  const dynamicFields: GeneratedNcrpField[] = [
+    ...(capabilities.accountCompromise ? [
+      { label: "Affected platform", value: display(draft.adaptiveFacts.platform) },
+      { label: "Account / profile identifier", value: display(draft.adaptiveFacts.affectedAccount) },
+      { label: "Profile / account URL", value: display(draft.adaptiveFacts.profileUrl) },
+      { label: "Account access", value: display(draft.adaptiveFacts.accountAccessStatus) },
+    ] : []),
+    ...(capabilities.ransomware ? [
+      { label: "Affected system", value: display(draft.adaptiveFacts.affectedSystem) },
+      { label: "Files encrypted", value: display(draft.adaptiveFacts.filesEncrypted) },
+      { label: "Ransom message present", value: display(draft.adaptiveFacts.ransomMessagePresent) },
+    ] : []),
+    ...(draft.adaptiveFacts.communicationChannels.length > 0
+      ? [{ label: "Communication channels", value: draft.adaptiveFacts.communicationChannels.join("; ") }]
+      : []),
+    ...(capabilities.threatOrExtortion || capabilities.impersonation ? [
+      { label: "Threat or extortion", value: display(draft.adaptiveFacts.threatOrExtortion) },
+      { label: "Demanded amount", value: display(draft.adaptiveFacts.demandedAmount) },
+      { label: "Threat channel", value: display(draft.adaptiveFacts.threatChannel) },
+      { label: "Impersonated entity", value: display(draft.adaptiveFacts.impersonatedEntity) },
+    ] : []),
+    ...(draft.adaptiveFacts.requestedSensitiveInfo.length > 0
+      ? [{ label: "Information requested", value: draft.adaptiveFacts.requestedSensitiveInfo.join("; ") }]
+      : []),
+    ...(draft.adaptiveFacts.sharedSensitiveInfo.length > 0
+      ? [{ label: "Information shared", value: draft.adaptiveFacts.sharedSensitiveInfo.join("; ") }]
+      : []),
+  ].filter((field) => field.value !== "Not provided");
+
   return [
     ...common.slice(0, 2),
     ...familyFields.slice(0, draft.classification.reportFamily === "FINANCIAL_FRAUD" ? 1 : familyFields.length),
     ...common.slice(2),
     ...(draft.classification.reportFamily === "FINANCIAL_FRAUD" ? familyFields.slice(1) : []),
+    ...dynamicFields,
     { label: "Supporting evidence", value: draft.evidence.map((item) => item.type).join("; ") || "Not provided" },
     {
       label: "Suspect identifiers",
       value: draft.suspectIdentifiers.map((item) => `${item.type}: ${item.value}`).join("; ") || "Not provided",
     },
-    { label: "Complainant information", value: "Asha Verma · Karnataka · ••••••0024" },
+    { label: "Complainant information", value: "Provided separately with the complaint" },
   ];
 }

@@ -30,6 +30,7 @@ import {
 } from "../../incident/ncrp-compatible-complaint";
 import {
   IncidentDraftSchema,
+  safeParseIncidentDraft,
   TranscriptionResultSchema,
   type IncidentDraft,
   type ReportFamily,
@@ -150,7 +151,7 @@ function readUnfinishedReport(): PersistedUnfinishedReport | null {
       return null;
     }
     const parsedDraft = candidate.draft
-      ? IncidentDraftSchema.safeParse(candidate.draft)
+      ? safeParseIncidentDraft(candidate.draft)
       : null;
     const parsedTranscription = candidate.transcription
       ? TranscriptionResultSchema.safeParse(candidate.transcription)
@@ -575,7 +576,7 @@ export function DemoJourney() {
         return;
       }
 
-      const restoredDraft = IncidentDraftSchema.safeParse(candidate.draft);
+      const restoredDraft = safeParseIncidentDraft(candidate.draft);
       const restoredTranscription = TranscriptionResultSchema.safeParse(
         candidate.transcription,
       );

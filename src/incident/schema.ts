@@ -42,13 +42,31 @@ export type IncidentClassification = z.infer<typeof IncidentClassificationSchema
 
 export const AdaptiveIncidentFactsSchema = z.object({
   platform: z.string().nullable(),
+  platformType: z.string().nullable(),
   affectedAccount: z.string().nullable(),
+  profileUrl: z.string().nullable(),
   accountAccessStatus: z.string().nullable(),
+  accountCompromise: z.boolean().nullable(),
   recoveryInformationChanged: z.boolean().nullable(),
+  recoveryEmailChanged: z.boolean().nullable(),
+  phoneNumberChanged: z.boolean().nullable(),
   affectedSystem: z.string().nullable(),
   filesEncrypted: z.boolean().nullable(),
   ransomMessagePresent: z.boolean().nullable(),
   accountCompromiseBasis: z.string().nullable(),
+  credentialExposure: z.boolean().nullable(),
+  maliciousLink: z.boolean().nullable(),
+  remoteAccess: z.boolean().nullable(),
+  threatOrExtortion: z.boolean().nullable(),
+  demandedAmount: z.number().positive().nullable(),
+  threatChannel: z.string().nullable(),
+  threatDescription: z.string().nullable(),
+  sensitiveMaterialInvolved: z.boolean().nullable(),
+  impersonation: z.boolean().nullable(),
+  impersonatedEntity: z.string().nullable(),
+  communicationChannels: z.array(z.string()),
+  requestedSensitiveInfo: z.array(z.string()),
+  sharedSensitiveInfo: z.array(z.string()),
   sensitiveEvidenceRedacted: z.boolean().nullable(),
 }).strict();
 export type AdaptiveIncidentFacts = z.infer<typeof AdaptiveIncidentFactsSchema>;
@@ -120,6 +138,64 @@ export const IncidentDraftSchema = z.object({
 });
 
 export type IncidentDraft = z.infer<typeof IncidentDraftSchema>;
+
+const LEGACY_ADAPTIVE_FACT_DEFAULTS: Pick<
+  AdaptiveIncidentFacts,
+  | "platformType"
+  | "profileUrl"
+  | "accountCompromise"
+  | "recoveryEmailChanged"
+  | "phoneNumberChanged"
+  | "credentialExposure"
+  | "maliciousLink"
+  | "remoteAccess"
+  | "threatOrExtortion"
+  | "demandedAmount"
+  | "threatChannel"
+  | "threatDescription"
+  | "sensitiveMaterialInvolved"
+  | "impersonation"
+  | "impersonatedEntity"
+  | "communicationChannels"
+  | "requestedSensitiveInfo"
+  | "sharedSensitiveInfo"
+> = {
+  platformType: null,
+  profileUrl: null,
+  accountCompromise: null,
+  recoveryEmailChanged: null,
+  phoneNumberChanged: null,
+  credentialExposure: null,
+  maliciousLink: null,
+  remoteAccess: null,
+  threatOrExtortion: null,
+  demandedAmount: null,
+  threatChannel: null,
+  threatDescription: null,
+  sensitiveMaterialInvolved: null,
+  impersonation: null,
+  impersonatedEntity: null,
+  communicationChannels: [],
+  requestedSensitiveInfo: [],
+  sharedSensitiveInfo: [],
+};
+
+/** Keeps locally saved drafts from before the dynamic-facts pass recoverable. */
+export function safeParseIncidentDraft(value: unknown) {
+  if (!value || typeof value !== "object") return IncidentDraftSchema.safeParse(value);
+  const candidate = value as Record<string, unknown>;
+  const adaptiveFacts = candidate.adaptiveFacts;
+  if (!adaptiveFacts || typeof adaptiveFacts !== "object") {
+    return IncidentDraftSchema.safeParse(value);
+  }
+  return IncidentDraftSchema.safeParse({
+    ...candidate,
+    adaptiveFacts: {
+      ...LEGACY_ADAPTIVE_FACT_DEFAULTS,
+      ...(adaptiveFacts as Record<string, unknown>),
+    },
+  });
+}
 
 export const TranscriptionResultSchema = z.object({
   originalTranscript: z.string(),

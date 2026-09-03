@@ -4,6 +4,7 @@ import type { IncidentDraft } from "../incident/schema";
 import { sanitizeSensitiveText } from "../incident/sensitive-text";
 import type { UiLocale } from "../i18n/i18n-provider";
 import { formatCurrency } from "./format";
+import { getIncidentCapabilities } from "../incident/capabilities";
 
 export type NextAction = {
   id: string;
@@ -155,20 +156,18 @@ export function getNextActions(
 ): NextAction[] {
   const hi = locale === "hi";
   const family = draft.classification.reportFamily;
+  const capabilities = getIncidentCapabilities(draft);
   if (family === "OUT_OF_SCOPE_OR_UNCLEAR") return [];
 
-  if (family === "FINANCIAL_FRAUD") {
-    const actions: NextAction[] = [];
-    if (draft.incident.moneyLost === true) {
-      actions.push({
+  if (capabilities.financialLoss) {
+    return [
+      {
         id: "call-1930",
         title: hi ? "1930 पर कॉल करें" : "Call 1930",
         description: hi
           ? "वित्तीय धोखाधड़ी की तुरंत रिपोर्ट करें।"
           : "Report the financial fraud promptly.",
-      });
-    }
-    actions.push(
+      },
       {
         id: "contact-bank",
         title: hi ? "अपने बैंक से संपर्क करें" : "Contact your bank",
@@ -183,8 +182,12 @@ export function getNextActions(
           ? "संदेश, लेन-देन रिकॉर्ड और संदिग्ध की उपलब्ध जानकारी सुरक्षित रखें।"
           : "Preserve messages, transaction records and available suspect details.",
       },
-    );
-    return actions.slice(0, 3);
+      ...(capabilities.accountCompromise ? [{
+        id: "account-recovery",
+        title: hi ? "प्रभावित खाते की रिकवरी शुरू करें" : "Start recovery for the affected account",
+        description: hi ? "प्लेटफ़ॉर्म की आधिकारिक रिकवरी प्रक्रिया का उपयोग करें।" : "Use the affected platform's official recovery process.",
+      }] : []),
+    ].slice(0, 3);
   }
 
   if (family === "WOMEN_CHILDREN_RELATED_CRIME") {
@@ -213,12 +216,22 @@ export function getNextActions(
     ];
   }
 
-  const categoryText = [
-    draft.classification.subCategory,
-    draft.officialMapping.subCategoryLabel,
-    draft.citizenSummary.incidentLabel,
-  ].join(" ");
-  if (/ransomware|ransom|encrypted/i.test(categoryText)) {
+  if (capabilities.threatOrExtortion) {
+    return [
+      {
+        id: "preserve-threat",
+        title: hi ? "धमकी और मांग के सबूत सुरक्षित रखें" : "Preserve evidence of the threat and demand",
+        description: hi ? "मूल संदेश, नंबर, प्रोफ़ाइल और स्क्रीनशॉट रखें।" : "Keep original messages, numbers, profiles and screenshots.",
+      },
+      {
+        id: "stop-contact",
+        title: hi ? "भेजने वाले से संपर्क सीमित करें" : "Limit contact with the sender",
+        description: hi ? "सबूत सुरक्षित करने के बाद संपर्क सीमित या बंद करें।" : "After preserving evidence, limit or stop contact.",
+      },
+    ];
+  }
+
+  if (capabilities.ransomware) {
     return [
       {
         id: "preserve-ransom",
@@ -242,7 +255,7 @@ export function getNextActions(
     ];
   }
 
-  return [
+  if (capabilities.accountCompromise) return [
     {
       id: "account-recovery",
       title: hi ? "आधिकारिक खाता रिकवरी का उपयोग करें" : "Use official account recovery",
@@ -265,4 +278,23 @@ export function getNextActions(
         : "Keep screenshots, profile URLs, usernames and relevant messages.",
     },
   ];
+
+  if (capabilities.attemptedFinancialScam) return [
+    {
+      id: "stop-contact",
+      title: hi ? "भेजने वाले से संपर्क बंद करें" : "Stop contact with the sender",
+      description: hi ? "आगे पैसे या संवेदनशील जानकारी साझा न करें।" : "Do not send money or share sensitive information.",
+    },
+    {
+      id: "preserve-evidence",
+      title: hi ? "उपलब्ध सबूत सुरक्षित रखें" : "Preserve the available evidence",
+      description: hi ? "संदेश, नंबर, प्रोफ़ाइल, URL या स्क्रीनशॉट रखें।" : "Keep messages, numbers, profiles, URLs or screenshots.",
+    },
+  ];
+
+  return [{
+    id: "preserve-evidence",
+    title: hi ? "उपलब्ध सबूत सुरक्षित रखें" : "Preserve the available evidence",
+    description: hi ? "घटना से जुड़े मूल रिकॉर्ड सुरक्षित रखें।" : "Keep the original records connected to the incident.",
+  }];
 }

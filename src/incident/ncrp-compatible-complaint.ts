@@ -124,13 +124,31 @@ export const NcrpCompatibleComplaintSchema = z.object({
     transactions: z.array(TransactionSchema),
     adaptive: z.object({
       platform: ComplaintFieldSchema,
+      platformType: ComplaintFieldSchema,
       affectedAccount: ComplaintFieldSchema,
+      profileUrl: ComplaintFieldSchema,
       accountAccessStatus: ComplaintFieldSchema,
+      accountCompromise: ComplaintFieldSchema,
       recoveryInformationChanged: ComplaintFieldSchema,
+      recoveryEmailChanged: ComplaintFieldSchema,
+      phoneNumberChanged: ComplaintFieldSchema,
       affectedSystem: ComplaintFieldSchema,
       filesEncrypted: ComplaintFieldSchema,
       ransomMessagePresent: ComplaintFieldSchema,
       accountCompromiseBasis: ComplaintFieldSchema,
+      credentialExposure: ComplaintFieldSchema,
+      maliciousLink: ComplaintFieldSchema,
+      remoteAccess: ComplaintFieldSchema,
+      threatOrExtortion: ComplaintFieldSchema,
+      demandedAmount: ComplaintFieldSchema,
+      threatChannel: ComplaintFieldSchema,
+      threatDescription: ComplaintFieldSchema,
+      sensitiveMaterialInvolved: ComplaintFieldSchema,
+      impersonation: ComplaintFieldSchema,
+      impersonatedEntity: ComplaintFieldSchema,
+      communicationChannels: z.array(ComplaintFieldSchema),
+      requestedSensitiveInfo: z.array(ComplaintFieldSchema),
+      sharedSensitiveInfo: z.array(ComplaintFieldSchema),
       sensitiveEvidenceRedacted: ComplaintFieldSchema,
       financialExposure: z.object({
         bankDetailsRequested: ComplaintFieldSchema,
@@ -365,6 +383,8 @@ export function buildNcrpCompatibleComplaint({
   const classificationSource: FieldSource = draft.classification.explanation === "Reporting path confirmed by the citizen."
     ? "USER_CONFIRMED"
     : "SYSTEM_DERIVED";
+  const sourceFor = (path: string, fallback: FieldSource): FieldSource =>
+    draft.citizenConfirmedFields.includes(path) ? "USER_CONFIRMED" : fallback;
 
   const incident = {
     category: valueField(draft.officialMapping.categoryLabel, [classificationSource], true),
@@ -374,14 +394,14 @@ export function buildNcrpCompatibleComplaint({
       ? {
           value: draft.incident.incidentDateWithoutYear,
           status: "NEEDS_CONFIRMATION" as const,
-          sources: [narrativeSource],
+          sources: [sourceFor("incident.incidentDate", narrativeSource)],
         }
-      : valueField(draft.incident.incidentDate, [narrativeSource], true),
-    incidentTime: valueField(draft.incident.approximateTime, [narrativeSource], true),
+      : valueField(draft.incident.incidentDate, [sourceFor("incident.incidentDate", narrativeSource)], true),
+    incidentTime: valueField(draft.incident.approximateTime, [sourceFor("incident.incidentTime", narrativeSource)], true),
     delayInReporting: valueField(draft.incident.delayInReporting, ["SYSTEM_DERIVED"], true),
     reasonForDelay: valueField(draft.incident.delayReason, [narrativeSource], draft.incident.delayInReporting === true),
-    communicationChannel: valueField(draft.incident.occurredOn, [structuredSource], true),
-    description: valueField(draft.incident.narrative, [narrativeSource], true),
+    communicationChannel: valueField(draft.incident.occurredOn, [sourceFor("incident.communicationChannel", structuredSource)], true),
+    description: valueField(draft.incident.narrative, [sourceFor("incident.narrative", narrativeSource)], true),
   };
 
   return NcrpCompatibleComplaintSchema.parse({
@@ -392,29 +412,45 @@ export function buildNcrpCompatibleComplaint({
     groups: {
       incident,
       transactions: draft.transactions.map((transaction, index) => ({
-        institution: valueField(transaction.institution, [structuredSource], true),
-        sourceAccountOrPaymentId: valueField(transaction.accountOrUpiId, [profileSource], true),
+        institution: valueField(transaction.institution, [sourceFor(`transactions.${index}.institution`, structuredSource)], true),
+        sourceAccountOrPaymentId: valueField(transaction.accountOrUpiId, [sourceFor(`transactions.${index}.accountOrUpiId`, profileSource)], true),
         transactionIdOrUtr: valueField(
           transaction.transactionIdOrUtr,
-          [draft.citizenConfirmedFields?.includes(`transactions.${index}.transactionIdOrUtr`)
-            ? "USER_CONFIRMED"
-            : structuredSource],
+          [sourceFor(`transactions.${index}.transactionIdOrUtr`, structuredSource)],
           true,
         ),
-        amount: valueField(transaction.amount, [structuredSource], true),
-        transactionDate: valueField(transaction.transactionDate, [structuredSource], true),
-        approximateTime: valueField(transaction.approximateTime, [structuredSource], true),
+        amount: valueField(transaction.amount, [sourceFor(`transactions.${index}.amount`, structuredSource)], true),
+        transactionDate: valueField(transaction.transactionDate, [sourceFor(`transactions.${index}.transactionDate`, structuredSource)], true),
+        approximateTime: valueField(transaction.approximateTime, [sourceFor(`transactions.${index}.approximateTime`, structuredSource)], true),
         referenceNumber: valueField(transaction.referenceNumber, [structuredSource], false),
       })),
       adaptive: {
-        platform: valueField(draft.adaptiveFacts.platform ?? draft.classification.platform, [structuredSource]),
-        affectedAccount: valueField(draft.adaptiveFacts.affectedAccount, [structuredSource]),
-        accountAccessStatus: valueField(draft.adaptiveFacts.accountAccessStatus, [structuredSource]),
+        platform: valueField(draft.adaptiveFacts.platform ?? draft.classification.platform, [sourceFor("adaptive.platform", structuredSource)]),
+        platformType: valueField(draft.adaptiveFacts.platformType, [structuredSource]),
+        affectedAccount: valueField(draft.adaptiveFacts.affectedAccount, [sourceFor("adaptive.affectedAccount", structuredSource)]),
+        profileUrl: valueField(draft.adaptiveFacts.profileUrl, [sourceFor("adaptive.profileUrl", structuredSource)]),
+        accountAccessStatus: valueField(draft.adaptiveFacts.accountAccessStatus, [sourceFor("adaptive.accountAccessStatus", structuredSource)]),
+        accountCompromise: valueField(draft.adaptiveFacts.accountCompromise, [structuredSource]),
         recoveryInformationChanged: valueField(draft.adaptiveFacts.recoveryInformationChanged, [structuredSource]),
+        recoveryEmailChanged: valueField(draft.adaptiveFacts.recoveryEmailChanged, [structuredSource]),
+        phoneNumberChanged: valueField(draft.adaptiveFacts.phoneNumberChanged, [structuredSource]),
         affectedSystem: valueField(draft.adaptiveFacts.affectedSystem, [structuredSource]),
         filesEncrypted: valueField(draft.adaptiveFacts.filesEncrypted, [structuredSource]),
         ransomMessagePresent: valueField(draft.adaptiveFacts.ransomMessagePresent, [structuredSource]),
         accountCompromiseBasis: valueField(draft.adaptiveFacts.accountCompromiseBasis, [structuredSource]),
+        credentialExposure: valueField(draft.adaptiveFacts.credentialExposure, [structuredSource]),
+        maliciousLink: valueField(draft.adaptiveFacts.maliciousLink, [structuredSource]),
+        remoteAccess: valueField(draft.adaptiveFacts.remoteAccess, [structuredSource]),
+        threatOrExtortion: valueField(draft.adaptiveFacts.threatOrExtortion, [structuredSource]),
+        demandedAmount: valueField(draft.adaptiveFacts.demandedAmount, [sourceFor("adaptive.demandedAmount", structuredSource)]),
+        threatChannel: valueField(draft.adaptiveFacts.threatChannel, [sourceFor("adaptive.threatChannel", structuredSource)]),
+        threatDescription: valueField(draft.adaptiveFacts.threatDescription, [sourceFor("adaptive.threatDescription", structuredSource)]),
+        sensitiveMaterialInvolved: valueField(draft.adaptiveFacts.sensitiveMaterialInvolved, [structuredSource]),
+        impersonation: valueField(draft.adaptiveFacts.impersonation, [structuredSource]),
+        impersonatedEntity: valueField(draft.adaptiveFacts.impersonatedEntity, [sourceFor("adaptive.impersonatedEntity", structuredSource)]),
+        communicationChannels: draft.adaptiveFacts.communicationChannels.map((value) => valueField(value, [structuredSource])),
+        requestedSensitiveInfo: draft.adaptiveFacts.requestedSensitiveInfo.map((value) => valueField(value, [sourceFor("adaptive.requestedSensitiveInfo", structuredSource)])),
+        sharedSensitiveInfo: draft.adaptiveFacts.sharedSensitiveInfo.map((value) => valueField(value, [sourceFor("adaptive.sharedSensitiveInfo", structuredSource)])),
         sensitiveEvidenceRedacted: valueField(draft.adaptiveFacts.sensitiveEvidenceRedacted, [structuredSource]),
         financialExposure: {
           bankDetailsRequested: valueField(draft.financialExposure.bankDetailsRequested, [structuredSource]),

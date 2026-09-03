@@ -60,7 +60,17 @@ Rules:
 46. Use the transaction reference/UTR as the canonical reference. Do not duplicate it into referenceNumber unless a distinct second reference is explicitly supplied.
 47. Suspicious phishing/KYC link or app-download behaviour is enough to recognize a likely financial cyber incident even when debit status is unknown. Keep financialLossState UNKNOWN and transactions empty; do not require the exact app name first.
 48. Benign text with no meaningful cybercrime indicator must remain OUT_OF_SCOPE_OR_UNCLEAR. Do not turn it into a fraud report that is merely missing an app, account, or device.
-49. Reconstruct transactions from supported source events. Repeated analysis of the same source must return the same transaction count and stable sequential identities.`;
+49. Reconstruct transactions from supported source events. Repeated analysis of the same source must return the same transaction count and stable sequential identities.
+50. adaptiveFacts.platform is an unrestricted raw service/platform name. Preserve arbitrary names such as Facebook, Snapchat, LinkedIn, Gmail or a new service; do not force them into a fixed list.
+51. Set accountCompromise from supported access/takeover facts, independently of the platform and independently of financial loss. Preserve profileUrl and affectedAccount only when supplied.
+52. Populate platformType with a broad value such as SOCIAL_MEDIA, MESSAGING, EMAIL, COMMERCE, PROFESSIONAL_NETWORK, OTHER, or null. It is descriptive metadata, not a reporting route.
+53. Keep communicationChannels as supported raw channel names. A communication channel does not automatically mean its account was compromised.
+54. Extract threatOrExtortion, demandedAmount, threatChannel, threatDescription and sensitiveMaterialInvolved from supported coercion facts. A demand is not a transaction.
+55. Extract impersonation and the unrestricted raw impersonatedEntity when someone pretended or claimed to be another person or organisation.
+56. Keep requestedSensitiveInfo and sharedSensitiveInfo separate. Include concise names such as OTP, Bank details, Aadhaar, PAN, Password, Email, UPI ID or Photo only when supported. Requested never means shared.
+57. Set credentialExposure only when sensitive credentials were actually shared or exposed, maliciousLink only when a suspicious link interaction is supported, and remoteAccess only when remote-control or screen-sharing access is supported.
+58. recoveryEmailChanged and phoneNumberChanged describe those specific supported account recovery changes. Unknown remains null.
+59. Multiple harms may coexist. Preserve account compromise, financial loss, threat, impersonation and exposure facts together instead of discarding secondary dimensions.`;
 
 type InputContent =
   | { type: "input_text"; text: string }

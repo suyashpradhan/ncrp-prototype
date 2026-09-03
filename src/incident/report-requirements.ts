@@ -1,4 +1,5 @@
 import type { IncidentDraft, ReportFamily } from "./schema";
+import { getIncidentCapabilities } from "./capabilities";
 
 export type ReportRequirementKey =
   | "moneyLost"
@@ -79,9 +80,15 @@ export const requirementsByReportFamily: Record<
 
 export function requirementsForIncident(draft: IncidentDraft): readonly ReportRequirement[] {
   const { reportFamily, subCategory } = draft.classification;
+  const capabilities = getIncidentCapabilities(draft);
   if (reportFamily === "OUT_OF_SCOPE_OR_UNCLEAR") return [];
-  if (reportFamily === "OTHER_CYBER_CRIME" && /ransomware/i.test(subCategory ?? "")) {
+  if (capabilities.ransomware) {
     return RANSOMWARE_REQUIREMENTS;
+  }
+  if (capabilities.accountCompromise) {
+    // Account identifiers and profile URLs improve the report but are enrichment,
+    // not blockers for recognizing or reviewing an account-compromise incident.
+    return COMMON_INCIDENT_REQUIREMENTS;
   }
   if (reportFamily === "OTHER_CYBER_CRIME" && !/profile hacking/i.test(subCategory ?? "")) {
     return GENERIC_OTHER_CYBER_REQUIREMENTS;

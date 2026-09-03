@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef, useState, type ChangeEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent, type ReactNode } from "react";
 import {
   deriveMissingQuestions,
   type MissingQuestion,
@@ -30,6 +30,7 @@ import {
   type NcrpCompatibleComplaint,
 } from "../../incident/ncrp-compatible-complaint";
 import type { ExperienceMode, ReporterProfile } from "../../experience/profile";
+import { getPlatformConfig } from "../../incident/capabilities";
 import { useI18n } from "../../i18n/i18n-provider";
 import {
   CITIZEN_DOES_NOT_HAVE,
@@ -1229,7 +1230,7 @@ function ReportFieldRow({
 }) {
   const { locale, t } = useI18n();
   const [copied, setCopied] = useState(false);
-  const showSource = SOURCE_VISIBLE_FIELD_IDS.has(field.id);
+  const showSource = SOURCE_VISIBLE_FIELD_IDS.has(field.id) || field.source === t("field.fromConfirmation");
   const copyable = /^transaction-\d+-(utr|reference)$/.test(field.id) ||
     /^(suspect-\d+)$/.test(field.id);
   if (field.missingQuestion) {
@@ -1348,6 +1349,92 @@ function NarrativeEditor({
   );
 }
 
+function SectionEditor({
+  groupId,
+  draft,
+  onSave,
+  onCancel,
+}: {
+  groupId: ReportGroupView["id"];
+  draft: IncidentDraft;
+  onSave: (draft: IncidentDraft, confirmedFields: string[]) => void;
+  onCancel: () => void;
+}) {
+  const { locale, t } = useI18n();
+  const hi = locale === "hi";
+  const [working, setWorking] = useState(() => structuredClone(draft));
+  const numberValue = (value: string) => {
+    const parsed = Number(value.replaceAll(",", ""));
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+  };
+  const controls: ReactNode[] = [];
+
+  if (groupId === "INCIDENT") {
+    controls.push(
+      <label key="date">{hi ? "घटना की तारीख" : "Incident date"}<input type="date" value={working.incident.incidentDate ?? ""} onChange={(event) => setWorking((current) => ({ ...current, incident: { ...current.incident, incidentDate: event.target.value || null } }))} /></label>,
+      <label key="time">{hi ? "लगभग समय" : "Approximate time"}<input value={working.incident.approximateTime ?? ""} onChange={(event) => setWorking((current) => ({ ...current, incident: { ...current.incident, approximateTime: event.target.value || null } }))} /></label>,
+      <label key="channel">{hi ? "माध्यम" : "Communication channel"}<input value={working.incident.occurredOn ?? ""} onChange={(event) => setWorking((current) => ({ ...current, incident: { ...current.incident, occurredOn: event.target.value || null } }))} /></label>,
+    );
+  } else if (groupId === "TRANSACTIONS") {
+    controls.push(...working.transactions.map((transaction, index) => (
+      <fieldset className="section-edit-fieldset" key={transaction.id}>
+        <legend>{hi ? `लेन-देन ${index + 1}` : `Transaction ${index + 1}`}</legend>
+        <label>{hi ? "राशि" : "Amount"}<input inputMode="decimal" value={transaction.amount ?? ""} onChange={(event) => setWorking((current) => ({ ...current, transactions: current.transactions.map((item, itemIndex) => itemIndex === index ? { ...item, amount: numberValue(event.target.value) } : item) }))} /></label>
+        <label>{hi ? "बैंक या भुगतान संस्था" : "Bank / payment institution"}<input value={transaction.institution ?? ""} onChange={(event) => setWorking((current) => ({ ...current, transactions: current.transactions.map((item, itemIndex) => itemIndex === index ? { ...item, institution: event.target.value || null } : item) }))} /></label>
+        <label>{hi ? "खाता / वॉलेट / UPI ID" : "Account / wallet / UPI ID"}<input value={transaction.accountOrUpiId ?? ""} onChange={(event) => setWorking((current) => ({ ...current, transactions: current.transactions.map((item, itemIndex) => itemIndex === index ? { ...item, accountOrUpiId: event.target.value || null } : item) }))} /></label>
+        <label>{hi ? "लेन-देन संदर्भ / UTR" : "Transaction reference / UTR"}<input value={transaction.transactionIdOrUtr ?? ""} onChange={(event) => setWorking((current) => ({ ...current, transactions: current.transactions.map((item, itemIndex) => itemIndex === index ? { ...item, transactionIdOrUtr: event.target.value || null } : item) }))} /></label>
+        <label>{hi ? "तारीख" : "Date"}<input type="date" value={transaction.transactionDate ?? ""} onChange={(event) => setWorking((current) => ({ ...current, transactions: current.transactions.map((item, itemIndex) => itemIndex === index ? { ...item, transactionDate: event.target.value || null } : item) }))} /></label>
+        <label>{hi ? "लगभग समय" : "Approximate time"}<input value={transaction.approximateTime ?? ""} onChange={(event) => setWorking((current) => ({ ...current, transactions: current.transactions.map((item, itemIndex) => itemIndex === index ? { ...item, approximateTime: event.target.value || null } : item) }))} /></label>
+        <button className="text-button" type="button" onClick={() => setWorking((current) => ({ ...current, transactions: current.transactions.filter((_, itemIndex) => itemIndex !== index) }))}>{hi ? "लेन-देन हटाएँ" : "Remove transaction"}</button>
+      </fieldset>
+    )));
+    controls.push(<button key="add" className="secondary-button" type="button" onClick={() => setWorking((current) => {
+      let suffix = current.transactions.length + 1;
+      while (current.transactions.some((item) => item.id === `manual-transaction-${suffix}`)) suffix += 1;
+      return { ...current, transactions: [...current.transactions, { id: `manual-transaction-${suffix}`, institution: null, currency: "INR", paymentMethod: null, accountOrUpiId: null, transactionIdOrUtr: null, amount: null, transactionDate: null, approximateTime: null, referenceNumber: null, status: "MISSING" }] };
+    })}>{hi ? "लेन-देन जोड़ें" : "Add transaction"}</button>);
+  } else if (groupId === "ACCOUNT_SYSTEM") {
+    const platformConfig = getPlatformConfig(working.adaptiveFacts.platform);
+    controls.push(
+      <label key="platform">{hi ? "प्रभावित प्लेटफ़ॉर्म" : "Affected platform"}<input value={working.adaptiveFacts.platform ?? ""} onChange={(event) => {
+        const platform = event.target.value || null;
+        setWorking((current) => ({ ...current, adaptiveFacts: {
+          ...current.adaptiveFacts,
+          platform,
+          platformType: platform ? getPlatformConfig(platform).platformType : null,
+        } }));
+      }} /></label>,
+      <label key="account">{hi ? "खाता या प्रोफ़ाइल नाम / ID" : platformConfig.identifierLabel}<input value={working.adaptiveFacts.affectedAccount ?? ""} onChange={(event) => setWorking((current) => ({ ...current, adaptiveFacts: { ...current.adaptiveFacts, affectedAccount: event.target.value || null } }))} /><small>{hi ? "यदि उपलब्ध हो तो उपयोगी" : "Helpful if available"}</small></label>,
+      ...(platformConfig.urlLabel ? [<label key="url">{hi ? "प्रोफ़ाइल या खाते का URL" : platformConfig.urlLabel}<input type="url" value={working.adaptiveFacts.profileUrl ?? ""} onChange={(event) => setWorking((current) => ({ ...current, adaptiveFacts: { ...current.adaptiveFacts, profileUrl: event.target.value || null } }))} /><small>{hi ? "यदि उपलब्ध हो तो उपयोगी" : "Helpful if available"}</small></label>] : []),
+      <label key="access">{hi ? "खाते तक पहुँच" : "Account access status"}<input value={working.adaptiveFacts.accountAccessStatus ?? ""} onChange={(event) => setWorking((current) => ({ ...current, adaptiveFacts: { ...current.adaptiveFacts, accountAccessStatus: event.target.value || null } }))} /></label>,
+    );
+  } else if (groupId === "THREAT_IMPERSONATION") {
+    controls.push(
+      <label key="demand">{hi ? "मांगी गई राशि" : "Amount demanded"}<input inputMode="decimal" value={working.adaptiveFacts.demandedAmount ?? ""} onChange={(event) => setWorking((current) => ({ ...current, adaptiveFacts: { ...current.adaptiveFacts, demandedAmount: numberValue(event.target.value) } }))} /></label>,
+      <label key="threat-channel">{hi ? "धमकी का माध्यम" : "Threat channel"}<input value={working.adaptiveFacts.threatChannel ?? ""} onChange={(event) => setWorking((current) => ({ ...current, adaptiveFacts: { ...current.adaptiveFacts, threatChannel: event.target.value || null } }))} /></label>,
+      <label key="entity">{hi ? "दावा की गई पहचान" : "Claimed identity or organisation"}<input value={working.adaptiveFacts.impersonatedEntity ?? ""} onChange={(event) => setWorking((current) => ({ ...current, adaptiveFacts: { ...current.adaptiveFacts, impersonatedEntity: event.target.value || null } }))} /></label>,
+      <label key="description">{hi ? "धमकी का विवरण" : "Threat description"}<textarea rows={4} value={working.adaptiveFacts.threatDescription ?? ""} onChange={(event) => setWorking((current) => ({ ...current, adaptiveFacts: { ...current.adaptiveFacts, threatDescription: event.target.value || null } }))} /></label>,
+    );
+  } else if (groupId === "INFORMATION") {
+    controls.push(
+      <label key="requested">{hi ? "मांगी गई जानकारी" : "Information requested"}<input value={working.adaptiveFacts.requestedSensitiveInfo.join(", ")} onChange={(event) => setWorking((current) => ({ ...current, adaptiveFacts: { ...current.adaptiveFacts, requestedSensitiveInfo: event.target.value.split(",").map((item) => item.trim()).filter(Boolean) } }))} /></label>,
+      <label key="shared">{hi ? "साझा की गई जानकारी" : "Information shared"}<input value={working.adaptiveFacts.sharedSensitiveInfo.join(", ")} onChange={(event) => setWorking((current) => ({ ...current, adaptiveFacts: { ...current.adaptiveFacts, sharedSensitiveInfo: event.target.value.split(",").map((item) => item.trim()).filter(Boolean) } }))} /></label>,
+    );
+  }
+
+  const confirmedFields = groupId === "TRANSACTIONS"
+    ? working.transactions.flatMap((_, index) => ["amount", "institution", "accountOrUpiId", "transactionIdOrUtr", "transactionDate", "approximateTime"].map((field) => `transactions.${index}.${field}`))
+    : groupId === "ACCOUNT_SYSTEM"
+      ? ["adaptive.platform", "adaptive.platformType", "adaptive.affectedAccount", "adaptive.profileUrl", "adaptive.accountAccessStatus"]
+      : groupId === "THREAT_IMPERSONATION"
+        ? ["adaptive.demandedAmount", "adaptive.threatChannel", "adaptive.impersonatedEntity", "adaptive.threatDescription"]
+        : groupId === "INFORMATION"
+          ? ["adaptive.requestedSensitiveInfo", "adaptive.sharedSensitiveInfo"]
+          : ["incident.incidentDate", "incident.incidentTime", "incident.communicationChannel"];
+
+  return <div className="report-inline-edit section-inline-edit">{controls}<div className="inline-field-actions"><button className="secondary-button" type="button" onClick={() => onSave(working, confirmedFields)}>{t("field.save")}</button><button className="text-button" type="button" onClick={onCancel}>{t("field.cancel")}</button></div></div>;
+}
+
 function ReportGroup({
   group,
   draft,
@@ -1371,6 +1458,41 @@ function ReportGroup({
 }) {
   const { locale, t } = useI18n();
   const [narrativeEditing, setNarrativeEditing] = useState(false);
+  const [sectionEditing, setSectionEditing] = useState(false);
+
+  const saveSection = (nextDraft: IncidentDraft, confirmedFields: string[]) => {
+    onDraftChange({
+      ...nextDraft,
+      citizenConfirmedFields: Array.from(new Set([
+        ...draft.citizenConfirmedFields,
+        ...confirmedFields,
+      ])),
+    });
+    setSectionEditing(false);
+  };
+
+  const editSection = () => {
+    if (group.id === "EVIDENCE_SUSPECT") {
+      document.querySelector<HTMLElement>("[data-report-field-id='source-evidence']")?.focus();
+      document.querySelector<HTMLElement>("[data-report-field-id='source-evidence']")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+    if (group.id === "REPORTER") {
+      document.querySelector<HTMLInputElement>("#reporter-name")?.focus();
+      document.querySelector<HTMLInputElement>("#reporter-name")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+    setSectionEditing(true);
+  };
+
+  const sectionHeading = (
+    <div className="section-heading-with-action report-section-heading">
+      <h2>{group.label}</h2>
+      <button className="text-button" type="button" onClick={editSection} aria-label={`${t("field.edit")} ${group.label}`}>
+        <span aria-hidden="true">✎</span> {t("field.edit")}
+      </button>
+    </div>
+  );
 
   const renderField = (item: ReportFieldView) =>
     item.missingQuestion && !showMissingEditors ? null : (
@@ -1400,6 +1522,14 @@ function ReportGroup({
 
   const editors = (
     <>
+      {sectionEditing ? (
+        <SectionEditor
+          groupId={group.id}
+          draft={draft}
+          onSave={saveSection}
+          onCancel={() => setSectionEditing(false)}
+        />
+      ) : null}
       {narrativeEditing && group.id === "INCIDENT" ? (
         <NarrativeEditor
           value={draft.incident.narrative ?? ""}
@@ -1408,6 +1538,10 @@ function ReportGroup({
             onDraftChange({
               ...draft,
               incident: { ...draft.incident, narrative: narrative || null },
+              citizenConfirmedFields: Array.from(new Set([
+                ...draft.citizenConfirmedFields,
+                "incident.narrative",
+              ])),
             });
             setNarrativeEditing(false);
           }}
@@ -1444,6 +1578,7 @@ function ReportGroup({
         className="report-group report-group-incident"
         data-group-id={group.id}
       >
+        {sectionHeading}
         {editors}
         <section className="incident-overview" aria-label={group.label}>
           <h3>{subcategory?.value}</h3>
@@ -1512,6 +1647,8 @@ function ReportGroup({
         className="report-group report-group-transactions"
         data-group-id={group.id}
       >
+        {sectionHeading}
+        {editors}
         {transactionSections.length > 1 && totalField
           ? renderField(totalField)
           : null}
@@ -1574,6 +1711,7 @@ function ReportGroup({
         className="report-group report-group-evidence"
         data-group-id={group.id}
       >
+        {sectionHeading}
         <section className="evidence-prepared-summary">
           <p className="report-field-label">{t("field.evidenceSupplied")}</p>
           <strong>
@@ -1647,6 +1785,7 @@ function ReportGroup({
         className="report-group report-group-profile"
         data-group-id={group.id}
       >
+        {sectionHeading}
         <section className="profile-primary-summary">
           <h3>{name?.value}</h3>
           <p>{name?.source}</p>
@@ -1684,6 +1823,7 @@ function ReportGroup({
 
   return (
     <div className="report-group" data-group-id={group.id}>
+      {sectionHeading}
       {editors}
       {group.sections.map((section) => {
         const fields = section.fields.map(renderField);
@@ -1755,6 +1895,26 @@ function ReportReview(props: ReportWorkspaceProps) {
     isDemoIncident: props.isDemoIncident,
     screenshotNames: props.screenshots.map((file) => file.name),
   });
+  const editGroup = (groupId: string) => {
+    props.onBackToEdit();
+    let attempts = 0;
+    const openEditor = () => {
+      const group = document.querySelector<HTMLElement>(`[data-group-id='${groupId}']`);
+      const button = group?.querySelector<HTMLButtonElement>(".report-section-heading button");
+      if (button) {
+        group?.scrollIntoView({
+          behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+          block: "start",
+        });
+        button.focus();
+        button.click();
+        return;
+      }
+      attempts += 1;
+      if (attempts < 12) window.setTimeout(openEditor, 40);
+    };
+    window.setTimeout(openEditor, 0);
+  };
 
   return (
     <>
@@ -1801,6 +1961,14 @@ function ReportReview(props: ReportWorkspaceProps) {
               <strong aria-label={t("field.ready")}>✓</strong>
             </summary>
             <div className="report-review-group-content">
+              <button
+                className="text-button review-section-edit"
+                type="button"
+                onClick={() => editGroup(group.id)}
+                aria-label={`${t("field.edit")} ${group.label}`}
+              >
+                <span aria-hidden="true">✎</span> {t("field.edit")}
+              </button>
               {group.sections
                 .filter(
                   (section) =>

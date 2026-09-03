@@ -5,6 +5,7 @@ import type { ReporterProfile } from "../experience/profile";
 import { SYNTHETIC_NCRP_PROFILE } from "../experience/profile";
 import { sanitizeSensitiveText } from "../incident/sensitive-text";
 import { deriveFinancialFactsFromText } from "../incident/normalization";
+import { getIncidentCapabilities, getPlatformConfig } from "../incident/capabilities";
 import { textForLocale, type UiLocale } from "../i18n/i18n-provider";
 import { formatCurrency } from "./format";
 
@@ -12,6 +13,8 @@ export type ReportGroupId =
   | "INCIDENT"
   | "TRANSACTIONS"
   | "ACCOUNT_SYSTEM"
+  | "THREAT_IMPERSONATION"
+  | "INFORMATION"
   | "EVIDENCE_SUSPECT"
   | "REPORTER";
 
@@ -57,6 +60,8 @@ const GROUP_LABELS: Record<ReportGroupId, string> = {
   INCIDENT: "Incident",
   TRANSACTIONS: "Transactions",
   ACCOUNT_SYSTEM: "Affected account or system",
+  THREAT_IMPERSONATION: "Threat or impersonation",
+  INFORMATION: "Information requested or shared",
   EVIDENCE_SUSPECT: "Evidence & suspect",
   REPORTER: "Your details",
 };
@@ -216,12 +221,45 @@ export function deriveReportGroups(
         : key,
       values,
     );
+  const confirmedPathForField = (id: string): string | null => {
+    const transaction = /^transaction-(\d+)-(amount|institution|account|utr|date|time)$/.exec(id);
+    if (transaction) {
+      const names: Record<string, string> = {
+        amount: "amount", institution: "institution", account: "accountOrUpiId",
+        utr: "transactionIdOrUtr", date: "transactionDate", time: "approximateTime",
+      };
+      return `transactions.${transaction[1]}.${names[transaction[2]]}`;
+    }
+    return ({
+      "incident-date": "incident.incidentDate",
+      "incident-time": "incident.incidentTime",
+      "occurred-on": "incident.communicationChannel",
+      platform: "adaptive.platform",
+      "affected-account": "adaptive.affectedAccount",
+      "profile-url": "adaptive.profileUrl",
+      "account-access": "adaptive.accountAccessStatus",
+      "demanded-amount": "adaptive.demandedAmount",
+      "threat-channel": "adaptive.threatChannel",
+      "threat-description": "adaptive.threatDescription",
+      "impersonated-entity": "adaptive.impersonatedEntity",
+      "requested-information": "adaptive.requestedSensitiveInfo",
+      "shared-information": "adaptive.sharedSensitiveInfo",
+    } as Record<string, string>)[id] ?? null;
+  };
   const makeField = (
     id: string,
     label: string,
     value: string | null | undefined,
     fieldOptions: Parameters<typeof field>[3] = {},
-  ) => field(id, label, value, { ...fieldOptions, locale });
+  ) => {
+    const confirmedPath = confirmedPathForField(id);
+    const confirmed = Boolean(confirmedPath && draft.citizenConfirmedFields.includes(confirmedPath));
+    return field(id, label, value, {
+      ...fieldOptions,
+      source: confirmed ? copy("field.fromConfirmation") : fieldOptions.source,
+      locale,
+    });
+  };
   const missingQuestions = deriveMissingQuestions(draft);
   const missingByField = new Map(missingQuestions.map((question) => [question.field, question]));
   const missingCount = (group: ReportGroupId) => missingQuestions
@@ -248,6 +286,9 @@ export function deriveReportGroups(
   const financialFacts = deriveFinancialFactsFromText(
     draft.incident.narrative ?? draft.citizenSummary.shortSummary,
   );
+  const capabilities = getIncidentCapabilities(draft);
+  const platformName = draft.adaptiveFacts.platform ?? draft.classification.platform;
+  const platformConfig = getPlatformConfig(platformName);
 
   const incidentFields: ReportFieldView[] = [
     makeField("category", copy("field.category"), localizedCategory, {
@@ -447,7 +488,7 @@ export function deriveReportGroups(
       ...transactionSections,
     ],
   };
-  const accountSystemFields: ReportFieldView[] = /ransomware/i.test(draft.classification.subCategory ?? "")
+  const accountSystemFields: ReportFieldView[] = capabilities.ransomware
     ? [
         makeField(
           "affected-system",
@@ -474,20 +515,28 @@ export function deriveReportGroups(
               : copy("field.no"),
         ),
       ]
-    : /profile hacking/i.test(draft.classification.subCategory ?? "")
+    : capabilities.accountCompromise
       ? [
         makeField(
           "platform",
           locale === "hi" ? "प्लेटफ़ॉर्म या सेवा" : "Platform or service",
-          draft.adaptiveFacts.platform ?? draft.classification.platform,
+          platformName,
           { missingQuestion: missingByField.get("platform") },
         ),
         makeField(
           "affected-account",
-          locale === "hi" ? "प्रभावित खाता" : "Affected account",
+          locale === "hi" ? "खाता या प्रोफ़ाइल नाम / ID" : platformConfig.identifierLabel,
           draft.adaptiveFacts.affectedAccount,
           { missingQuestion: missingByField.get("affectedAccount") },
         ),
+        ...(platformConfig.urlLabel
+          ? [makeField(
+              "profile-url",
+              locale === "hi" ? "प्रोफ़ाइल या खाते का URL" : platformConfig.urlLabel,
+              draft.adaptiveFacts.profileUrl,
+              { helpText: locale === "hi" ? "यदि उपलब्ध हो तो उपयोगी" : "Helpful if available" },
+            )]
+          : []),
         makeField(
           "account-access",
           locale === "hi" ? "खाते तक पहुँच" : "Account access",
@@ -505,6 +554,20 @@ export function deriveReportGroups(
           { missingQuestion: missingByField.get("recoveryInformationChanged") },
         ),
         makeField(
+          "recovery-email-changed",
+          locale === "hi" ? "रिकवरी ईमेल बदला" : "Recovery email changed",
+          draft.adaptiveFacts.recoveryEmailChanged === null
+            ? null
+            : draft.adaptiveFacts.recoveryEmailChanged ? copy("field.yes") : copy("field.no"),
+        ),
+        makeField(
+          "phone-number-changed",
+          locale === "hi" ? "फ़ोन नंबर बदला" : "Phone number changed",
+          draft.adaptiveFacts.phoneNumberChanged === null
+            ? null
+            : draft.adaptiveFacts.phoneNumberChanged ? copy("field.yes") : copy("field.no"),
+        ),
+        makeField(
           "account-compromise-basis",
           locale === "hi" ? "खाता किसी और के उपयोग में होने का संकेत" : "Sign of possible account access",
           draft.adaptiveFacts.accountCompromiseBasis,
@@ -518,12 +581,53 @@ export function deriveReportGroups(
             draft.adaptiveFacts.platform ?? draft.classification.platform,
             { missingQuestion: missingByField.get("platform") },
           ),
-        ];
+        ].filter((item) =>
+          item.state !== "NOT_PROVIDED_OPTIONAL" ||
+          Boolean(item.missingQuestion) ||
+          item.id === "affected-account" ||
+          item.id === "profile-url"
+        );
   const accountSystemGroup: ReportGroupView = {
     id: "ACCOUNT_SYSTEM",
     label: locale === "hi" ? "प्रभावित खाता या सिस्टम" : "Affected account or system",
     missingCount: missingCount("ACCOUNT_SYSTEM"),
     sections: [{ id: "account-system", fields: accountSystemFields }],
+  };
+  const threatFields: ReportFieldView[] = [
+    ...(capabilities.threatOrExtortion
+      ? [
+          makeField("threat-present", locale === "hi" ? "धमकी या दबाव" : "Threat or extortion", copy("field.yes")),
+          makeField("demanded-amount", locale === "hi" ? "मांगी गई राशि" : "Amount demanded", draft.adaptiveFacts.demandedAmount ? formatCurrency(draft.adaptiveFacts.demandedAmount) : null),
+          makeField("threat-channel", locale === "hi" ? "धमकी का माध्यम" : "Threat channel", draft.adaptiveFacts.threatChannel),
+          makeField("threat-description", locale === "hi" ? "धमकी का विवरण" : "Threat description", draft.adaptiveFacts.threatDescription),
+        ]
+      : []),
+    ...(capabilities.impersonation
+      ? [
+          makeField("impersonation", locale === "hi" ? "किसी और का रूप धारण किया" : "Impersonation", copy("field.yes")),
+          makeField("impersonated-entity", locale === "hi" ? "किसका रूप धारण किया" : "Claimed identity or organisation", draft.adaptiveFacts.impersonatedEntity),
+        ]
+      : []),
+  ].filter((item) => item.state !== "NOT_PROVIDED_OPTIONAL");
+  const threatGroup: ReportGroupView = {
+    id: "THREAT_IMPERSONATION",
+    label: locale === "hi" ? "धमकी या प्रतिरूपण" : "Threat or impersonation",
+    missingCount: 0,
+    sections: [{ id: "threat-impersonation", fields: threatFields }],
+  };
+  const informationFields: ReportFieldView[] = [
+    ...(draft.adaptiveFacts.requestedSensitiveInfo.length > 0
+      ? [makeField("requested-information", locale === "hi" ? "मांगी गई जानकारी" : "Information requested", draft.adaptiveFacts.requestedSensitiveInfo.join(", "))]
+      : []),
+    ...(draft.adaptiveFacts.sharedSensitiveInfo.length > 0
+      ? [makeField("shared-information", locale === "hi" ? "साझा की गई जानकारी" : "Information shared", draft.adaptiveFacts.sharedSensitiveInfo.join(", "))]
+      : []),
+  ];
+  const informationGroup: ReportGroupView = {
+    id: "INFORMATION",
+    label: locale === "hi" ? "मांगी या साझा की गई जानकारी" : "Information requested or shared",
+    missingCount: 0,
+    sections: [{ id: "information", fields: informationFields }],
   };
   const evidenceGroup: ReportGroupView = {
     id: "EVIDENCE_SUSPECT",
@@ -589,21 +693,18 @@ export function deriveReportGroups(
       ],
     };
 
-  if (draft.classification.reportFamily === "FINANCIAL_FRAUD") {
-    return [
-      incidentGroup,
-      ...(draft.incident.financialLossState === "YES" && draft.transactions.length > 0
-        ? [transactionGroup]
-        : []),
-      evidenceGroup,
-      reporterGroup,
-    ];
-  }
-  if (draft.classification.reportFamily === "OTHER_CYBER_CRIME") {
-    return [incidentGroup, accountSystemGroup, evidenceGroup, reporterGroup];
-  }
-  if (draft.classification.reportFamily === "WOMEN_CHILDREN_RELATED_CRIME") {
-    return [incidentGroup, evidenceGroup, reporterGroup];
-  }
-  return [];
+  if (draft.classification.reportFamily === "OUT_OF_SCOPE_OR_UNCLEAR") return [];
+  return [
+    incidentGroup,
+    ...(draft.incident.financialLossState === "YES" && draft.transactions.length > 0
+      ? [transactionGroup]
+      : []),
+    ...(capabilities.accountCompromise || capabilities.ransomware || draft.classification.reportFamily === "OTHER_CYBER_CRIME"
+      ? [accountSystemGroup]
+      : []),
+    ...(threatFields.length > 0 ? [threatGroup] : []),
+    ...(informationFields.length > 0 ? [informationGroup] : []),
+    evidenceGroup,
+    reporterGroup,
+  ];
 }

@@ -2,6 +2,7 @@ import { CITIZEN_DOES_NOT_HAVE, type IncidentDraft } from "../incident/schema";
 import { sanitizeSensitiveText } from "../incident/sensitive-text";
 import type { UiLocale } from "../i18n/i18n-provider";
 import { formatCurrency } from "./format";
+import { getIncidentCapabilities } from "../incident/capabilities";
 
 function line(label: string, value: string | null | undefined) {
   if (!value || value === CITIZEN_DOES_NOT_HAVE || value === "UNKNOWN") return null;
@@ -25,14 +26,19 @@ export function getSafeCaseSummary(
   locale: UiLocale,
 ): string {
   const hi = locale === "hi";
+  const capabilities = getIncidentCapabilities(draft);
   const total = draft.transactions.reduce((sum, item) => sum + (item.amount ?? 0), 0) ||
     draft.incident.reportedAmount;
+  const safeType = capabilities.threatOrExtortion
+    ? hi ? "धमकी / जबरन वसूली" : "Threat / extortion"
+    : capabilities.accountCompromise
+      ? hi ? "खाता समझौता" : "Account compromise"
+      : draft.officialMapping.subCategoryLabel ?? draft.citizenSummary.incidentLabel;
   return [
     hi ? "साइबर अपराध रिपोर्ट सार" : "Cybercrime report summary",
-    line(hi ? "प्रकार" : "Type", draft.officialMapping.subCategoryLabel ?? draft.citizenSummary.incidentLabel),
-    draft.classification.reportFamily === "FINANCIAL_FRAUD"
-      ? line(hi ? "वित्तीय नुकसान" : "Financial loss", draft.incident.financialLossState === "YES" ? "Yes" : draft.incident.financialLossState === "NO" ? "No" : "Not confirmed")
-      : null,
+    line(hi ? "प्रकार" : "Type", safeType),
+    line(hi ? "प्रभावित प्लेटफ़ॉर्म" : "Affected platform", draft.adaptiveFacts.platform),
+    line(hi ? "वित्तीय नुकसान" : "Financial loss", draft.incident.financialLossState === "YES" ? "Yes" : draft.incident.financialLossState === "NO" ? "No" : "Not confirmed"),
     total ? line(hi ? "रिपोर्ट की गई हानि" : "Reported loss", formatCurrency(total)) : null,
     draft.transactions.length > 0
       ? line(hi ? "लेन-देन" : "Transactions", String(draft.transactions.length))

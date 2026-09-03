@@ -141,6 +141,8 @@ function emptySectionCounts(): Record<ReportGroupId, number> {
     INCIDENT: 0,
     TRANSACTIONS: 0,
     ACCOUNT_SYSTEM: 0,
+    THREAT_IMPERSONATION: 0,
+    INFORMATION: 0,
     EVIDENCE_SUSPECT: 0,
     REPORTER: 0,
   };
