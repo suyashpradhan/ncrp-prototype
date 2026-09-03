@@ -36,6 +36,10 @@ import {
 import { formatCurrency } from "../../presentation/format";
 import { deriveEvidenceContributions } from "../../presentation/evidence-contributions";
 import { deriveIncidentTimeline } from "../../presentation/incident-timeline";
+import {
+  deriveReportReadiness,
+  type ReportReadiness,
+} from "../../presentation/report-readiness";
 import { ComplaintPacket } from "./complaint-packet";
 import { ImmediateHandoff } from "./immediate-handoff";
 import { IncidentTimeline } from "./incident-timeline";
@@ -86,6 +90,7 @@ type ReportWorkspaceProps = {
   experienceMode: ExperienceMode | null;
   reporterProfile: ReporterProfile;
   identityDocumentProvided: boolean;
+  isReportStale: boolean;
   demoNarrationLanguage: DemoNarrationLanguage;
   isTranscriptionError: boolean;
   draft: IncidentDraft | null;
@@ -640,7 +645,7 @@ function SourceSummary({
 }
 
 function ReportInputPane(props: ReportWorkspaceProps) {
-  const { locale, t } = useI18n();
+  const { t } = useI18n();
   const processing = props.mode === "PROCESSING";
 
   return (
@@ -667,6 +672,7 @@ function ReportInputPane(props: ReportWorkspaceProps) {
             </label>
             <input
               id="reporter-name"
+              data-report-field-id="reporter-name"
               type="text"
               autoComplete="name"
               value={props.reporterName}
@@ -682,8 +688,9 @@ function ReportInputPane(props: ReportWorkspaceProps) {
           <label className="visually-hidden" htmlFor="incident-narrative">
             {t("workspace.whatHappened")}
           </label>
-          <textarea
-            id="incident-narrative"
+            <textarea
+              id="incident-narrative"
+              data-report-field-id="incident-narrative"
             rows={8}
             value={props.narrative}
             disabled={processing}
@@ -718,6 +725,17 @@ function ReportInputPane(props: ReportWorkspaceProps) {
             <label
               className="evidence-add-button"
               htmlFor="incident-screenshots"
+              data-report-field-id="source-evidence"
+              tabIndex={0}
+              role="button"
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  document
+                    .querySelector<HTMLInputElement>("#incident-screenshots")
+                    ?.click();
+                }
+              }}
             >
               <span aria-hidden="true">＋</span> {t("workspace.addEvidence")}
             </label>
@@ -759,28 +777,6 @@ function ReportInputPane(props: ReportWorkspaceProps) {
           {props.formError}
         </p>
       ) : null}
-      {props.mode !== "REVIEW" && props.experienceMode !== "DEMO_CASE" ? (
-        <div className="prepare-report-sticky-action">
-          <button
-            className="primary-button prepare-report-button"
-            type="button"
-            disabled={
-              processing ||
-              !props.reporterName.trim() ||
-              (!props.narrative.trim() &&
-                !props.hasAudio &&
-                props.screenshots.length === 0)
-            }
-            onClick={props.onOrganizeReport}
-          >
-            {processing
-              ? t("workspace.preparingReport")
-              : props.draft
-                ? locale === "hi" ? "रिपोर्ट अपडेट करें" : "Update report"
-                : t("workspace.organise")}
-          </button>
-        </div>
-      ) : null}
     </section>
   );
 }
@@ -808,6 +804,7 @@ function MissingFieldEditor({
       <div
         className="report-missing-editor"
         data-missing-field={question.field}
+        data-report-field-id={field.id}
       >
         <p className="partial-date-value">{field.value}</p>
         <p className="report-field-state">
@@ -869,6 +866,7 @@ function MissingFieldEditor({
       <div
         className="report-missing-editor"
         data-missing-field={question.field}
+        data-report-field-id={field.id}
       >
         <p className="report-field-state">
           {locale === "hi" ? question.questionHi : question.question}
@@ -919,7 +917,11 @@ function MissingFieldEditor({
           "I simply forgot the password",
         ];
     return (
-      <div className="report-missing-editor" data-missing-field={question.field}>
+      <div
+        className="report-missing-editor"
+        data-missing-field={question.field}
+        data-report-field-id={field.id}
+      >
         <p className="report-field-state">
           {locale === "hi" ? question.questionHi : question.question}
         </p>
@@ -954,7 +956,11 @@ function MissingFieldEditor({
   }
 
   return (
-    <div className="report-missing-editor" data-missing-field={question.field}>
+    <div
+      className="report-missing-editor"
+      data-missing-field={question.field}
+      data-report-field-id={field.id}
+    >
       <label htmlFor={`missing-${question.field}`}>
         {locale === "hi" ? question.questionHi : question.question}
       </label>
@@ -1014,6 +1020,7 @@ function ReportFieldRow({
       <div
         className="report-field report-field-missing"
         data-field-id={field.id}
+        data-report-field-id={field.id}
       >
         <p className="report-field-label">{field.label}</p>
         {!isPartialDate ? (
@@ -1030,7 +1037,11 @@ function ReportFieldRow({
   }
 
   return (
-    <div className="report-field" data-field-id={field.id}>
+    <div
+      className="report-field"
+      data-field-id={field.id}
+      data-report-field-id={field.id}
+    >
       <p className="report-field-label">{field.label}</p>
       <p className="report-field-value">
         {field.value}
@@ -1745,7 +1756,11 @@ function ReportingPathControl({
 
   if (classification.ambiguity === "INSUFFICIENT_INFORMATION") {
     return (
-      <section className="classification-guidance" role="status">
+      <section
+        className="classification-guidance"
+        role="status"
+        data-report-field-id="reporting-path-clarification"
+      >
         <h3>
           {locale === "hi"
             ? "क्या हुआ, थोड़ा और बताएं"
@@ -1765,7 +1780,11 @@ function ReportingPathControl({
 
   if (classification.ambiguity === "OUT_OF_CYBER_SCOPE") {
     return (
-      <section className="classification-guidance" role="status">
+      <section
+        className="classification-guidance"
+        role="status"
+        data-report-field-id="reporting-path-clarification"
+      >
         <h3>
           {locale === "hi"
             ? "यह ऑनलाइन या साइबर घटना नहीं हो सकती है"
@@ -1800,7 +1819,11 @@ function ReportingPathControl({
 
   if (classification.ambiguity === "MULTIPLE_PLAUSIBLE_PATHS") {
     return (
-      <section className="classification-guidance" role="status">
+      <section
+        className="classification-guidance"
+        role="status"
+        data-report-field-id="reporting-path-clarification"
+      >
         <h3>
           {locale === "hi"
             ? "यह घटना एक से अधिक रिपोर्टिंग रास्तों में आ सकती है"
@@ -1841,6 +1864,7 @@ function ReportingPathControl({
   return (
     <section
       className="suggested-reporting-path"
+      data-report-field-id="reporting-path-clarification"
       aria-label={
         locale === "hi"
           ? "सुझाई गई रिपोर्टिंग श्रेणी"
@@ -1896,53 +1920,14 @@ function ReportingPathControl({
 }
 
 function ReportDetailsPane({
-  onShowDetails,
+  groups,
+  readiness,
   ...props
-}: ReportWorkspaceProps & { onShowDetails: () => void }) {
+}: ReportWorkspaceProps & {
+  groups: ReportGroupView[];
+  readiness: ReportReadiness | null;
+}) {
   const { locale, t } = useI18n();
-  const [pendingMissingFocus, setPendingMissingFocus] = useState<
-    MissingQuestion["field"] | null
-  >(null);
-  const groups = props.draft
-    ? deriveReportGroups(props.draft, {
-        locale,
-        profile: props.reporterProfile,
-        identityDocumentProvided: props.identityDocumentProvided,
-      })
-    : [];
-  const complaint = props.draft
-    ? buildNcrpCompatibleComplaint({
-        draft: props.draft,
-        profile: props.reporterProfile,
-        transcription: props.transcription,
-        typedNarrative: props.narrative,
-        isDemoIncident: props.isDemoIncident,
-        screenshotNames: props.isDemoIncident
-          ? [
-              "Synthetic KYC message screenshot",
-              "Synthetic bank transaction screenshot",
-            ]
-          : props.screenshots.map((file) => file.name),
-        identityDocumentProvided: props.identityDocumentProvided,
-      })
-    : null;
-  const contractRequired = complaint
-    ? NCRP_FIELD_DEFINITIONS.filter(
-        (definition) =>
-          complaintFieldIsRequired(complaint, definition) &&
-          definition.id !== "declaration.accepted",
-      )
-    : [];
-  const contractMissing = complaint
-    ? contractRequired.filter((definition) => {
-        const status = complaintRequiredFieldStatus(complaint, definition);
-        return (
-          status !== "READY" &&
-          status !== "CONFIRMED" &&
-          status !== "CITIZEN_DOES_NOT_HAVE"
-        );
-      })
-    : [];
   const amountConflictMissing = Boolean(
     props.amountResolution?.hasConflict &&
     !props.amountResolution.selectedAmount,
@@ -1950,66 +1935,12 @@ function ReportDetailsPane({
   const amountConflictResolution = amountConflictMissing
     ? props.amountResolution
     : null;
-  const requiredMissing =
-    contractMissing.length + (amountConflictMissing ? 1 : 0);
-  const requiredPrepared = Math.max(
-    0,
-    contractRequired.length - contractMissing.length,
-  );
   const firstMissingQuestion = props.draft
     ? deriveMissingQuestions(props.draft)[0]
     : null;
-  const missingLabels: Record<MissingQuestion["field"], string> = {
-    moneyLost: t("field.moneyLost"),
-    incidentDate: t("field.incidentDate"),
-    incidentDateYear:
-      locale === "hi" ? "घटना की तारीख का साल" : "Incident date year",
-    incidentApproximateTime: t("field.approxTime"),
-    delayInReporting: t("field.reportingDelay"),
-    delayReason: t("field.delayReason"),
-    occurredOn: t("field.occurredOn"),
-    institution: t("field.institution"),
-    accountOrUpiId: t("field.account"),
-    transactionAmount: t("field.amount"),
-    transactionIdOrUtr: t("field.transactionReference"),
-    transactionDate: t("field.transactionDate"),
-    transactionApproximateTime: t("field.approxTime"),
-    platform: locale === "hi" ? "प्लेटफ़ॉर्म या सेवा" : "Platform or service",
-    affectedAccount: locale === "hi" ? "प्रभावित खाता" : "Affected account",
-    accountAccessStatus: locale === "hi" ? "खाते तक पहुँच" : "Account access",
-    recoveryInformationChanged:
-      locale === "hi" ? "रिकवरी जानकारी" : "Recovery information",
-    accountCompromiseBasis:
-      locale === "hi" ? "खाते तक पहुँच का संकेत" : "Sign of account access",
-    affectedSystem: locale === "hi" ? "प्रभावित सिस्टम" : "Affected system",
-  };
-  const evidenceMissing = contractMissing.some(
-    (definition) => definition.id === "evidence.supportingEvidence",
-  );
-  const firstMissingLabel = amountConflictMissing
-    ? locale === "hi"
-      ? "रिपोर्ट की राशि चुनें"
-      : "Reported amount choice"
-    : firstMissingQuestion
-      ? missingLabels[firstMissingQuestion.field]
-      : evidenceMissing
-        ? t("field.evidenceSupplied")
-        : null;
-  const missingActionLabel = amountConflictMissing
-    ? locale === "hi"
-      ? "रिपोर्ट की राशि चुनें"
-      : "Choose report amount"
-    : firstMissingQuestion?.field === "incidentDateYear"
-      ? locale === "hi"
-        ? "घटना की तारीख पक्की करें"
-        : "Confirm incident date"
-      : firstMissingLabel
-        ? locale === "hi"
-          ? `${firstMissingLabel} जोड़ें`
-          : `Add ${firstMissingLabel.toLowerCase()}`
-        : locale === "hi"
-          ? "बाकी जानकारी पर जाएँ"
-          : "Go to missing detail";
+  const evidenceMissing = readiness?.blockingItems.some(
+    (item) => item.fieldId === "source-evidence",
+  ) ?? false;
   const priorityField = firstMissingQuestion
     ? groups
         .flatMap((group) => group.sections)
@@ -2040,39 +1971,6 @@ function ReportDetailsPane({
     ].some((value) => containsSensitiveDetail(value)),
   );
 
-  useEffect(() => {
-    if (!pendingMissingFocus) return;
-    const editor = document.querySelector<HTMLElement>(
-      `[data-missing-field="${pendingMissingFocus}"]`,
-    );
-    if (!editor) return;
-    editor.scrollIntoView({ behavior: "smooth", block: "center" });
-    editor.querySelector<HTMLElement>("input, button")?.focus();
-    setPendingMissingFocus(null);
-  }, [pendingMissingFocus]);
-
-  function goToMissingDetail() {
-    if (amountConflictMissing) {
-      onShowDetails();
-      document
-        .querySelector<HTMLElement>("[data-amount-conflict] button")
-        ?.focus();
-      document
-        .querySelector<HTMLElement>("[data-amount-conflict]")
-        ?.scrollIntoView({ block: "center" });
-      return;
-    }
-    if (evidenceMissing && !firstMissingQuestion) {
-      document
-        .querySelector<HTMLInputElement>("#incident-screenshots")
-        ?.click();
-      return;
-    }
-    if (!firstMissingQuestion) return;
-    onShowDetails();
-    setPendingMissingFocus(firstMissingQuestion.field);
-  }
-
   if (props.mode === "REVIEW") {
     return (
       <section
@@ -2091,7 +1989,21 @@ function ReportDetailsPane({
     >
       <div className="report-pane-heading">
         <h2 id="report-details-heading" tabIndex={-1}>{t("workspace.reportInfo")}</h2>
-        <p>{t("workspace.reportInfoSupport")}</p>
+        <p>
+          {props.draft?.officialMapping.subCategoryLabel ??
+            t("workspace.reportInfoSupport")}
+        </p>
+        {readiness && props.mode === "READY" ? (
+          <span className="report-pane-readiness">
+            {readiness.state === "READY"
+              ? locale === "hi" ? "समीक्षा के लिए तैयार" : "Ready to review"
+              : readiness.state === "STALE"
+                ? locale === "hi" ? "रिपोर्ट अपडेट करनी है" : "Report needs updating"
+                : locale === "hi"
+                  ? `${readiness.blockingItems.length} जरूरी जानकारी बाकी`
+                  : `${readiness.blockingItems.length} required ${readiness.blockingItems.length === 1 ? "detail" : "details"} missing`}
+          </span>
+        ) : null}
       </div>
 
       {props.mode === "READY" && props.draft ? (
@@ -2129,13 +2041,6 @@ function ReportDetailsPane({
           <h3>{t("workspace.errorHeading")}</h3>
           <p>{props.formError ?? t("workspace.inputPreserved")}</p>
           <div className="entry-actions">
-            <button
-              className="primary-button"
-              type="button"
-              onClick={props.onOrganizeReport}
-            >
-              {t("workspace.tryAgain")}
-            </button>
             <button
               className="secondary-button"
               type="button"
@@ -2218,6 +2123,7 @@ function ReportDetailsPane({
             <section
               className="amount-conflict"
               data-amount-conflict
+              data-report-field-id="reported-amount-conflict"
               aria-labelledby="amount-conflict-heading"
             >
               <h3 id="amount-conflict-heading">
@@ -2329,6 +2235,7 @@ function ReportDetailsPane({
               <button
                 className="secondary-button"
                 type="button"
+                data-report-field-id="source-evidence"
                 onClick={() =>
                   document
                     .querySelector<HTMLInputElement>("#incident-screenshots")
@@ -2351,8 +2258,8 @@ function ReportDetailsPane({
                 <div className="prepared-section-heading">
                   <h3>{group.label}</h3>
                   <span>
-                    {group.missingCount > 0
-                      ? `${group.missingCount} ${t("workspace.actionNeeded")}`
+                    {(readiness?.sectionBlockingCounts[group.id] ?? 0) > 0
+                      ? `${readiness?.sectionBlockingCounts[group.id] ?? 0} ${t("workspace.actionNeeded")}`
                       : `✓ ${t("workspace.complete")}`}
                   </span>
                 </div>
@@ -2378,25 +2285,31 @@ function ReportDetailsPane({
 
           <section className="report-readiness" aria-live="polite">
             <h2>
-              {amountConflictMissing
+              {readiness?.state === "READY"
                 ? locale === "hi"
-                  ? "आपकी पुष्टि जरूरी है"
-                  : "Needs your confirmation"
-                : requiredMissing === 0
+                  ? "रिपोर्ट समीक्षा के लिए तैयार है ✓"
+                  : "Report ready to review ✓"
+                : readiness?.state === "STALE"
                   ? locale === "hi"
-                    ? "रिपोर्ट समीक्षा के लिए तैयार है ✓"
-                    : "Report ready to review ✓"
+                    ? "आपकी जानकारी बदल गई है"
+                    : "Your information changed"
                   : locale === "hi"
                     ? "रिपोर्ट लगभग तैयार है"
                     : "Report almost ready"}
             </h2>
-            {amountConflictMissing ? (
+            {readiness?.state === "STALE" ? (
+              <p>
+                {locale === "hi"
+                  ? "आगे बढ़ने से पहले रिपोर्ट अपडेट करें।"
+                  : "Update the report before continuing."}
+              </p>
+            ) : amountConflictMissing ? (
               <p>
                 {locale === "hi"
                   ? "हमें दो अलग-अलग राशियाँ मिलीं। रिपोर्ट में उपयोग की जाने वाली राशि चुनें।"
                   : "We found two different amounts. Choose which amount should be used in the report."}
               </p>
-            ) : requiredMissing === 0 ? (
+            ) : readiness?.state === "READY" ? (
               <p>
                 {locale === "hi"
                   ? "इस रिपोर्टिंग रास्ते के लिए सभी जरूरी जानकारी उपलब्ध है।"
@@ -2405,38 +2318,11 @@ function ReportDetailsPane({
             ) : (
               <p>
                 {locale === "hi"
-                  ? `${requiredPrepared} जानकारियाँ आपके साझा किए गए विवरण से तैयार हैं। ${requiredMissing} जानकारी अभी चाहिए।`
-                  : `${requiredPrepared} details prepared from what you shared. ${requiredMissing} ${requiredMissing === 1 ? "detail is" : "details are"} still needed.`}
+                  ? `${readiness?.preparedRequiredCount ?? 0} जानकारियाँ आपके साझा किए गए विवरण से तैयार हैं। ${readiness?.blockingItems.length ?? 0} जानकारी अभी चाहिए।`
+                  : `${readiness?.preparedRequiredCount ?? 0} details prepared from what you shared. ${readiness?.blockingItems.length ?? 0} ${(readiness?.blockingItems.length ?? 0) === 1 ? "detail is" : "details are"} still needed.`}
               </p>
             )}
-            {requiredMissing === 0 ? (
-              <button
-                className="primary-button"
-                type="button"
-                onClick={props.onReview}
-              >
-                {locale === "hi"
-                  ? "रिपोर्ट की समीक्षा करें →"
-                  : "Review report →"}
-              </button>
-            ) : null}
           </section>
-
-          {requiredMissing > 0 ? (
-            <div className="missing-review-message">
-              <p>
-                {t("workspace.detailNeeded", { count: requiredMissing })}
-                {firstMissingLabel ? `: ${firstMissingLabel}` : ""}.
-              </p>
-              <button
-                className="text-button"
-                type="button"
-                onClick={goToMissingDetail}
-              >
-                {missingActionLabel}
-              </button>
-            </div>
-          ) : null}
         </>
       ) : null}
     </section>
@@ -2444,6 +2330,164 @@ function ReportDetailsPane({
 }
 
 export function ReportWorkspace(props: ReportWorkspaceProps) {
+  const { locale, t } = useI18n();
+  const [pendingTargetId, setPendingTargetId] = useState<string | null>(null);
+  const [navigationMessage, setNavigationMessage] = useState("");
+  const highlightTimerRef = useRef<number | null>(null);
+  const groups = props.draft
+    ? deriveReportGroups(props.draft, {
+        locale,
+        profile: props.reporterProfile,
+        identityDocumentProvided: props.identityDocumentProvided,
+      })
+    : [];
+  const complaint = props.draft
+    ? buildNcrpCompatibleComplaint({
+        draft: props.draft,
+        profile: props.reporterProfile,
+        transcription: props.transcription,
+        typedNarrative: props.narrative,
+        isDemoIncident: props.isDemoIncident,
+        screenshotNames: props.isDemoIncident
+          ? [
+              "Synthetic KYC message screenshot",
+              "Synthetic bank transaction screenshot",
+            ]
+          : props.screenshots.map((file) => file.name),
+        identityDocumentProvided: props.identityDocumentProvided,
+      })
+    : null;
+  const readiness = props.draft && complaint
+    ? deriveReportReadiness({
+        draft: props.draft,
+        complaint,
+        amountResolution: props.amountResolution,
+        locale,
+        isStale: props.isReportStale,
+      })
+    : null;
+  const sourceReady = Boolean(
+    props.reporterName.trim() &&
+    (props.narrative.trim() || props.hasAudio || props.screenshots.length > 0),
+  );
+
+  useEffect(() => {
+    if (!pendingTargetId) return;
+    let frame = 0;
+    let attempts = 0;
+
+    const reveal = () => {
+      const target = Array.from(
+        document.querySelectorAll<HTMLElement>("[data-report-field-id]"),
+      ).find((item) => item.dataset.reportFieldId === pendingTargetId);
+      if (!target && attempts < 4) {
+        attempts += 1;
+        frame = window.requestAnimationFrame(reveal);
+        return;
+      }
+
+      if (!target) {
+        const fallback = document.querySelector<HTMLElement>("#report-details-heading");
+        fallback?.focus({ preventScroll: true });
+        fallback?.scrollIntoView({ behavior: "auto", block: "start" });
+        setNavigationMessage(
+          locale === "hi"
+            ? "अगली जरूरी जानकारी रिपोर्ट में दिखाई गई है।"
+            : "The next required detail is shown in the report.",
+        );
+        setPendingTargetId(null);
+        return;
+      }
+
+      let disclosure = target.closest("details");
+      while (disclosure) {
+        disclosure.open = true;
+        disclosure = disclosure.parentElement?.closest("details") ?? null;
+      }
+      const focusTarget = target.matches(
+        "input, textarea, select, button, [tabindex]:not([tabindex='-1'])",
+      )
+        ? target
+        : target.querySelector<HTMLElement>(
+            "input, textarea, select, button, [tabindex]:not([tabindex='-1'])",
+          );
+      const reduceMotion = window.matchMedia(
+        "(prefers-reduced-motion: reduce)",
+      ).matches;
+      target.scrollIntoView({
+        behavior: reduceMotion ? "auto" : "smooth",
+        block: "center",
+      });
+      focusTarget?.focus({ preventScroll: true });
+      target.classList.add("report-field-target-highlight");
+      if (highlightTimerRef.current) window.clearTimeout(highlightTimerRef.current);
+      highlightTimerRef.current = window.setTimeout(() => {
+        target.classList.remove("report-field-target-highlight");
+      }, 1600);
+      setNavigationMessage(
+        locale === "hi" ? "अगली जरूरी जानकारी खुल गई है।" : "Next required detail opened.",
+      );
+      setPendingTargetId(null);
+    };
+
+    frame = window.requestAnimationFrame(reveal);
+    return () => window.cancelAnimationFrame(frame);
+  }, [locale, pendingTargetId]);
+
+  useEffect(() => () => {
+    if (highlightTimerRef.current) window.clearTimeout(highlightTimerRef.current);
+  }, []);
+
+  function runPrimaryAction() {
+    if (props.mode === "PROCESSING") return;
+    if (!props.draft || props.mode === "ERROR" || readiness?.state === "STALE") {
+      props.onOrganizeReport();
+      return;
+    }
+    if (readiness?.state === "READY") {
+      props.onReview();
+      return;
+    }
+    if (readiness?.nextBlockingItem) {
+      setNavigationMessage("");
+      setPendingTargetId(readiness.nextBlockingItem.fieldId);
+      return;
+    }
+    document.querySelector<HTMLElement>("#report-details-heading")?.focus();
+  }
+
+  const actionTitle = props.mode === "PROCESSING"
+    ? locale === "hi" ? "रिपोर्ट तैयार हो रही है" : "Preparing your report"
+    : props.mode === "ERROR"
+      ? locale === "hi" ? "आपकी जानकारी सुरक्षित है" : "Your information is preserved"
+      : !props.draft
+        ? locale === "hi" ? "अपनी जानकारी से रिपोर्ट तैयार करें" : "Prepare a report from what you shared"
+        : readiness?.state === "STALE"
+          ? locale === "hi" ? "आपकी जानकारी बदल गई है" : "Your information changed"
+          : readiness?.state === "NEEDS_CLARIFICATION"
+            ? locale === "hi" ? "सचेत को आगे बढ़ने के लिए एक जवाब चाहिए" : "One answer is needed before Sachet can continue"
+            : readiness?.state === "MISSING_REQUIRED"
+              ? locale === "hi" ? "रिपोर्ट लगभग तैयार है" : "Report almost ready"
+              : locale === "hi" ? "रिपोर्ट समीक्षा के लिए तैयार है" : "Report ready to review";
+  const actionSupport = readiness?.state === "MISSING_REQUIRED"
+    ? locale === "hi"
+      ? `${readiness.blockingItems.length} जरूरी जानकारी पर ध्यान देना बाकी है।`
+      : `${readiness.blockingItems.length} required ${readiness.blockingItems.length === 1 ? "detail still needs" : "details still need"} your attention.`
+    : null;
+  const actionLabel = props.mode === "PROCESSING"
+    ? t("workspace.preparingReport")
+    : props.mode === "ERROR"
+      ? t("workspace.tryAgain")
+      : !props.draft
+        ? t("workspace.organise")
+        : readiness?.state === "STALE"
+          ? locale === "hi" ? "रिपोर्ट अपडेट करें" : "Update report"
+          : readiness?.state === "NEEDS_CLARIFICATION"
+            ? locale === "hi" ? "सवाल का जवाब दें" : "Answer question"
+            : readiness?.state === "MISSING_REQUIRED"
+              ? locale === "hi" ? "अगली जरूरी जानकारी पर जाएँ" : "Go to next missing detail"
+              : locale === "hi" ? "रिपोर्ट की समीक्षा करें" : "Review report";
+
   return (
     <section
       className="report-workspace-stage section-pad"
@@ -2459,8 +2503,27 @@ export function ReportWorkspace(props: ReportWorkspaceProps) {
           className={`report-workspace report-workspace-${props.mode.toLowerCase()}`}
         >
           <ReportInputPane {...props} />
-          <ReportDetailsPane {...props} onShowDetails={() => undefined} />
+          <ReportDetailsPane {...props} groups={groups} readiness={readiness} />
         </div>
+        {props.mode !== "REVIEW" ? (
+          <div className="workspace-action-bar" aria-live="polite">
+            <div>
+              <strong>{actionTitle}</strong>
+              {actionSupport ? <span>{actionSupport}</span> : null}
+            </div>
+            <button
+              className="primary-button"
+              type="button"
+              disabled={props.mode === "PROCESSING" || (!props.draft && !sourceReady)}
+              onClick={runPrimaryAction}
+            >
+              {actionLabel}
+            </button>
+          </div>
+        ) : null}
+        <p className="visually-hidden" aria-live="polite">
+          {navigationMessage}
+        </p>
       </div>
     </section>
   );

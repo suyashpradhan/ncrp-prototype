@@ -20,13 +20,11 @@ import {
 } from "../../incident/complaint-case";
 import {
   applyMissingAnswer,
-  deriveMissingQuestions,
   type MissingQuestion,
 } from "../../incident/missing-information";
 import { normalizeIncidentDraft } from "../../incident/normalization";
 import {
   buildNcrpCompatibleComplaint,
-  requiredComplaintFieldsReady,
   type NcrpCompatibleComplaint,
 } from "../../incident/ncrp-compatible-complaint";
 import {
@@ -47,6 +45,7 @@ import {
   DEMO_OFFICIAL_ACKNOWLEDGEMENT,
   type AddedAcknowledgement,
 } from "../../presentation/case-companion";
+import { deriveReportReadiness } from "../../presentation/report-readiness";
 import { DEMO_CASE_ACCESS, useDemoCase } from "../demo-case/demo-case-provider";
 import { AcknowledgementForm, CaseCompanion } from "./case-companion";
 import {
@@ -126,6 +125,26 @@ function clearPersistedDemoSession() {
   } catch {
     // The deterministic demo still works in memory when storage is unavailable.
   }
+}
+
+function reportSourceSignature(input: {
+  narrative: string;
+  reporterName: string;
+  transcription: TranscriptionResult | null;
+  screenshots: File[];
+  audio: Blob | null;
+}): string {
+  return JSON.stringify({
+    narrative: input.narrative.trim(),
+    reporterName: input.reporterName.trim(),
+    transcript: input.transcription?.englishTranscript ?? "",
+    screenshots: input.screenshots.map((file) => [
+      file.name,
+      file.size,
+      file.lastModified,
+    ]),
+    audio: input.audio ? [input.audio.size, input.audio.type] : null,
+  });
 }
 
 async function compressScreenshot(file: File): Promise<File> {
@@ -285,6 +304,9 @@ export function DemoJourney() {
   );
   const [officialAcknowledgement, setOfficialAcknowledgement] =
     useState<AddedAcknowledgement | null>(null);
+  const [preparedSourceSignature, setPreparedSourceSignature] = useState<
+    string | null
+  >(null);
   const viewRef = useRef<JourneyView>("ENTRY");
   const journeyHistoryRef = useRef<JourneyView[]>([]);
   const attemptedDemoRestoreRef = useRef(false);
@@ -307,6 +329,16 @@ export function DemoJourney() {
           source: "TEST_INPUT" as const,
         }
       : baseProfile;
+  const currentSourceSignature = reportSourceSignature({
+    narrative,
+    reporterName: activeProfile.displayName,
+    transcription,
+    screenshots,
+    audio,
+  });
+  const isReportStale = Boolean(
+    draft && preparedSourceSignature && currentSourceSignature !== preparedSourceSignature,
+  );
 
   useEffect(() => {
     if (attemptedDemoRestoreRef.current) return;
@@ -358,6 +390,15 @@ export function DemoJourney() {
       setSubmittedReference(candidate.submittedReference);
       setOfficialAcknowledgement(acknowledgement);
       setIsDemoIncident(true);
+      setPreparedSourceSignature(
+        reportSourceSignature({
+          narrative: candidate.narrative,
+          reporterName: SYNTHETIC_NCRP_PROFILE.displayName,
+          transcription: restoredTranscription.data,
+          screenshots: [],
+          audio: null,
+        }),
+      );
       journeyHistoryRef.current = restoredJourneyHistory(
         candidate.view as JourneyView,
       );
@@ -474,6 +515,7 @@ export function DemoJourney() {
     setIsDemoIncident(false);
     setSubmittedReference(SACHET_DEMO_REFERENCE);
     setOfficialAcknowledgement(null);
+    setPreparedSourceSignature(null);
     setReportMethod("TYPE");
   }
 
@@ -557,6 +599,15 @@ export function DemoJourney() {
     setRecordingSeconds(DEMO_NARRATIONS["hi-IN"].durationSeconds);
     setIsDemoIncident(true);
     setDraft(structuredClone(DEMO_INCIDENT_DRAFT));
+    setPreparedSourceSignature(
+      reportSourceSignature({
+        narrative: DEMO_TYPED_DESCRIPTION,
+        reporterName: SYNTHETIC_NCRP_PROFILE.displayName,
+        transcription: DEMO_NARRATIONS["hi-IN"],
+        screenshots: [],
+        audio: null,
+      }),
+    );
     pendingReportFocusRef.current = true;
     journeyHistoryRef.current = ["ENTRY"];
     setCurrentView("ANALYSIS_RESULT");
@@ -813,6 +864,15 @@ export function DemoJourney() {
       if (analysisRunRef.current !== analysisRun) return;
       if (!response.ok) throw new Error("REPORT_PREPARATION_FAILED");
       setDraft(normalizeIncidentDraft(IncidentDraftSchema.parse(result)));
+      setPreparedSourceSignature(
+        reportSourceSignature({
+          narrative,
+          reporterName: activeProfile.displayName,
+          transcription: preparedTranscription,
+          screenshots,
+          audio,
+        }),
+      );
       setSelectedReportedAmount(null);
       pendingReportFocusRef.current = true;
       replaceView("ANALYSIS_RESULT");
@@ -854,17 +914,18 @@ export function DemoJourney() {
                 "Synthetic bank transaction screenshot",
               ]
             : screenshots.map((file) => file.name),
-          identityDocumentProvided: true,
+          identityDocumentProvided: isDemoIncident,
         })
       : null;
-    if (
-      !draft ||
-      deriveMissingQuestions(draft).length > 0 ||
-      (amountResolution?.hasConflict && !amountResolution.selectedAmount) ||
-      !complaint ||
-      !requiredComplaintFieldsReady(complaint)
-    )
-      return;
+    if (!draft || !complaint) return;
+    const readiness = deriveReportReadiness({
+      draft,
+      complaint,
+      amountResolution,
+      locale,
+      isStale: isReportStale,
+    });
+    if (readiness.state !== "READY") return;
     setFormError(null);
     navigateTo("REVIEW");
   }
@@ -1005,6 +1066,7 @@ export function DemoJourney() {
         experienceMode={experienceMode}
         reporterProfile={activeProfile}
         identityDocumentProvided={isDemoIncident}
+        isReportStale={isReportStale}
         demoNarrationLanguage={demoNarrationLanguage}
         isTranscriptionError={isTranscriptionError}
         draft={draft}

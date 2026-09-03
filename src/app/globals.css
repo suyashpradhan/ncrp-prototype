@@ -596,12 +596,16 @@ textarea {
 
 /* Journey and workspace */
 .journey-progress {
+  position: sticky;
+  top: 0;
+  z-index: 8;
   max-width: 600px;
   margin: 0 0 28px;
-  padding: 0;
+  padding: 8px 0 0;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   list-style: none;
+  background: var(--background);
   border-bottom: 1px solid var(--border);
 }
 
@@ -627,7 +631,7 @@ textarea {
 }
 
 .report-workspace-stage {
-  padding-block: 32px 56px;
+  padding-block: 32px 150px;
 }
 
 .report-workspace-shell {
@@ -952,11 +956,71 @@ textarea {
 
 .report-pane-heading {
   position: sticky;
-  top: 12px;
+  top: 62px;
   z-index: 3;
   margin-bottom: 22px;
   padding: 4px 0 12px;
   background: var(--surface);
+}
+
+.report-pane-readiness {
+  display: block;
+  margin-top: 5px;
+  color: var(--secondary);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.workspace-action-bar {
+  position: fixed;
+  left: 50%;
+  bottom: 0;
+  z-index: 20;
+  width: min(calc(100% - 40px), 1160px);
+  min-height: 88px;
+  padding: 14px 18px calc(14px + env(safe-area-inset-bottom));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  background: rgba(253, 253, 251, 0.97);
+  border: 1px solid var(--border);
+  border-bottom: 0;
+  border-radius: 14px 14px 0 0;
+  box-shadow: 0 -8px 28px rgba(30, 20, 20, 0.06);
+  transform: translateX(-50%);
+  backdrop-filter: blur(8px);
+}
+
+.workspace-action-bar > div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.workspace-action-bar strong,
+.workspace-action-bar span {
+  display: block;
+}
+
+.workspace-action-bar span {
+  color: var(--secondary);
+  font-size: 13px;
+}
+
+.workspace-action-bar .primary-button {
+  flex: 0 0 auto;
+}
+
+[data-report-field-id] {
+  scroll-margin-block: 92px 130px;
+}
+
+.report-field-target-highlight {
+  outline: 3px solid rgba(180, 40, 55, 0.24);
+  outline-offset: 6px;
+  border-radius: 8px;
+  transition: outline-color 240ms ease;
 }
 
 .report-pane-heading h2 {
@@ -2232,6 +2296,10 @@ html[data-ui-locale="hi"] .companion-eyebrow {
     overflow: visible;
   }
 
+  .report-pane-heading {
+    top: 60px;
+  }
+
   .report-input-pane {
     border-right: 0;
     border-bottom: 1px solid var(--border);
@@ -2340,10 +2408,26 @@ html[data-ui-locale="hi"] .companion-eyebrow {
 
   .report-workspace-stage {
     padding-top: 20px;
+    padding-bottom: 164px;
   }
 
   .journey-progress {
     margin-bottom: 20px;
+  }
+
+  .workspace-action-bar {
+    width: 100%;
+    min-height: 104px;
+    padding: 12px 14px calc(12px + env(safe-area-inset-bottom));
+    align-items: stretch;
+    flex-direction: column;
+    gap: 10px;
+    border-inline: 0;
+    border-radius: 12px 12px 0 0;
+  }
+
+  .workspace-action-bar .primary-button {
+    width: 100%;
   }
 
   .report-input-pane,
