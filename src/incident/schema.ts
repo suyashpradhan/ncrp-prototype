@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+export const CITIZEN_DOES_NOT_HAVE = "__CITIZEN_DOES_NOT_HAVE__";
+
 export const ReportFamilySchema = z.enum([
   "FINANCIAL_FRAUD",
   "WOMEN_CHILDREN_RELATED_CRIME",

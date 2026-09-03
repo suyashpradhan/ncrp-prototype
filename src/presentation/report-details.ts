@@ -1,6 +1,6 @@
 import type { MissingQuestion } from "../incident/missing-information";
 import { deriveMissingQuestions } from "../incident/missing-information";
-import type { IncidentDraft } from "../incident/schema";
+import { CITIZEN_DOES_NOT_HAVE, type IncidentDraft } from "../incident/schema";
 import type { ReporterProfile } from "../experience/profile";
 import { SYNTHETIC_NCRP_PROFILE } from "../experience/profile";
 import { sanitizeSensitiveText } from "../incident/sensitive-text";
@@ -82,10 +82,11 @@ const MISSING_GROUP: Record<MissingQuestion["field"], ReportGroupId> = {
   affectedSystem: "ACCOUNT_SYSTEM",
 };
 
-export const CITIZEN_DOES_NOT_HAVE = "__CITIZEN_DOES_NOT_HAVE__";
+export { CITIZEN_DOES_NOT_HAVE } from "../incident/schema";
 
 function formatDate(value: string | null, locale: UiLocale): string {
   if (!value) return textForLocale(locale, "field.notProvided");
+  if (value === CITIZEN_DOES_NOT_HAVE) return textForLocale(locale, "field.notAvailable");
   const [year, month, day] = value.split("-").map(Number);
   const parsed = new Date(Date.UTC(year, month - 1, day, 12));
   if (Number.isNaN(parsed.getTime())) return value;

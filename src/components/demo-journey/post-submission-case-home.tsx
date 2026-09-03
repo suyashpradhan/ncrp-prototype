@@ -6,6 +6,10 @@ import type { IncidentDraft } from "../../incident/schema";
 import { useI18n } from "../../i18n/i18n-provider";
 import { deriveEvidenceContributions } from "../../presentation/evidence-contributions";
 import {
+  downloadCitizenReport,
+  getSafeCaseSummary,
+} from "../../presentation/safe-case-copy";
+import {
   getCaseSummary,
   getPostReportActions,
   getProcessExplainer,
@@ -185,6 +189,13 @@ export function PostSubmissionCaseHome({
     isDemoIncident,
     milestones,
   );
+  const [copiedValue, setCopiedValue] = useState<"REFERENCE" | "SUMMARY" | null>(null);
+
+  async function copyText(value: string, kind: "REFERENCE" | "SUMMARY") {
+    await navigator.clipboard.writeText(value);
+    setCopiedValue(kind);
+    window.setTimeout(() => setCopiedValue(null), 1600);
+  }
 
   return (
     <section
@@ -206,6 +217,9 @@ export function PostSubmissionCaseHome({
             <div className="prototype-reference-block">
               <span>{hi ? "प्रोटोटाइप संदर्भ" : "Prototype reference"}</span>
               <strong>{prototypeReference}</strong>
+              <button className="text-button" type="button" onClick={() => void copyText(prototypeReference, "REFERENCE")}>
+                {copiedValue === "REFERENCE" ? (hi ? "कॉपी हो गया" : "Copied") : (hi ? "कॉपी करें" : "Copy")}
+              </button>
             </div>
             <p className="prototype-boundary">
               <strong>{hi ? "प्रोटोटाइप सबमिशन" : "Prototype submission"}</strong>
@@ -227,6 +241,14 @@ export function PostSubmissionCaseHome({
                 </div>
               ))}
             </dl>
+            <div className="case-copy-actions">
+              <button className="secondary-button" type="button" onClick={() => void copyText(getSafeCaseSummary(draft, prototypeReference, locale), "SUMMARY")}>
+                {copiedValue === "SUMMARY" ? (hi ? "सार कॉपी हो गया" : "Summary copied") : (hi ? "मामले का सार कॉपी करें" : "Copy case summary")}
+              </button>
+              <button className="secondary-button" type="button" onClick={() => downloadCitizenReport(draft, prototypeReference, locale, milestones.submittedAt)}>
+                {hi ? "रिपोर्ट डाउनलोड करें" : "Download report"}
+              </button>
+            </div>
           </section>
 
           <section className="companion-section" aria-labelledby="post-report-actions-heading">

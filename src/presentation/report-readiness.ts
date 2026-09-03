@@ -12,6 +12,7 @@ import {
 } from "../incident/ncrp-compatible-complaint";
 import type { ReportedAmountResolution } from "../incident/complaint-case";
 import type { IncidentDraft } from "../incident/schema";
+import { getCaseConsistencyIssues } from "../incident/case-consistency";
 import { textForLocale, type UiLocale } from "../i18n/i18n-provider";
 import type { ReportGroupId } from "./report-details";
 
@@ -151,8 +152,16 @@ export function deriveReportReadiness(input: {
   amountResolution: ReportedAmountResolution | null;
   locale: UiLocale;
   isStale?: boolean;
+  ignoredConsistencyIssueIds?: ReadonlySet<string>;
 }): ReportReadiness {
-  const { draft, complaint, amountResolution, locale, isStale = false } = input;
+  const {
+    draft,
+    complaint,
+    amountResolution,
+    locale,
+    isStale = false,
+    ignoredConsistencyIssueIds = new Set<string>(),
+  } = input;
   const questions = deriveMissingQuestions(draft);
   const representedContractIds = new Set(
     questions.map((question) => QUESTION_CONTRACT_IDS[question.field]).filter(Boolean),
@@ -189,6 +198,23 @@ export function deriveReportReadiness(input: {
       fieldId: "reported-amount-conflict",
       sectionId: "INCIDENT",
       label: locale === "hi" ? "रिपोर्ट की राशि चुनें" : "Choose the reported amount",
+      level: "BLOCKING",
+      blocking: true,
+      kind: "CONFIRMATION",
+    });
+  }
+
+  for (const issue of getCaseConsistencyIssues(draft)) {
+    if (
+      issue.type === "TOTAL_MISMATCH" ||
+      issue.severity !== "BLOCKING" ||
+      ignoredConsistencyIssueIds.has(issue.id)
+    ) continue;
+    items.unshift({
+      id: `consistency.${issue.id}`,
+      fieldId: issue.affectedFieldIds[0] ?? "report-details-heading",
+      sectionId: issue.type === "POSSIBLE_DUPLICATE" ? "TRANSACTIONS" : "INCIDENT",
+      label: issue.title,
       level: "BLOCKING",
       blocking: true,
       kind: "CONFIRMATION",

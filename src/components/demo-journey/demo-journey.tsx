@@ -972,17 +972,39 @@ export function DemoJourney() {
   async function handleScreenshots(event: ChangeEvent<HTMLInputElement>) {
     setFormError(null);
     const selected = Array.from(event.target.files ?? []);
-    if (selected.length + screenshots.length > 2) {
+    const uniqueSelected = selected.filter(
+      (file, index, files) =>
+        !screenshots.some(
+          (current) =>
+            current.name === file.name &&
+            current.size === file.size &&
+            current.lastModified === file.lastModified,
+        ) &&
+        files.findIndex(
+          (candidate) =>
+            candidate.name === file.name &&
+            candidate.size === file.size &&
+            candidate.lastModified === file.lastModified,
+        ) === index,
+    );
+    if (uniqueSelected.length !== selected.length) {
       setFormError(
         locale === "hi"
-          ? "अधिकतम दो स्क्रीनशॉट जोड़ें।"
-          : "Add no more than two screenshots.",
+          ? "यह फ़ाइल पहले से जुड़ी हुई है। इसे दोबारा प्रोसेस नहीं किया गया।"
+          : "This file is already attached. It was not processed again.",
+      );
+    }
+    if (uniqueSelected.length + screenshots.length > 8) {
+      setFormError(
+        locale === "hi"
+          ? "अधिकतम आठ स्क्रीनशॉट जोड़ें।"
+          : "Add no more than eight screenshots.",
       );
       event.target.value = "";
       return;
     }
     if (
-      selected.some(
+      uniqueSelected.some(
         (file) =>
           !["image/png", "image/jpeg", "image/webp"].includes(file.type),
       )
@@ -995,7 +1017,7 @@ export function DemoJourney() {
       event.target.value = "";
       return;
     }
-    if (selected.some((file) => file.size > 8 * 1024 * 1024)) {
+    if (uniqueSelected.some((file) => file.size > 8 * 1024 * 1024)) {
       setFormError(
         locale === "hi"
           ? "हर चित्र 8 MB से छोटा होना चाहिए।"
@@ -1004,7 +1026,7 @@ export function DemoJourney() {
       event.target.value = "";
       return;
     }
-    const prepared = await Promise.all(selected.map(compressScreenshot));
+    const prepared = await Promise.all(uniqueSelected.map(compressScreenshot));
     setScreenshots((current) => [...current, ...prepared]);
     setUnavailableEvidenceNames((current) =>
       current.filter(
@@ -1227,7 +1249,7 @@ export function DemoJourney() {
     setFormError(null);
   }
 
-  function reviewReport() {
+  function reviewReport(ignoredConsistencyIssueIds: readonly string[] = []) {
     const complaint = draft
       ? buildNcrpCompatibleComplaint({
           draft,
@@ -1251,6 +1273,7 @@ export function DemoJourney() {
       amountResolution,
       locale,
       isStale: isReportStale,
+      ignoredConsistencyIssueIds: new Set(ignoredConsistencyIssueIds),
     });
     if (readiness.state !== "READY") return;
     setFormError(null);
@@ -1461,11 +1484,23 @@ export function DemoJourney() {
         onStopRecording={stopRecording}
         onRecordAgain={recordAgain}
         onScreenshotsChange={(event) => void handleScreenshots(event)}
-        onRemoveScreenshot={(index) =>
+        onRemoveScreenshot={(index) => {
           setScreenshots((current) =>
             current.filter((_, itemIndex) => itemIndex !== index),
-          )
-        }
+          );
+          setDraft((current) => {
+            if (!current) return current;
+            let screenshotIndex = -1;
+            return {
+              ...current,
+              evidence: current.evidence.filter((item) => {
+                if (item.type === "VOICE_STATEMENT") return true;
+                screenshotIndex += 1;
+                return screenshotIndex !== index;
+              }),
+            };
+          });
+        }}
         onOrganizeReport={() => void buildComplaint()}
         onUseDemoIncident={useDemoIncident}
         onMissingAnswerChange={(field, value) =>

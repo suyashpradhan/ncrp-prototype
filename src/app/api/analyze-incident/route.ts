@@ -5,8 +5,8 @@ import { normalizeIncidentDraft } from "../../../incident/normalization";
 
 export const runtime = "nodejs";
 
-const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
-const MAX_SCREENSHOTS = 2;
+const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
+const MAX_SCREENSHOTS = 8;
 const ACCEPTED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 const INCIDENT_EXTRACTION_INSTRUCTIONS = `You organise supplied evidence into one structured cybercrime incident draft and suggest a reporting path for citizen review.
@@ -78,14 +78,14 @@ export async function POST(request: Request) {
       return Response.json({ error: "Add a statement, description or screenshot to continue." }, { status: 400 });
     }
     if (screenshots.length > MAX_SCREENSHOTS) {
-      return Response.json({ error: "Add no more than two screenshots." }, { status: 400 });
+      return Response.json({ error: "Add no more than eight screenshots." }, { status: 400 });
     }
     for (const screenshot of screenshots) {
       if (!ACCEPTED_IMAGE_TYPES.has(screenshot.type)) {
         return Response.json({ error: "Screenshots must be PNG, JPEG or WebP images." }, { status: 415 });
       }
       if (screenshot.size === 0 || screenshot.size > MAX_IMAGE_BYTES) {
-        return Response.json({ error: "Each screenshot must be under 4 MB." }, { status: 413 });
+        return Response.json({ error: "Each screenshot must be under 8 MB." }, { status: 413 });
       }
     }
 

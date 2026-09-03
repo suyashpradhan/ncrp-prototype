@@ -7,6 +7,10 @@ import {
   type MissingQuestion,
 } from "../../incident/missing-information";
 import { containsSensitiveDetail } from "../../incident/sensitive-text";
+import {
+  getCaseConsistencyIssues,
+  type CaseConsistencyIssue,
+} from "../../incident/case-consistency";
 import type {
   IncidentDraft,
   ReportFamily,
@@ -81,6 +85,14 @@ const SOURCE_VISIBLE_FIELD_IDS = new Set([
   "reporter-name",
 ]);
 
+const UNAVAILABLE_QUESTION_FIELDS = new Set<MissingQuestion["field"]>([
+  "transactionIdOrUtr",
+  "transactionApproximateTime",
+  "incidentApproximateTime",
+  "accountOrUpiId",
+  "institution",
+]);
+
 type ReportWorkspaceProps = {
   mode: ReportWorkspaceMode;
   reportMethod: ReportMethod;
@@ -128,7 +140,7 @@ type ReportWorkspaceProps = {
     reportFamily: Exclude<ReportFamily, "OUT_OF_SCOPE_OR_UNCLEAR">,
   ) => void;
   onDemoNarrationLanguageChange: (language: DemoNarrationLanguage) => void;
-  onReview: () => void;
+  onReview: (ignoredConsistencyIssueIds?: readonly string[]) => void;
   onBackToEdit: () => void;
   onSubmit: (complaint: NcrpCompatibleComplaint) => void;
 };
@@ -147,16 +159,18 @@ function languageLabel(languageCode: string): string {
 
 function EvidenceRows({
   screenshots,
+  draft,
   isDemoIncident,
   onRemoveScreenshot,
   compact = false,
 }: {
   screenshots: File[];
+  draft: IncidentDraft | null;
   isDemoIncident: boolean;
   onRemoveScreenshot: (index: number) => void;
   compact?: boolean;
 }) {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   const [activeDemoEvidence, setActiveDemoEvidence] = useState<
     (typeof DEMO_EVIDENCE)[number] | null
   >(null);
@@ -166,6 +180,15 @@ function EvidenceRows({
     null,
   );
   const dialogRef = useRef<HTMLDialogElement | null>(null);
+  const removeDialogRef = useRef<HTMLDialogElement | null>(null);
+  const [pendingRemovalIndex, setPendingRemovalIndex] = useState<number | null>(null);
+  const removalContribution = pendingRemovalIndex !== null && draft
+    ? deriveEvidenceContributions(draft, {
+        locale,
+        isDemoIncident: false,
+        screenshotNames: screenshots.map((file) => file.name),
+      }).find((item) => item.evidenceId === `uploaded-${pendingRemovalIndex}`)
+    : null;
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -187,6 +210,12 @@ function EvidenceRows({
     setUploadedPreviewUrl(objectUrl);
     return () => URL.revokeObjectURL(objectUrl);
   }, [activeUploadedEvidence]);
+
+  useEffect(() => {
+    if (pendingRemovalIndex !== null && removeDialogRef.current && !removeDialogRef.current.open) {
+      removeDialogRef.current.showModal();
+    }
+  }, [pendingRemovalIndex]);
 
   function closeEvidence() {
     dialogRef.current?.close();
@@ -257,7 +286,7 @@ function EvidenceRows({
                 <button
                   className="text-button evidence-remove-button"
                   type="button"
-                  onClick={() => onRemoveScreenshot(index)}
+                  onClick={() => setPendingRemovalIndex(index)}
                 >
                   {t("field.remove")}
                 </button>
@@ -328,6 +357,35 @@ function EvidenceRows({
       </dialog>
     ) : null;
 
+  const removalDialog = pendingRemovalIndex !== null ? (
+    <dialog
+      ref={removeDialogRef}
+      className="evidence-preview-dialog evidence-remove-dialog"
+      aria-labelledby="remove-evidence-heading"
+      onCancel={(event) => {
+        event.preventDefault();
+        setPendingRemovalIndex(null);
+      }}
+      onClose={() => setPendingRemovalIndex(null)}
+    >
+      <h2 id="remove-evidence-heading">{locale === "hi" ? "यह सबूत हटाएँ?" : "Remove this evidence?"}</h2>
+      {removalContribution?.contributions.length ? (
+        <>
+          <p>{locale === "hi" ? "यह फ़ाइल अभी इन जानकारियों का समर्थन करती है:" : "This file currently supports:"}</p>
+          <ul>{removalContribution.contributions.map((fact) => <li key={fact.fieldKey}>{fact.label}: {fact.displayValue}</li>)}</ul>
+        </>
+      ) : null}
+      <p>{locale === "hi" ? "फ़ाइल हटाने के बाद रिपोर्ट की तैयारी फिर से जाँची जाएगी।" : "After removal, Sachet will recheck which report details are supported."}</p>
+      <div className="inline-field-actions">
+        <button className="secondary-button" type="button" onClick={() => removeDialogRef.current?.close()} autoFocus>{locale === "hi" ? "सबूत रखें" : "Keep evidence"}</button>
+        <button className="primary-button" type="button" onClick={() => {
+          onRemoveScreenshot(pendingRemovalIndex);
+          removeDialogRef.current?.close();
+        }}>{locale === "hi" ? "सबूत हटाएँ" : "Remove evidence"}</button>
+      </div>
+    </dialog>
+  ) : null;
+
   if (compact) {
     return (
       <details className="report-source-block compact-source-disclosure">
@@ -339,6 +397,7 @@ function EvidenceRows({
         </summary>
         {rows}
         {preview}
+        {removalDialog}
       </details>
     );
   }
@@ -348,6 +407,7 @@ function EvidenceRows({
       <h3>{t("workspace.evidenceAdded")}</h3>
       {rows}
       {preview}
+      {removalDialog}
     </div>
   );
 }
@@ -452,6 +512,7 @@ function SourceSummary({
   narrative,
   transcription,
   screenshots,
+  draft,
   isDemoIncident,
   recordingSeconds,
   demoNarrationLanguage,
@@ -463,6 +524,7 @@ function SourceSummary({
   | "narrative"
   | "transcription"
   | "screenshots"
+  | "draft"
   | "isDemoIncident"
   | "recordingSeconds"
   | "demoNarrationLanguage"
@@ -648,6 +710,7 @@ function SourceSummary({
 
       <EvidenceRows
         screenshots={screenshots}
+        draft={draft}
         isDemoIncident={isDemoIncident}
         onRemoveScreenshot={onRemoveScreenshot}
         compact={compact}
@@ -777,6 +840,7 @@ function ReportInputPane(props: ReportWorkspaceProps) {
         narrative={props.narrative}
         transcription={props.transcription}
         screenshots={props.screenshots}
+        draft={props.draft}
         isDemoIncident={props.isDemoIncident}
         recordingSeconds={props.recordingSeconds}
         demoNarrationLanguage={props.demoNarrationLanguage}
@@ -1011,6 +1075,32 @@ function MissingFieldEditor({
       {field.helpText ? (
         <p className="report-field-help">{field.helpText}</p>
       ) : null}
+      {question.field === "transactionIdOrUtr" ? (
+        <details className="field-help-disclosure">
+          <summary>{locale === "hi" ? "यह कहाँ मिलेगा?" : "Where do I find this?"}</summary>
+          <div className="field-help-content">
+            <h4>{locale === "hi" ? "लेन-देन संदर्भ कहाँ मिलेगा?" : "Where can I find the transaction reference?"}</h4>
+            <p>
+              {locale === "hi"
+                ? "अपने बैंकिंग या UPI ऐप में भुगतान खोलें। UTR, Transaction ID या Reference number देखें। अलग-अलग ऐप में शब्द अलग हो सकते हैं।"
+                : "Open the payment in your banking or UPI app. Look for UTR, Transaction ID or Reference number. The wording can vary by bank or app."}
+            </p>
+            <svg className="utr-example" viewBox="0 0 360 210" role="img" aria-label={locale === "hi" ? "उदाहरण लेन-देन में UTR की जगह" : "Example transaction showing where the UTR appears"}>
+              <rect x="1" y="1" width="358" height="208" rx="12" />
+              <text x="22" y="30">{locale === "hi" ? "उदाहरण लेन-देन" : "Example transaction"}</text>
+              <text x="22" y="60">{locale === "hi" ? "भुगतान सफल" : "Payment successful"}</text>
+              <text x="270" y="60">₹15,000</text>
+              <text x="22" y="94">{locale === "hi" ? "तारीख" : "Date"}</text>
+              <text x="230" y="94">3 Sep 2026</text>
+              <rect className="utr-example-highlight" x="14" y="124" width="332" height="56" rx="8" />
+              <text x="22" y="146">{locale === "hi" ? "लेन-देन संदर्भ / UTR" : "Transaction reference / UTR"}</text>
+              <text x="22" y="169">123456789012</text>
+              <text x="245" y="169">← {locale === "hi" ? "इसे देखें" : "Look for this"}</text>
+            </svg>
+            <p>{locale === "hi" ? "नहीं मिल रहा? ‘मेरे पास यह नहीं है’ चुनकर आगे बढ़ें।" : "Can't find it? You can continue with ‘I don’t have this’."}</p>
+          </div>
+        </details>
+      ) : null}
       <input
         id={`missing-${question.field}`}
         type={question.inputType}
@@ -1025,7 +1115,7 @@ function MissingFieldEditor({
         >
           {t("field.save")}
         </button>
-        {question.field === "transactionIdOrUtr" ? (
+        {UNAVAILABLE_QUESTION_FIELDS.has(question.field) ? (
           <button
             className="text-button"
             type="button"
@@ -1056,8 +1146,11 @@ function ReportFieldRow({
   narrativeEditing: boolean;
   onNarrativeEdit: () => void;
 }) {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
+  const [copied, setCopied] = useState(false);
   const showSource = SOURCE_VISIBLE_FIELD_IDS.has(field.id);
+  const copyable = /^transaction-\d+-(utr|reference)$/.test(field.id) ||
+    /^(suspect-\d+)$/.test(field.id);
   if (field.missingQuestion) {
     const isPartialDate = field.missingQuestion.field === "incidentDateYear";
     return (
@@ -1100,6 +1193,27 @@ function ReportFieldRow({
       ) : null}
       {field.source && showSource ? (
         <p className="report-field-source">{field.source}</p>
+      ) : null}
+      {field.source && showSource ? (
+        <details className="field-provenance-disclosure">
+          <summary>{locale === "hi" ? "यह रिपोर्ट में क्यों है?" : "Why is this in my report?"}</summary>
+          <p>
+            {locale === "hi" ? "यह जानकारी यहाँ मिली:" : "Found in:"} {field.source}. {locale === "hi" ? "जमा करने से पहले आप इसे बदल सकते हैं।" : "You can change this before submitting."}
+          </p>
+        </details>
+      ) : null}
+      {copyable && field.state !== "NOT_PROVIDED_OPTIONAL" ? (
+        <button
+          className="text-button field-copy-button"
+          type="button"
+          onClick={async () => {
+            await navigator.clipboard.writeText(field.value);
+            setCopied(true);
+            window.setTimeout(() => setCopied(false), 1600);
+          }}
+        >
+          {copied ? (locale === "hi" ? "कॉपी हो गया" : "Copied") : (locale === "hi" ? "कॉपी करें" : "Copy")}
+        </button>
       ) : null}
       {field.kind === "NARRATIVE" && !narrativeEditing ? (
         <button
@@ -1550,6 +1664,10 @@ function ReportReview(props: ReportWorkspaceProps) {
       return t("field.fromStatement");
     return t("field.fromShared");
   };
+  const reviewTotal = props.draft.transactions.reduce(
+    (sum, transaction) => sum + (transaction.amount ?? 0),
+    0,
+  ) || props.draft.incident.reportedAmount;
 
   return (
     <>
@@ -1557,6 +1675,15 @@ function ReportReview(props: ReportWorkspaceProps) {
         <h2>{t("workspace.reviewSubmit")}</h2>
         <p>{t("workspace.reviewSupport")}</p>
       </div>
+      <section className="before-submit-checkpoint" aria-labelledby="submit-checkpoint-heading">
+        <h2 id="submit-checkpoint-heading">{locale === "hi" ? "जमा करने के लिए तैयार" : "Ready to submit"}</h2>
+        <dl>
+          {reviewTotal ? <div><strong>{formatCurrency(reviewTotal)}</strong><span>{locale === "hi" ? "रिपोर्ट की गई हानि" : "Reported loss"}</span></div> : null}
+          <div><strong>{props.draft.transactions.length}</strong><span>{locale === "hi" ? "लेन-देन" : "Transactions"}</span></div>
+          <div><strong>{props.draft.evidence.length}</strong><span>{locale === "hi" ? "सबूत" : "Evidence items"}</span></div>
+        </dl>
+        <p>{locale === "hi" ? "कोई जरूरी जानकारी बाकी नहीं है। जमा करने से पहले आप अभी भी कुछ भी बदल सकते हैं।" : "No unresolved required details. You can still change anything before submitting."}</p>
+      </section>
       <div className="report-review-groups">
         {groups.map((group) => (
           <details
@@ -2081,16 +2208,21 @@ function ReportStatusCard({
 function ReportDetailsPane({
   groups,
   readiness,
+  consistencyIssues,
+  onResolveConsistencyIssue,
   sourceReady,
   onPrimaryAction,
   ...props
 }: ReportWorkspaceProps & {
   groups: ReportGroupView[];
   readiness: ReportReadiness | null;
+  consistencyIssues: CaseConsistencyIssue[];
+  onResolveConsistencyIssue: (issue: CaseConsistencyIssue, resolution: "SAME" | "DIFFERENT" | "YES" | "NO" | "UNKNOWN") => void;
   sourceReady: boolean;
   onPrimaryAction: () => void;
 }) {
   const { locale, t } = useI18n();
+  const [customReportedAmount, setCustomReportedAmount] = useState("");
   const amountConflictMissing = Boolean(
     props.amountResolution?.hasConflict &&
     !props.amountResolution.selectedAmount,
@@ -2330,9 +2462,66 @@ function ReportDetailsPane({
                         : `Use ${formatCurrency(amount)}`}
                     </button>
                   ))}
+                <label className="custom-amount-choice">
+                  <span>{locale === "hi" ? "दूसरी राशि" : "Another amount"}</span>
+                  <input
+                    type="number"
+                    min="1"
+                    inputMode="numeric"
+                    value={customReportedAmount}
+                    onChange={(event) => setCustomReportedAmount(event.target.value)}
+                  />
+                </label>
+                <button
+                  className="secondary-button"
+                  type="button"
+                  disabled={!Number.isFinite(Number(customReportedAmount)) || Number(customReportedAmount) <= 0}
+                  onClick={() => props.onReportedAmountSelect(Number(customReportedAmount))}
+                >
+                  {locale === "hi" ? "यह राशि उपयोग करें" : "Use this amount"}
+                </button>
               </div>
             </section>
           ) : null}
+
+          {consistencyIssues.map((issue) => (
+            <section
+              className="case-consistency-issue"
+              key={issue.id}
+              data-report-field-id={issue.affectedFieldIds[0]}
+              aria-labelledby={`${issue.id}-heading`}
+            >
+              <p className="eyebrow">{locale === "hi" ? "पुष्टि जरूरी है" : "Needs confirmation"}</p>
+              <h3 id={`${issue.id}-heading`}>{issue.title}</h3>
+              <p>{issue.explanation}</p>
+              <dl>
+                {issue.sourceValues.map((source) => (
+                  <div key={source.label}>
+                    <dt>{source.label}</dt>
+                    <dd>{typeof source.value === "number" ? formatCurrency(source.value) : source.value}</dd>
+                  </div>
+                ))}
+              </dl>
+              <div className="inline-field-actions">
+                {issue.type === "POSSIBLE_DUPLICATE" ? (
+                  <>
+                    <button className="secondary-button" type="button" onClick={() => onResolveConsistencyIssue(issue, "SAME")}>
+                      {locale === "hi" ? "एक ही लेन-देन" : "Same transaction"}
+                    </button>
+                    <button className="secondary-button" type="button" onClick={() => onResolveConsistencyIssue(issue, "DIFFERENT")}>
+                      {locale === "hi" ? "दो अलग लेन-देन" : "They’re different"}
+                    </button>
+                  </>
+                ) : issue.type === "FINANCIAL_LOSS_CONTRADICTION" ? (
+                  <>
+                    <button className="secondary-button" type="button" onClick={() => onResolveConsistencyIssue(issue, "YES")}>{locale === "hi" ? "पैसे गए" : "Money was lost"}</button>
+                    <button className="secondary-button" type="button" onClick={() => onResolveConsistencyIssue(issue, "NO")}>{locale === "hi" ? "पैसे नहीं गए" : "No money was lost"}</button>
+                    <button className="secondary-button" type="button" onClick={() => onResolveConsistencyIssue(issue, "UNKNOWN")}>{locale === "hi" ? "पक्का नहीं" : "I’m not sure"}</button>
+                  </>
+                ) : null}
+              </div>
+            </section>
+          ))}
 
           {priorityField && !amountConflictMissing ? (
             <section className="priority-missing-question">
@@ -2444,6 +2633,7 @@ export function ReportWorkspace(props: ReportWorkspaceProps) {
   const { locale } = useI18n();
   const [pendingTargetId, setPendingTargetId] = useState<string | null>(null);
   const [navigationMessage, setNavigationMessage] = useState("");
+  const [ignoredConsistencyIssueIds, setIgnoredConsistencyIssueIds] = useState<Set<string>>(() => new Set());
   const highlightTimerRef = useRef<number | null>(null);
   const groups = props.draft
     ? deriveReportGroups(props.draft, {
@@ -2475,8 +2665,14 @@ export function ReportWorkspace(props: ReportWorkspaceProps) {
         amountResolution: props.amountResolution,
         locale,
         isStale: props.isReportStale,
+        ignoredConsistencyIssueIds,
       })
     : null;
+  const consistencyIssues = props.draft
+    ? getCaseConsistencyIssues(props.draft).filter(
+        (issue) => issue.type !== "TOTAL_MISMATCH" && !ignoredConsistencyIssueIds.has(issue.id),
+      )
+    : [];
   const sourceReady = Boolean(
     props.reporterName.trim() &&
     (props.narrative.trim() || props.hasAudio || props.screenshots.length > 0),
@@ -2556,7 +2752,7 @@ export function ReportWorkspace(props: ReportWorkspaceProps) {
       return;
     }
     if (readiness?.state === "READY") {
-      props.onReview();
+      props.onReview([...ignoredConsistencyIssueIds]);
       return;
     }
     if (readiness?.nextBlockingItem) {
@@ -2565,6 +2761,39 @@ export function ReportWorkspace(props: ReportWorkspaceProps) {
       return;
     }
     document.querySelector<HTMLElement>("#report-details-heading")?.focus();
+  }
+
+  function resolveConsistencyIssue(
+    issue: CaseConsistencyIssue,
+    resolution: "SAME" | "DIFFERENT" | "YES" | "NO" | "UNKNOWN",
+  ) {
+    if (!props.draft) return;
+    if (issue.type === "POSSIBLE_DUPLICATE") {
+      if (resolution === "DIFFERENT") {
+        setIgnoredConsistencyIssueIds((current) => new Set(current).add(issue.id));
+        return;
+      }
+      const rightIndex = Number(/transaction-(\d+)-amount/.exec(issue.affectedFieldIds[1] ?? "")?.[1]);
+      props.onDraftChange({
+        ...props.draft,
+        transactions: props.draft.transactions.filter((_, index) => index !== rightIndex),
+      });
+      return;
+    }
+    if (issue.type === "FINANCIAL_LOSS_CONTRADICTION") {
+      const state = resolution === "YES" ? "YES" : resolution === "NO" ? "NO" : "UNKNOWN";
+      props.onDraftChange({
+        ...props.draft,
+        classification: { ...props.draft.classification, moneyLost: state === "YES" ? true : state === "NO" ? false : null },
+        incident: {
+          ...props.draft.incident,
+          financialLossState: state,
+          moneyLost: state === "YES" ? true : state === "NO" ? false : null,
+          reportedAmount: state === "NO" ? null : props.draft.incident.reportedAmount,
+        },
+        transactions: state === "NO" ? [] : props.draft.transactions,
+      });
+    }
   }
 
   return (
@@ -2586,6 +2815,8 @@ export function ReportWorkspace(props: ReportWorkspaceProps) {
             {...props}
             groups={groups}
             readiness={readiness}
+            consistencyIssues={consistencyIssues}
+            onResolveConsistencyIssue={resolveConsistencyIssue}
             sourceReady={sourceReady}
             onPrimaryAction={runPrimaryAction}
           />

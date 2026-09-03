@@ -632,13 +632,13 @@ textarea {
 }
 
 .report-workspace-shell {
-  width: min(calc(100% - 40px), 1160px);
+  width: min(calc(100% - 48px), 1480px);
   margin-inline: auto;
 }
 
 .report-workspace {
   display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  grid-template-columns: minmax(0, 42fr) minmax(0, 58fr);
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 14px;
@@ -650,6 +650,13 @@ textarea {
 .report-details-pane {
   min-width: 0;
   padding: 32px;
+}
+
+.report-input-pane p,
+.report-details-pane p,
+.report-input-pane li,
+.report-details-pane li {
+  font-size: max(16px, 1rem);
 }
 
 .report-input-pane {
@@ -994,6 +1001,126 @@ textarea {
 
 .report-status-card-empty .report-status-label {
   text-align: left;
+}
+
+.field-help-disclosure,
+.field-provenance-disclosure {
+  margin-top: 10px;
+}
+
+.field-help-disclosure summary,
+.field-provenance-disclosure summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  color: var(--primary);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.field-help-content {
+  max-width: 560px;
+  padding: 14px 0;
+}
+
+.field-help-content h4 {
+  margin-bottom: 8px;
+  font-size: 18px;
+}
+
+.utr-example {
+  width: min(100%, 420px);
+  height: auto;
+  margin-block: 14px;
+  color: var(--text);
+  background: var(--surface);
+}
+
+.utr-example rect:first-child {
+  fill: var(--surface);
+  stroke: var(--border-strong);
+}
+
+.utr-example text {
+  fill: currentColor;
+  font: 14px system-ui, sans-serif;
+}
+
+.utr-example-highlight {
+  fill: var(--primary-050);
+  stroke: var(--primary);
+}
+
+.field-copy-button {
+  margin-right: 14px;
+}
+
+.case-consistency-issue,
+.before-submit-checkpoint {
+  margin-bottom: 24px;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #faf9f6;
+}
+
+.case-consistency-issue dl {
+  display: grid;
+  gap: 8px;
+}
+
+.case-consistency-issue dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.custom-amount-choice {
+  min-width: 170px;
+  display: grid;
+  gap: 5px;
+  font-weight: 700;
+}
+
+.custom-amount-choice input {
+  width: 100%;
+}
+
+.before-submit-checkpoint dl {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+}
+
+.before-submit-checkpoint dl > div {
+  min-width: 120px;
+  display: grid;
+  gap: 3px;
+}
+
+.before-submit-checkpoint strong {
+  font-size: 22px;
+}
+
+.before-submit-checkpoint span,
+.before-submit-checkpoint p {
+  color: var(--secondary);
+}
+
+.evidence-remove-dialog ul {
+  margin-block: 12px 18px;
+  padding-left: 22px;
+}
+
+.case-copy-actions {
+  margin-top: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.prototype-reference-block .text-button {
+  justify-self: start;
 }
 
 .empty-report-illustration {
