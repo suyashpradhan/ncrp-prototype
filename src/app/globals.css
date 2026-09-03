@@ -461,6 +461,34 @@ textarea {
     0 10px 30px rgba(50, 20, 20, 0.04);
 }
 
+.sachet-proof-story {
+  margin: 0;
+  padding: 16px;
+  color: var(--text);
+  background: #f6f6f3;
+  border-radius: 10px;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.sachet-proof-result {
+  padding: 16px;
+  display: grid;
+  gap: 4px;
+  background: var(--primary-050);
+  border: 1px solid var(--primary-100);
+  border-radius: 10px;
+}
+
+.sachet-proof-result strong {
+  font-size: 17px;
+}
+
+.sachet-proof-result span {
+  color: var(--secondary);
+  font-size: 14px;
+}
+
 .sachet-preview-label {
   margin: 0 0 9px;
   color: var(--muted);
@@ -2220,6 +2248,120 @@ dd {
   color: var(--secondary);
 }
 
+.post-report-primary-action {
+  margin-top: 18px;
+  padding: 20px;
+  background: var(--primary-050);
+  border: 1px solid var(--primary-100);
+  border-radius: 12px;
+}
+
+.post-report-primary-action h3 {
+  margin: 2px 0 6px;
+  font-size: 21px;
+}
+
+.post-report-primary-action > p:not(.companion-eyebrow) {
+  margin: 0;
+  color: var(--secondary);
+}
+
+.post-report-primary-action .primary-button {
+  width: fit-content;
+  margin-top: 16px;
+}
+
+.post-report-secondary-actions {
+  margin-top: 12px;
+}
+
+.case-keep-ready > p,
+.prototype-follow-up > p {
+  color: var(--secondary);
+}
+
+.case-keep-ready ul {
+  margin-bottom: 0;
+  padding-left: 22px;
+}
+
+.case-keep-ready li + li {
+  margin-top: 8px;
+}
+
+.prototype-follow-up-form {
+  max-width: 520px;
+  margin-top: 18px;
+}
+
+.prototype-follow-up-form label {
+  display: block;
+  margin-bottom: 7px;
+  font-weight: 700;
+}
+
+.prototype-follow-up-form input {
+  width: 100%;
+}
+
+.case-copy-section {
+  padding-bottom: 0;
+}
+
+.case-copy-section .case-copy-actions {
+  margin-top: 0;
+}
+
+.case-integrity-summary,
+.case-knowledge-summary,
+.financial-triage {
+  margin-bottom: 22px;
+  padding: 20px;
+  background: #f7f7f4;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.case-integrity-summary h2,
+.case-knowledge-summary h2,
+.financial-triage h2 {
+  font-size: 19px;
+}
+
+.case-integrity-summary ul,
+.case-knowledge-summary ul {
+  margin: 12px 0 0;
+  padding-left: 21px;
+}
+
+.case-integrity-summary p {
+  margin: 14px 0 0;
+  color: var(--secondary);
+}
+
+.case-knowledge-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.financial-triage {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  background: var(--urgent-bg);
+  border-color: #efc9cc;
+}
+
+.financial-triage p {
+  margin-bottom: 0;
+}
+
+.financial-triage .primary-button {
+  flex: 0 0 auto;
+}
+
 .citizen-actions-list a {
   color: var(--primary);
   font-weight: 700;
@@ -2659,6 +2801,20 @@ html[data-ui-locale="hi"] .companion-eyebrow {
   .report-input-pane,
   .report-details-pane {
     padding: 26px;
+  }
+
+  .case-knowledge-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .financial-triage {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .financial-triage .primary-button,
+  .post-report-primary-action .primary-button {
+    width: 100%;
   }
 
   .report-workspace-review .report-input-pane {

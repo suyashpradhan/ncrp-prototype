@@ -2,7 +2,10 @@
 
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
-import type { IncidentDraft } from "../../incident/schema";
+import {
+  CITIZEN_DOES_NOT_HAVE,
+  type IncidentDraft,
+} from "../../incident/schema";
 import { useI18n } from "../../i18n/i18n-provider";
 import { deriveEvidenceContributions } from "../../presentation/evidence-contributions";
 import {
@@ -10,6 +13,8 @@ import {
 } from "../../presentation/safe-case-copy";
 import {
   getCaseSummary,
+  getCaseStateExplanation,
+  getKeepReadyPacket,
   getPostReportActions,
   getProcessExplainer,
   getPostSubmissionTimeline,
@@ -24,6 +29,7 @@ type PostSubmissionCaseHomeProps = {
   screenshots: File[];
   isDemoIncident: boolean;
   milestones: PostReportMilestones;
+  onDraftChange: (draft: IncidentDraft) => void;
   onStartNewReport: () => void;
 };
 
@@ -205,12 +211,16 @@ export function PostSubmissionCaseHome({
   screenshots,
   isDemoIncident,
   milestones,
+  onDraftChange,
   onStartNewReport,
 }: PostSubmissionCaseHomeProps) {
   const { locale } = useI18n();
   const hi = locale === "hi";
   const summary = getCaseSummary(draft, locale);
   const actions = getPostReportActions(draft, locale);
+  const primaryAction = actions[0];
+  const secondaryActions = actions.slice(1);
+  const keepReady = getKeepReadyPacket(draft, locale);
   const process = getProcessExplainer(draft, locale);
   const timeline = getPostSubmissionTimeline(
     draft,
@@ -219,6 +229,40 @@ export function PostSubmissionCaseHome({
     milestones,
   );
   const [copiedValue, setCopiedValue] = useState<"REFERENCE" | "SUMMARY" | null>(null);
+  const missingReferenceIndex = draft.transactions.findIndex(
+    (transaction) => !transaction.transactionIdOrUtr,
+  );
+  const [followUpOpen, setFollowUpOpen] = useState(false);
+  const [followUpValue, setFollowUpValue] = useState("");
+  const [followUpSaved, setFollowUpSaved] = useState(false);
+  const stateExplanation = getCaseStateExplanation(
+    missingReferenceIndex >= 0 ? "ADDITIONAL_INFO_REQUESTED" : "SUBMITTED",
+    locale,
+  );
+
+  function saveTransactionReference(value: string) {
+    if (missingReferenceIndex < 0) return;
+    const nextTransactions = draft.transactions.map((transaction, index) =>
+      index === missingReferenceIndex
+        ? {
+            ...transaction,
+            transactionIdOrUtr: value,
+            status: "KNOWN" as const,
+          }
+        : transaction,
+    );
+    const confirmedField = `transactions.${missingReferenceIndex}.transactionIdOrUtr`;
+    onDraftChange({
+      ...draft,
+      transactions: nextTransactions,
+      citizenConfirmedFields: Array.from(new Set([
+        ...(draft.citizenConfirmedFields ?? []),
+        confirmedField,
+      ])),
+    });
+    setFollowUpOpen(false);
+    setFollowUpSaved(true);
+  }
 
   async function copyText(value: string, kind: "REFERENCE" | "SUMMARY") {
     await navigator.clipboard.writeText(value);
@@ -267,32 +311,23 @@ export function PostSubmissionCaseHome({
             </p>
           </header>
 
-          <section className="companion-section" aria-labelledby="case-summary-heading">
-            <h2 id="case-summary-heading">{hi ? "मामले का सार" : "Case summary"}</h2>
-            <dl className="companion-summary-list">
-              {summary.map((item) => (
-                <div key={item.id}>
-                  <dt>{item.label}</dt>
-                  <dd>{item.value}</dd>
-                </div>
-              ))}
-            </dl>
-            <div className="case-copy-actions">
-              <button className="secondary-button" type="button" onClick={() => void copyText(getSafeCaseSummary(draft, prototypeReference, locale), "SUMMARY")}>
-                {copiedValue === "SUMMARY" ? (hi ? "सार कॉपी हो गया" : "Summary copied") : (hi ? "मामले का सार कॉपी करें" : "Copy case summary")}
-              </button>
-              <button className="secondary-button" type="button" onClick={printReport}>
-                {hi ? "प्रिंट करें या PDF सहेजें" : "Print or save PDF"}
-              </button>
-            </div>
-          </section>
-
           <section className="companion-section" aria-labelledby="post-report-actions-heading">
             <h2 id="post-report-actions-heading">{hi ? "अभी क्या करें" : "What to do now"}</h2>
-            <ol className="post-report-action-list">
-              {actions.map((action, index) => (
+            {primaryAction ? (
+              <article className="post-report-primary-action">
+                <p className="companion-eyebrow">{hi ? "सबसे पहले" : "First"}</p>
+                <h3>{primaryAction.title}</h3>
+                <p>{primaryAction.description}</p>
+                {primaryAction.href ? (
+                  <a className="primary-button" href={primaryAction.href}>{primaryAction.title}</a>
+                ) : null}
+              </article>
+            ) : null}
+            {secondaryActions.length > 0 ? (
+              <ol className="post-report-action-list post-report-secondary-actions">
+              {secondaryActions.map((action, index) => (
                 <li key={action.id}>
-                  <span aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>
+                  <span aria-hidden="true">{String(index + 2).padStart(2, "0")}</span>
                   <div>
                     <h3>
                       {action.href ? (
@@ -305,17 +340,76 @@ export function PostSubmissionCaseHome({
                   </div>
                 </li>
               ))}
-            </ol>
+              </ol>
+            ) : null}
           </section>
+
+          <section className="companion-section" aria-labelledby="case-summary-heading">
+            <h2 id="case-summary-heading">{hi ? "मामले का सार" : "Case summary"}</h2>
+            <dl className="companion-summary-list">
+              {summary.map((item) => (
+                <div key={item.id}>
+                  <dt>{item.label}</dt>
+                  <dd>{item.value}</dd>
+                </div>
+              ))}
+            </dl>
+          </section>
+
+          {keepReady.length > 0 ? (
+            <section className="companion-section case-keep-ready" aria-labelledby="keep-ready-heading">
+              <h2 id="keep-ready-heading">{hi ? "तैयार रखें" : "Keep ready"}</h2>
+              <p>{hi ? "ये जानकारी इसी मामले से ली गई है।" : "These items come from this case."}</p>
+              <ul>{keepReady.map((item) => <li key={item}>{item}</li>)}</ul>
+            </section>
+          ) : null}
+
+          {missingReferenceIndex >= 0 || followUpSaved ? (
+            <section className="companion-section prototype-follow-up" aria-labelledby="follow-up-heading">
+              <p className="companion-eyebrow">{hi ? "प्रोटोटाइप फॉलो-अप" : "Prototype follow-up"}</p>
+              <h2 id="follow-up-heading">
+                {followUpSaved
+                  ? (hi ? "मामला अपडेट हो गया" : "Case updated")
+                  : (hi ? "एक और जानकारी मददगार होगी" : "One more detail would help")}
+              </h2>
+              {followUpSaved ? (
+                <p>{hi ? "लेन-देन संदर्भ की पुष्टि आपने की है।" : "The transaction reference is now confirmed by you."}</p>
+              ) : (
+                <>
+                  <p>{hi ? `लेन-देन ${missingReferenceIndex + 1} का UTR या संदर्भ जोड़ने से बैंक भुगतान पहचान सकता है।` : `Adding the UTR or reference for transaction ${missingReferenceIndex + 1} can help identify the payment.`}</p>
+                  {followUpOpen ? (
+                    <div className="prototype-follow-up-form">
+                      <label htmlFor="post-report-transaction-reference">{hi ? "लेन-देन संदर्भ / UTR" : "Transaction reference / UTR"}</label>
+                      <input id="post-report-transaction-reference" value={followUpValue} onChange={(event) => setFollowUpValue(event.target.value)} autoFocus />
+                      <div className="entry-actions">
+                        <button className="primary-button" type="button" disabled={!followUpValue.trim()} onClick={() => saveTransactionReference(followUpValue.trim())}>{hi ? "जानकारी जोड़ें" : "Add detail"}</button>
+                        <button className="secondary-button" type="button" onClick={() => saveTransactionReference(CITIZEN_DOES_NOT_HAVE)}>{hi ? "यह मेरे पास नहीं है" : "I don’t have this"}</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button className="secondary-button" type="button" onClick={() => setFollowUpOpen(true)}>{hi ? "जानकारी जोड़ें" : "Add detail"}</button>
+                  )}
+                </>
+              )}
+            </section>
+          ) : null}
 
           <section className="companion-section" aria-labelledby="post-report-process-heading">
             <h2 id="post-report-process-heading">{hi ? "आगे क्या होता है" : "What happens next"}</h2>
             <div className="post-report-process-part">
-              <h3>{hi ? "अभी क्या पता है" : "Known now"}</h3>
+              <h3>{hi ? "इसका क्या अर्थ है" : "What this means"}</h3>
               <p className="post-report-known-state">
-                <strong>{process.currentKnownState.title}</strong>
-                <span>{process.currentKnownState.description}</span>
+                <strong>{stateExplanation.title}</strong>
+                <span>{stateExplanation.whatItMeans}</span>
               </p>
+            </div>
+            <div className="post-report-process-part">
+              <h3>{hi ? "इसका क्या अर्थ नहीं है" : "What this does not mean"}</h3>
+              <p>{stateExplanation.whatItDoesNotMean}</p>
+            </div>
+            <div className="post-report-process-part">
+              <h3>{hi ? "आप क्या कर सकते हैं" : "What you can do"}</h3>
+              <p>{stateExplanation.whatYouCanDo}</p>
             </div>
             <div className="post-report-process-part">
               <h3>{process.possibleNextStagesHeading}</h3>
@@ -339,14 +433,6 @@ export function PostSubmissionCaseHome({
                 ))}
               </ul>
             </div>
-            {process.keepReady && process.keepReady.length > 0 ? (
-              <div className="post-report-process-part">
-                <h3>{hi ? "तैयार रखें" : "Keep ready"}</h3>
-                <ul className="post-report-keep-ready-list">
-                  {process.keepReady.map((item) => <li key={item}>{item}</li>)}
-                </ul>
-              </div>
-            ) : null}
           </section>
 
           <section className="companion-section post-report-timeline-section">
@@ -361,6 +447,17 @@ export function PostSubmissionCaseHome({
             screenshots={screenshots}
             isDemoIncident={isDemoIncident}
           />
+
+          <section className="companion-section case-copy-section" aria-label={hi ? "रिपोर्ट की प्रति" : "Report copy"}>
+            <div className="case-copy-actions">
+              <button className="secondary-button" type="button" onClick={() => void copyText(getSafeCaseSummary(draft, prototypeReference, locale), "SUMMARY")}>
+                {copiedValue === "SUMMARY" ? (hi ? "सार कॉपी हो गया" : "Summary copied") : (hi ? "मामले का सार कॉपी करें" : "Copy case summary")}
+              </button>
+              <button className="secondary-button" type="button" onClick={printReport}>
+                {hi ? "प्रिंट करें या PDF सहेजें" : "Print or save PDF"}
+              </button>
+            </div>
+          </section>
 
           <button className="secondary-button" type="button" onClick={onStartNewReport}>
             {hi ? "नई रिपोर्ट शुरू करें" : "Start new report"}

@@ -47,7 +47,8 @@ Rules:
 33. Preserve every independently supported payment in transactions. Give each transaction a stable sequential id, use INR when rupees are stated, and set status to KNOWN, MISSING or NEEDS_CONFIRMATION from the supplied facts.
 34. incident.reportedAmount is the total loss, not an additional transaction. If the citizen says “I lost ₹20,000; first ₹5,000, then ₹15,000”, create two transactions totalling ₹20,000 and do not double-count the stated total.
 35. Never use the current browser time, server time or report generation time for incidentDate, incident time, transactionDate or transaction time. Unknown remains null. Preserve approximate expressions without inventing exact minutes.
-36. accountCompromiseBasis records only the supported sign of possible access, such as changed recovery details, an unfamiliar security alert, changed messages/settings, or the citizen simply forgetting a password. Use null when unclear.`;
+36. accountCompromiseBasis records only the supported sign of possible access, such as changed recovery details, an unfamiliar security alert, changed messages/settings, or the citizen simply forgetting a password. Use null when unclear.
+37. citizenConfirmedFields is application-owned follow-up metadata. Always return it as an empty array during initial extraction.`;
 
 type InputContent =
   | { type: "input_text"; text: string }

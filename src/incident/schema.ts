@@ -114,6 +114,7 @@ export const IncidentDraftSchema = z.object({
     ]),
     extractedFacts: z.array(z.string()),
   })),
+  citizenConfirmedFields: z.array(z.string()),
   missingRequiredFields: z.array(z.string()),
   warnings: z.array(z.string()),
 });

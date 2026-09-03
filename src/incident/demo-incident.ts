@@ -130,6 +130,7 @@ export const DEMO_INCIDENT_DRAFT = {
       ],
     },
   ],
+  citizenConfirmedFields: [],
   missingRequiredFields: [],
   warnings: [],
 } as const satisfies IncidentDraft;
@@ -190,6 +191,7 @@ export function createUnknownIncidentDraft(): IncidentDraft {
     transactions: [],
     suspectIdentifiers: [],
     evidence: [],
+    citizenConfirmedFields: [],
     missingRequiredFields: [],
     warnings: [],
   };

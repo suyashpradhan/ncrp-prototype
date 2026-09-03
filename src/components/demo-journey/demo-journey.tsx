@@ -310,67 +310,19 @@ function SachetPreview() {
           : "Example of shared information becoming a prepared report"
       }
     >
-      <p className="sachet-preview-label">
-        {hi ? "आप क्या साझा करते हैं" : "What you share"}
-      </p>
-      <div className="sachet-preview-shared">
-        <blockquote>
-          {hi
-            ? "“आज सुबह मुझे एसबीआई केवाईसी का संदेश मिला। लिंक खोलने के बाद ₹40,000 डेबिट हो गए।”"
-            : "“I received an SBI KYC message this morning. After following the link, ₹40,000 was debited.”"}
-        </blockquote>
-        <div
-          className="sachet-preview-evidence"
-          aria-label={hi ? "जोड़े गए सबूत" : "Evidence added"}
-        >
-          <div>
-            <span className="sachet-preview-file-icon" aria-hidden="true">
-              ▧
-            </span>
-            <strong>{hi ? "संदेश का स्क्रीनशॉट" : "Message screenshot"}</strong>
-            <small>{hi ? "जोड़ा गया" : "Added"}</small>
-          </div>
-          <div>
-            <span className="sachet-preview-file-icon" aria-hidden="true">
-              ▧
-            </span>
-            <strong>{hi ? "बैंक लेन-देन" : "Bank transaction"}</strong>
-            <small>{hi ? "जोड़ा गया" : "Added"}</small>
-          </div>
-        </div>
-      </div>
+      <blockquote className="sachet-proof-story">
+        {hi ? "“पहले ₹5,000, फिर ₹15,000 गए…”" : "“I lost ₹5,000, then ₹15,000…”"}
+      </blockquote>
 
       <div className="sachet-preview-connector" aria-hidden="true">
         <span />
         <b>↓</b>
       </div>
 
-      <p className="sachet-preview-label">
-        {hi ? "रिपोर्ट तैयार" : "Report prepared"}
-      </p>
-      <div className="sachet-preview-report">
-        <div className="sachet-preview-report-heading">
-          <strong>{hi ? "वित्तीय धोखाधड़ी" : "Financial Fraud"}</strong>
-          <b>₹40,000</b>
-        </div>
-        <dl>
-          <div>
-            <dt>{hi ? "बैंक" : "Bank"}</dt>
-            <dd>{hi ? "एसबीआई" : "SBI"}</dd>
-          </div>
-          <div>
-            <dt>{hi ? "समय" : "When"}</dt>
-            <dd>
-              {hi
-                ? "22 अगस्त 2026 · लगभग सुबह 7:00 बजे"
-                : "22 Aug 2026 · Around 7:00 AM"}
-            </dd>
-          </div>
-          <div>
-            <dt>{hi ? "लेन-देन संदर्भ" : "Transaction reference"}</dt>
-            <dd>DEMO-UTR-40000-220826</dd>
-          </div>
-        </dl>
+      <div className="sachet-proof-result">
+        <strong>{hi ? "2 लेन-देन" : "2 transactions"}</strong>
+        <strong>{hi ? "कुल ₹20,000" : "₹20,000 total"}</strong>
+        <span>{hi ? "स्रोत जुड़े हुए" : "Sources linked"}</span>
       </div>
     </aside>
   );
@@ -1417,13 +1369,13 @@ export function DemoJourney() {
             <div className="service-entry-copy">
               <h1>
                 {locale === "hi"
-                  ? "वित्तीय साइबर धोखाधड़ी की रिपोर्ट करें—हर जानकारी खुद भरे बिना।"
-                  : "Report cyber fraud, without filling everything yourself."}
+                  ? "हमें बताएं कि क्या हुआ। ऐसी रिपोर्ट पाएँ जिस पर आप भरोसा कर सकें।"
+                  : "Tell us what happened. Get a report you can trust."}
               </h1>
               <p className="service-entry-support">
                 {locale === "hi"
-                  ? "हमें बताएं कि क्या हुआ। हम आपकी जाँच के लिए रिपोर्ट तैयार करेंगे।"
-                  : "Tell us what happened. We’ll prepare the report for you to review."}
+                  ? "बोलें, लिखें या सबूत जोड़ें। सचेत घटना को व्यवस्थित करता है और केवल बाकी जरूरी जानकारी पूछता है।"
+                  : "Speak, type, or add evidence. Sachet organises the incident and asks only for what is still needed."}
               </p>
               <div className="service-entry-actions">
                 <button
@@ -1433,7 +1385,7 @@ export function DemoJourney() {
                 >
                   {hasSubmittedCase
                     ? locale === "hi" ? "मामला देखें" : "View case"
-                    : locale === "hi" ? "रिपोर्ट शुरू करें" : "Start a report"}
+                    : locale === "hi" ? "रिपोर्ट शुरू करें" : "Start report"}
                 </button>
                 <button
                   className="secondary-button"
@@ -1446,11 +1398,7 @@ export function DemoJourney() {
                 </button>
               </div>
               <UrgentMoneyGuidance />
-              <p className="landing-capability-line">
-                {locale === "hi"
-                  ? "हमें बताएं कि क्या हुआ → हम रिपोर्ट तैयार करते हैं → आप जाँचते हैं"
-                  : "Tell us what happened → We prepare the report → You review"}
-              </p>
+              <p className="landing-capability-line">{locale === "hi" ? "स्वतंत्र हैकाथॉन प्रोटोटाइप · NCRP से जुड़ा नहीं" : "Independent hackathon prototype · Not connected to NCRP"}</p>
             </div>
             <SachetPreview />
           </div>
@@ -1548,6 +1496,7 @@ export function DemoJourney() {
         screenshots={screenshots}
         isDemoIncident={isDemoIncident}
         milestones={postReportMilestones}
+        onDraftChange={setDraft}
         onStartNewReport={startReport}
       />
     );

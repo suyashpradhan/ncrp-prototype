@@ -42,6 +42,82 @@ export type ProcessExplainer = {
   keepReady?: string[];
 };
 
+export type PrototypeCaseState =
+  | "SUBMITTED"
+  | "ACKNOWLEDGED"
+  | "FORWARDED"
+  | "ADDITIONAL_INFO_REQUESTED"
+  | "FINANCIAL_ACTION_REPORTED"
+  | "RESTORATION_RELATED"
+  | "CLOSED"
+  | "UNKNOWN";
+
+export type CaseStateExplanation = {
+  state: PrototypeCaseState;
+  title: string;
+  whatItMeans: string;
+  whatItDoesNotMean: string;
+  whatYouCanDo: string;
+};
+
+export function getCaseStateExplanation(
+  state: PrototypeCaseState,
+  locale: UiLocale,
+): CaseStateExplanation {
+  const hi = locale === "hi";
+  const copy: Record<PrototypeCaseState, Omit<CaseStateExplanation, "state">> = {
+    SUBMITTED: {
+      title: hi ? "प्रोटोटाइप रिपोर्ट दर्ज हुई" : "Prototype report recorded",
+      whatItMeans: hi ? "आपकी रिपोर्ट इस प्रोटोटाइप में दर्ज की गई है।" : "Your report has been recorded in this prototype.",
+      whatItDoesNotMean: hi ? "इसे NCRP या किसी अन्य सरकारी प्रणाली को जमा नहीं किया गया है।" : "It has not been submitted to NCRP or another government system.",
+      whatYouCanDo: hi ? "अपनी रिपोर्ट की प्रति और सबूत तैयार रखें।" : "Keep your report copy and evidence available.",
+    },
+    ACKNOWLEDGED: {
+      title: hi ? "पावती दर्ज हुई" : "Acknowledgement recorded",
+      whatItMeans: hi ? "मामले की दी गई जानकारी के लिए एक पावती दर्ज की गई है।" : "An acknowledgement has been recorded for the supplied case information.",
+      whatItDoesNotMean: hi ? "यह FIR, जाँच के परिणाम, रिकवरी या रिफंड की पुष्टि नहीं है।" : "It does not by itself confirm an FIR, investigation outcome, recovery or refund.",
+      whatYouCanDo: hi ? "पावती और अपने सबूत तैयार रखें।" : "Keep the acknowledgement and your evidence available.",
+    },
+    FORWARDED: {
+      title: hi ? "मामले की जानकारी आगे भेजी गई" : "Case information forwarded",
+      whatItMeans: hi ? "दी गई स्थिति के अनुसार मामले की जानकारी आगे बढ़ी है।" : "The case information has moved onward according to the supplied case state.",
+      whatItDoesNotMean: hi ? "यह FIR या अंतिम परिणाम की पुष्टि नहीं है।" : "This alone does not confirm FIR registration or a final outcome.",
+      whatYouCanDo: hi ? "अपना संदर्भ और सबूत तैयार रखें।" : "Keep your reference and evidence ready.",
+    },
+    ADDITIONAL_INFO_REQUESTED: {
+      title: hi ? "और जानकारी चाहिए" : "More information is needed",
+      whatItMeans: hi ? "मामले में एक या अधिक जानकारी अभी बाकी है।" : "One or more case details are still needed.",
+      whatItDoesNotMean: hi ? "आपको पूरी रिपोर्ट दोबारा बनाने की जरूरत नहीं है।" : "You do not need to rebuild the entire report.",
+      whatYouCanDo: hi ? "जानकारी उपलब्ध हो तो केवल वही जोड़ें।" : "Add only the requested detail if it is available.",
+    },
+    FINANCIAL_ACTION_REPORTED: {
+      title: hi ? "वित्तीय कार्रवाई की जानकारी मिली" : "Financial action reported",
+      whatItMeans: hi ? "दी गई स्थिति में वित्तीय कार्रवाई दर्ज की गई है।" : "The supplied case state records that financial action was reported.",
+      whatItDoesNotMean: hi ? "यह धन फ्रीज़ होने, मिलने या वापस होने की पुष्टि नहीं है।" : "It does not confirm that funds were frozen, found or restored.",
+      whatYouCanDo: hi ? "अपने लेन-देन और बैंक से हुई बातचीत का रिकॉर्ड रखें।" : "Keep your transaction and bank-communication records available.",
+    },
+    RESTORATION_RELATED: {
+      title: hi ? "बहाली से जुड़ी स्थिति" : "Restoration-related state",
+      whatItMeans: hi ? "दी गई मामले की स्थिति में बहाली से जुड़ी प्रक्रिया का उल्लेख है।" : "The supplied case state refers to a restoration-related process.",
+      whatItDoesNotMean: hi ? "यह रिफंड या अंतिम स्वामित्व की पुष्टि नहीं है।" : "It does not confirm a refund or a final legal outcome.",
+      whatYouCanDo: hi ? "मामले का संदर्भ और मांगे गए दस्तावेज़ तैयार रखें।" : "Keep the case reference and any requested documents ready.",
+    },
+    CLOSED: {
+      title: hi ? "मामला बंद दर्ज है" : "Case recorded as closed",
+      whatItMeans: hi ? "दी गई स्थिति मामले को बंद दिखाती है।" : "The supplied case state shows the case as closed.",
+      whatItDoesNotMean: hi ? "यह अपने आप धन वापसी या किसी कानूनी परिणाम की पुष्टि नहीं है।" : "It does not by itself confirm money restoration or a legal outcome.",
+      whatYouCanDo: hi ? "बंद होने से जुड़ी दी गई जानकारी और संदर्भ सुरक्षित रखें।" : "Keep the supplied closure information and reference available.",
+    },
+    UNKNOWN: {
+      title: hi ? "स्थिति उपलब्ध नहीं है" : "Case state unavailable",
+      whatItMeans: hi ? "इस प्रोटोटाइप के पास आगे की स्थिति की जानकारी नहीं है।" : "This prototype does not have a later case-state update.",
+      whatItDoesNotMean: hi ? "यह किसी आधिकारिक कार्रवाई या परिणाम का संकेत नहीं है।" : "It does not imply any official action or outcome.",
+      whatYouCanDo: hi ? "अपनी रिपोर्ट, संदर्भ और सबूत सुरक्षित रखें।" : "Keep your report, reference and evidence available.",
+    },
+  };
+  return { state, ...copy[state] };
+}
+
 function formatApplicationTime(value: string, locale: UiLocale): string {
   return new Intl.DateTimeFormat(locale === "hi" ? "hi-IN" : "en-IN", {
     day: "numeric",
@@ -355,17 +431,26 @@ export function getPostReportActions(
         draft.financialExposure.identityDocumentRequested ? (hi ? "पहचान दस्तावेज़" : "identity documents") : null,
         draft.financialExposure.otpRequested ? "OTP" : null,
       ].filter((item): item is string => Boolean(item));
-      actions.push({
-        id: "do-not-share",
-        title: hi ? "पैसे या संवेदनशील बैंकिंग जानकारी न भेजें" : "Do not send money or sensitive banking information",
-        description: requestedDetails.length > 0
-          ? hi
-            ? `इस मामले में कोई वित्तीय नुकसान दर्ज नहीं हुआ। मांगी गई जानकारी (${requestedDetails.join(", ")}) साझा न करें।`
-            : `No financial loss was reported. Do not share the requested ${requestedDetails.join(", ")}.`
-          : hi
-            ? "इस मामले में कोई वित्तीय नुकसान दर्ज नहीं हुआ। आगे पैसे या बैंकिंग जानकारी साझा न करें।"
-            : "No financial loss was reported. Do not send money or banking information in further contact.",
-      });
+      actions.push(
+        {
+          id: "block-contact",
+          title: hi ? "भेजने वाले से आगे का संपर्क बंद करें" : "Stop further contact with the sender",
+          description: hi
+            ? "संपर्क में उपयोग किए गए नंबर, प्रोफ़ाइल या खाते को ब्लॉक करें।"
+            : "Block the number, profile or account used to contact you.",
+        },
+        {
+          id: "do-not-share",
+          title: hi ? "पैसे या संवेदनशील बैंकिंग जानकारी न भेजें" : "Do not send money or sensitive banking information",
+          description: requestedDetails.length > 0
+            ? hi
+              ? `इस मामले में कोई वित्तीय नुकसान दर्ज नहीं हुआ। मांगी गई जानकारी (${requestedDetails.join(", ")}) साझा न करें।`
+              : `No financial loss was reported. Do not share the requested ${requestedDetails.join(", ")}.`
+            : hi
+              ? "इस मामले में कोई वित्तीय नुकसान दर्ज नहीं हुआ। आगे पैसे या बैंकिंग जानकारी साझा न करें।"
+              : "No financial loss was reported. Do not send money or banking information in further contact.",
+        },
+      );
     }
     if (identityShared) {
       actions.push({
@@ -377,13 +462,13 @@ export function getPostReportActions(
       });
     }
     actions.push(
-      {
+      ...(actions.some((action) => action.id === "block-contact") ? [] : [{
         id: "block-contact",
         title: hi ? "भेजने वाले से आगे का संपर्क बंद करें" : "Stop further contact with the sender",
         description: hi
           ? "संपर्क में उपयोग किए गए नंबर, प्रोफ़ाइल या खाते को ब्लॉक करें।"
           : "Block the number, profile or account used to contact you.",
-      },
+      }]),
       {
         id: "preserve-contact",
         title: hi ? "संदेश और भेजने वाले की जानकारी सुरक्षित रखें" : "Preserve the message and sender details",
@@ -473,6 +558,57 @@ export function getPostReportActions(
         : "Keep the original messages, notifications and other relevant records.",
     },
   ];
+}
+
+export function getKeepReadyPacket(
+  draft: IncidentDraft,
+  locale: UiLocale,
+): string[] {
+  const hi = locale === "hi";
+  const items: string[] = [];
+
+  draft.transactions.forEach((transaction, index) => {
+    const details = [
+      transaction.amount ? formatCurrency(transaction.amount) : null,
+      transaction.institution,
+      transaction.transactionIdOrUtr &&
+      transaction.transactionIdOrUtr !== "__CITIZEN_DOES_NOT_HAVE__"
+        ? transaction.transactionIdOrUtr
+        : null,
+    ].filter((value): value is string => Boolean(value));
+    if (details.length > 0) {
+      items.push(
+        hi
+          ? `लेन-देन ${index + 1}: ${details.join(" · ")}`
+          : `Transaction ${index + 1}: ${details.join(" · ")}`,
+      );
+    }
+  });
+
+  const attachedEvidenceCount = draft.evidence.filter(
+    (item) => item.type !== "VOICE_STATEMENT",
+  ).length;
+  if (attachedEvidenceCount > 0) {
+    items.push(
+      hi
+        ? `रिपोर्ट में शामिल ${attachedEvidenceCount} सबूत आइटम`
+        : `${attachedEvidenceCount} evidence ${attachedEvidenceCount === 1 ? "item" : "items"} included with the report`,
+    );
+  }
+
+  const affectedAccount =
+    draft.adaptiveFacts.affectedAccount ??
+    draft.adaptiveFacts.platform ??
+    draft.classification.platform;
+  if (affectedAccount) {
+    items.push(
+      hi
+        ? `प्रभावित खाता या प्लेटफ़ॉर्म: ${affectedAccount}`
+        : `Affected account or platform: ${affectedAccount}`,
+    );
+  }
+
+  return items;
 }
 
 function processKeepReadyItems(

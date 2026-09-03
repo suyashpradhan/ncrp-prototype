@@ -391,10 +391,16 @@ export function buildNcrpCompatibleComplaint({
     supportedSubCategory: draft.classification.subCategory,
     groups: {
       incident,
-      transactions: draft.transactions.map((transaction) => ({
+      transactions: draft.transactions.map((transaction, index) => ({
         institution: valueField(transaction.institution, [structuredSource], true),
         sourceAccountOrPaymentId: valueField(transaction.accountOrUpiId, [profileSource], true),
-        transactionIdOrUtr: valueField(transaction.transactionIdOrUtr, [structuredSource], true),
+        transactionIdOrUtr: valueField(
+          transaction.transactionIdOrUtr,
+          [draft.citizenConfirmedFields?.includes(`transactions.${index}.transactionIdOrUtr`)
+            ? "USER_CONFIRMED"
+            : structuredSource],
+          true,
+        ),
         amount: valueField(transaction.amount, [structuredSource], true),
         transactionDate: valueField(transaction.transactionDate, [structuredSource], true),
         approximateTime: valueField(transaction.approximateTime, [structuredSource], true),

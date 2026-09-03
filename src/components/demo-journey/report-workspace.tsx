@@ -39,6 +39,7 @@ import {
 } from "../../presentation/report-details";
 import { formatCurrency } from "../../presentation/format";
 import { deriveEvidenceContributions } from "../../presentation/evidence-contributions";
+import { getCaseIntegritySummary } from "../../presentation/case-integrity";
 import { deriveIncidentTimeline } from "../../presentation/incident-timeline";
 import {
   deriveReportReadiness,
@@ -1669,6 +1670,11 @@ function ReportReview(props: ReportWorkspaceProps) {
     (sum, transaction) => sum + (transaction.amount ?? 0),
     0,
   ) || props.draft.incident.reportedAmount;
+  const integrity = getCaseIntegritySummary(props.draft, {
+    locale,
+    isDemoIncident: props.isDemoIncident,
+    screenshotNames: props.screenshots.map((file) => file.name),
+  });
 
   return (
     <>
@@ -1676,14 +1682,22 @@ function ReportReview(props: ReportWorkspaceProps) {
         <h2>{t("workspace.reviewSubmit")}</h2>
         <p>{t("workspace.reviewSupport")}</p>
       </div>
-      <section className="before-submit-checkpoint" aria-labelledby="submit-checkpoint-heading">
-        <h2 id="submit-checkpoint-heading">{locale === "hi" ? "जमा करने के लिए तैयार" : "Ready to submit"}</h2>
-        <dl>
-          {reviewTotal ? <div><strong>{formatCurrency(reviewTotal)}</strong><span>{locale === "hi" ? "रिपोर्ट की गई हानि" : "Reported loss"}</span></div> : null}
-          <div><strong>{props.draft.transactions.length}</strong><span>{locale === "hi" ? "लेन-देन" : "Transactions"}</span></div>
-          <div><strong>{props.draft.evidence.length}</strong><span>{locale === "hi" ? "सबूत" : "Evidence items"}</span></div>
-        </dl>
-        <p>{locale === "hi" ? "कोई जरूरी जानकारी बाकी नहीं है। जमा करने से पहले आप अभी भी कुछ भी बदल सकते हैं।" : "No unresolved required details. You can still change anything before submitting."}</p>
+      <section className="case-integrity-summary" aria-labelledby="case-check-heading">
+        <h2 id="case-check-heading">{locale === "hi" ? "मामले की जाँच" : "Case check"}</h2>
+        <ul>
+          {integrity.transactionCount > 0 ? <li><span aria-hidden="true">✓</span> {locale === "hi" ? `${integrity.transactionCount} लेन-देन व्यवस्थित किए गए` : `${integrity.transactionCount} ${integrity.transactionCount === 1 ? "transaction" : "transactions"} organised`}</li> : null}
+          {integrity.importantFactsLinkedToEvidence > 0 ? <li><span aria-hidden="true">✓</span> {locale === "hi" ? `सबूत ${integrity.importantFactsLinkedToEvidence} जरूरी जानकारियों से जुड़ा है` : `Evidence linked to ${integrity.importantFactsLinkedToEvidence} important details`}</li> : null}
+          {integrity.unresolvedConflictCount === 0 ? (
+            <li><span aria-hidden="true">✓</span> {locale === "hi" ? "कोई अनसुलझा विरोध नहीं" : "No unresolved contradictions"}</li>
+          ) : (
+            <li>{locale === "hi" ? `${integrity.unresolvedConflictCount} विरोध की पुष्टि बाकी है` : `${integrity.unresolvedConflictCount} ${integrity.unresolvedConflictCount === 1 ? "conflict needs" : "conflicts need"} confirmation`}</li>
+          )}
+        </ul>
+        {integrity.unavailableImportantDetails.length > 0 ? <p><strong>{locale === "hi" ? "आपके पास नहीं" : "You don’t have"}</strong><br />{integrity.unavailableImportantDetails.join(", ")}</p> : null}
+      </section>
+      <section className="case-knowledge-summary" aria-labelledby="what-we-know-heading">
+        <div><h2 id="what-we-know-heading">{locale === "hi" ? "हमें क्या पता है" : "What we know"}</h2><ul>{integrity.knownFacts.map((fact) => <li key={fact}>{fact}</li>)}</ul></div>
+        {integrity.stillUnknown.length > 0 ? <div><h2>{locale === "hi" ? "अभी पता नहीं" : "Still unknown"}</h2><ul>{integrity.stillUnknown.map((fact) => <li key={fact}>{fact}</li>)}</ul></div> : null}
       </section>
       <div className="report-review-groups">
         {groups.map((group) => (
@@ -1827,6 +1841,15 @@ function ReportReview(props: ReportWorkspaceProps) {
         locale={locale}
         isDemoIncident={props.isDemoIncident}
       />
+      <section className="before-submit-checkpoint" aria-labelledby="submit-checkpoint-heading">
+        <h2 id="submit-checkpoint-heading">{locale === "hi" ? "जमा करने के लिए तैयार" : "Ready to submit"}</h2>
+        <dl>
+          {reviewTotal ? <div><strong>{formatCurrency(reviewTotal)}</strong><span>{locale === "hi" ? "रिपोर्ट की गई हानि" : "Reported loss"}</span></div> : null}
+          {props.draft.transactions.length > 0 ? <div><strong>{props.draft.transactions.length}</strong><span>{locale === "hi" ? "लेन-देन" : "Transactions"}</span></div> : null}
+          {props.draft.evidence.length > 0 ? <div><strong>{props.draft.evidence.length}</strong><span>{locale === "hi" ? "सबूत" : "Evidence items"}</span></div> : null}
+        </dl>
+        <p>{locale === "hi" ? "कोई जरूरी जानकारी बाकी नहीं है। जमा करने से पहले आप अभी भी कुछ भी बदल सकते हैं।" : "No unresolved required details. You can still change anything before submitting."}</p>
+      </section>
       <label className="report-declaration">
         <input
           type="checkbox"
@@ -2289,6 +2312,17 @@ function ReportDetailsPane({
         sourceReady={sourceReady}
         onPrimaryAction={onPrimaryAction}
       />
+
+      {props.draft?.incident.financialLossState === "YES" && props.draft.transactions.length > 0 ? (
+        <aside className="financial-triage" aria-labelledby="financial-triage-heading">
+          <div>
+            <p className="eyebrow">{locale === "hi" ? "पैसे ट्रांसफर हुए हैं?" : "Money was transferred?"}</p>
+            <h2 id="financial-triage-heading">{locale === "hi" ? "यदि अभी तक नहीं किया है, तो तुरंत 1930 पर कॉल करें" : "Call 1930 promptly if you have not already"}</h2>
+            <p>{locale === "hi" ? "आप यहाँ अपनी रिपोर्ट तैयार करना जारी रख सकते हैं।" : "You can continue preparing your report here."}</p>
+          </div>
+          <a className="primary-button" href="tel:1930">{locale === "hi" ? "1930 पर कॉल करें" : "Call 1930"}</a>
+        </aside>
+      ) : null}
 
       {props.mode === "READY" && props.draft ? (
         <ReportingPathControl
