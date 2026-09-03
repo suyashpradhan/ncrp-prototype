@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Manrope, Noto_Sans_Devanagari } from "next/font/google";
+import { Noto_Sans_Devanagari } from "next/font/google";
 import localFont from "next/font/local";
 import type { ReactNode } from "react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
@@ -11,12 +11,6 @@ import { DEMO_NOW, syntheticCase } from "../data/synthetic-case";
 import { I18nProvider } from "../i18n/i18n-provider";
 import { JourneyNavigationProvider } from "../navigation/journey-navigation";
 import "./globals.css";
-
-const manrope = Manrope({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-manrope",
-});
 
 const notoDevanagari = Noto_Sans_Devanagari({
   subsets: ["devanagari"],
@@ -42,7 +36,7 @@ const amiamie = localFont({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://ncrp-recovery-prototype.vercel.app"),
+  metadataBase: new URL("https://sachet-ncrp-prototype.vercel.app"),
   title: {
     default: `${APP_NAME} · Financial cyber-fraud reporting`,
     template: `%s · ${APP_NAME}`,
@@ -76,7 +70,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${manrope.variable} ${notoDevanagari.variable} ${amiamie.variable}`}
+      className={`${notoDevanagari.variable} ${amiamie.variable}`}
       data-scroll-behavior="smooth"
     >
       <body>

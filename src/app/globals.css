@@ -35,7 +35,8 @@ body {
   color: var(--text);
   background: var(--page);
   font-family:
-    var(--font-manrope),
+    var(--font-amiamie),
+    var(--font-devanagari),
     system-ui,
     -apple-system,
     BlinkMacSystemFont,
@@ -49,7 +50,7 @@ body {
 
 html[data-ui-locale="hi"] body {
   font-family:
-    var(--font-devanagari), var(--font-manrope), system-ui, sans-serif;
+    var(--font-devanagari), system-ui, sans-serif;
 }
 
 button,
@@ -190,17 +191,11 @@ h3 {
   white-space: nowrap;
 }
 
-.sachet-logo-hi {
-  font-family: var(--font-devanagari), var(--font-manrope), sans-serif;
-  font-size: 18px;
+.sachet-logo-name {
+  font-family: var(--font-devanagari), sans-serif;
+  font-size: 21px;
   font-weight: 700;
-}
-
-.sachet-logo-en {
-  font-family: var(--font-amiamie), var(--font-manrope), sans-serif;
-  font-size: 22px;
-  font-weight: 800;
-  letter-spacing: -0.025em;
+  letter-spacing: -0.015em;
 }
 
 .header-actions,
@@ -407,7 +402,7 @@ textarea {
   margin-bottom: 18px;
   font-size: clamp(50px, 5vw, 64px);
   line-height: 1.08;
-  font-family: var(--font-amiamie), var(--font-manrope), sans-serif;
+  font-family: var(--font-amiamie), sans-serif;
   font-weight: 800;
 }
 
@@ -514,13 +509,13 @@ textarea {
 .landing-case-check h2 {
   max-width: 560px;
   font-size: clamp(30px, 3vw, 38px);
-  font-family: var(--font-amiamie), var(--font-manrope), sans-serif;
+  font-family: var(--font-amiamie), sans-serif;
   font-weight: 800;
 }
 
 html[data-ui-locale="hi"] .service-entry h1,
 html[data-ui-locale="hi"] .landing-case-check h2 {
-  font-family: var(--font-devanagari), var(--font-manrope), sans-serif;
+  font-family: var(--font-devanagari), sans-serif;
   font-weight: 700;
 }
 
@@ -2499,7 +2494,6 @@ dd {
 }
 
 .prototype-reference-block strong {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   overflow-wrap: anywhere;
 }
 
@@ -2766,7 +2760,6 @@ dd {
   padding: 8px 10px;
   background: #f2f1ee;
   border-radius: 8px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 14px;
   overflow-wrap: anywhere;
 }
@@ -2916,7 +2909,7 @@ html[data-ui-locale="hi"] .companion-eyebrow {
 }
 
 .companion-summary-primary dd {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  overflow-wrap: anywhere;
 }
 
 .synthetic-status-label {
@@ -3216,12 +3209,8 @@ html[data-ui-locale="hi"] .companion-eyebrow {
     gap: 5px;
   }
 
-  .sachet-logo-hi {
-    font-size: 16px;
-  }
-
-  .sachet-logo-en {
-    font-size: 19px;
+  .sachet-logo-name {
+    font-size: 18px;
   }
 
   .header-actions,

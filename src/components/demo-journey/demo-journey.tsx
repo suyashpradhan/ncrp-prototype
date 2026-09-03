@@ -307,7 +307,7 @@ function SachetPreview() {
       </div>
 
       <div className="sachet-proof-result">
-        <p className="sachet-preview-label">{hi ? "सचेत ने तैयार किया" : "Sachet prepared"}</p>
+        <p className="sachet-preview-label">{hi ? "सचेत ने तैयार किया" : "Prepared by सचेत"}</p>
         <strong>{hi ? "वित्तीय धोखाधड़ी" : "Financial fraud"}</strong>
         <span>{hi ? "₹20,000 रिपोर्ट किया गया नुकसान" : "₹20,000 reported loss"}</span>
         <span>{hi ? "2 लेन-देन" : "2 transactions"}</span>
@@ -326,7 +326,7 @@ function LandingCaseCheck() {
       <div>
         <p className="eyebrow">{hi ? "मामले की जाँच" : "Case check"}</p>
         <h2 id="landing-case-check-heading">{hi ? "यह चुपचाप अनुमान नहीं लगाता।" : "It won't quietly guess."}</h2>
-        <p>{hi ? "सचेत जरूरी जानकारी का स्रोत दिखाता है और गड़बड़ी होने पर आपसे पूछता है।" : "Sachet shows where important details came from and asks when something does not add up."}</p>
+        <p>{hi ? "सचेत जरूरी जानकारी का स्रोत दिखाता है और गड़बड़ी होने पर आपसे पूछता है।" : "सचेत shows where important details came from and asks when something does not add up."}</p>
       </div>
       <div className="landing-conflict-example">
         <dl>
@@ -346,7 +346,7 @@ function LandingSteps() {
   const hi = locale === "hi";
   const steps = hi
     ? [["बताएं", "जो हुआ उसे अपने शब्दों में बताएं।"], ["मामला जाँचें", "सचेत ने जो समझा, उसकी जाँच करें।"], ["आगे बढ़ें", "रिपोर्ट जमा करें और अगला कदम देखें।"]]
-    : [["Tell us", "Describe what happened in your own words."], ["Check the case", "Review what Sachet understood."], ["Continue", "Submit the report and see what to do next."]];
+    : [["Tell us", "Describe what happened in your own words."], ["Check the case", "Review what सचेत understood."], ["Continue", "Submit the report and see what to do next."]];
   return (
     <section className="landing-steps" aria-label={hi ? "रिपोर्ट बनाने के तीन चरण" : "Three steps to prepare a report"}>
       {steps.map(([title, description], index) => <article key={title}><span>{index + 1}</span><h2>{title}</h2><p>{description}</p></article>)}
@@ -1474,7 +1474,7 @@ export function DemoJourney() {
               <p className="service-entry-support">
                 {locale === "hi"
                   ? "सचेत आपकी कहानी और सबूत को ऐसी रिपोर्ट में बदलता है जिसकी आप जाँच कर सकते हैं।"
-                  : "Sachet turns your story and evidence into a report you can review."}
+                  : "सचेत turns your story and evidence into a report you can review."}
               </p>
               <div className="service-entry-actions">
                 <button
@@ -1505,7 +1505,7 @@ export function DemoJourney() {
           <section className="landing-urgent-strip" aria-labelledby="landing-urgent-heading">
             <div>
               <h2 id="landing-urgent-heading">{locale === "hi" ? "क्या पैसे जा चुके हैं?" : "Already lost money?"}</h2>
-              <p>{locale === "hi" ? "यदि अभी तक नहीं किया है, तो तुरंत 1930 पर कॉल करें। सचेत में रिपोर्ट भी तैयार कर सकते हैं।" : "Call 1930 promptly if you have not already. You can still prepare your report with Sachet."}</p>
+              <p>{locale === "hi" ? "यदि अभी तक नहीं किया है, तो तुरंत 1930 पर कॉल करें। सचेत में रिपोर्ट भी तैयार कर सकते हैं।" : "Call 1930 promptly if you have not already. You can still prepare your report with सचेत."}</p>
             </div>
             <a className="primary-button" href="tel:1930">{locale === "hi" ? "1930 पर कॉल करें" : "Call 1930"}</a>
           </section>

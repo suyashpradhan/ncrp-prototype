@@ -54,7 +54,7 @@ function PrintableCaseReport({
   return (
     <article className="complaint-packet" aria-label={hi ? "प्रिंट करने योग्य रिपोर्ट" : "Printable report"}>
       <header>
-        <p className="packet-brand">Sachet</p>
+        <p className="packet-brand">सचेत</p>
         <h1>{hi ? "तैयार साइबर अपराध रिपोर्ट" : "Prepared cybercrime report"}</h1>
         <p>{draft.officialMapping.subCategoryLabel ?? draft.officialMapping.categoryLabel ?? draft.citizenSummary.incidentLabel}</p>
       </header>
@@ -272,7 +272,7 @@ export function PostSubmissionCaseHome({
 
   function printReport() {
     const previousTitle = document.title;
-    document.title = "Sachet — Prepared cybercrime report";
+    document.title = "सचेत — Prepared cybercrime report";
     window.addEventListener("afterprint", () => { document.title = previousTitle; }, { once: true });
     window.print();
   }

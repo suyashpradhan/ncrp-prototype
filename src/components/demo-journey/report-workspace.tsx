@@ -379,7 +379,7 @@ function EvidenceRows({
           <ul>{removalContribution.contributions.map((fact) => <li key={fact.fieldKey}>{fact.label}: {fact.displayValue}</li>)}</ul>
         </>
       ) : null}
-      <p>{locale === "hi" ? "फ़ाइल हटाने के बाद रिपोर्ट की तैयारी फिर से जाँची जाएगी।" : "After removal, Sachet will recheck which report details are supported."}</p>
+      <p>{locale === "hi" ? "फ़ाइल हटाने के बाद रिपोर्ट की तैयारी फिर से जाँची जाएगी।" : "After removal, सचेत will recheck which report details are supported."}</p>
       <div className="inline-field-actions">
         <button className="secondary-button" type="button" onClick={() => removeDialogRef.current?.close()} autoFocus>{locale === "hi" ? "सबूत रखें" : "Keep evidence"}</button>
         <button className="primary-button" type="button" onClick={() => {
@@ -2265,7 +2265,7 @@ function ReportStatusCard({
         : readiness?.state === "STALE"
           ? hi ? "आगे बढ़ने से पहले रिपोर्ट को नई जानकारी के साथ अपडेट करें।" : "Update the report with the new information before continuing."
           : readiness?.state === "NEEDS_CLARIFICATION"
-            ? hi ? "सचेत को आगे बढ़ने से पहले एक जवाब चाहिए।" : "One answer is needed before Sachet can continue."
+            ? hi ? "सचेत को आगे बढ़ने से पहले एक जवाब चाहिए।" : "One answer is needed before सचेत can continue."
             : readiness?.state === "MISSING_REQUIRED"
               ? hi
                 ? `${readiness.blockingItems.length} जरूरी जानकारी पर अभी ध्यान देना बाकी है।`

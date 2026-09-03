@@ -1,3 +1,5 @@
+import { APP_NAME } from "../config/brand";
+
 type SachetLogoProps = {
   compact?: boolean;
 };
@@ -15,8 +17,7 @@ export function SachetLogo({ compact = false }: SachetLogoProps) {
         <path d="m19 23.5 3.4 3.4L30 18.8" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
       <span className="sachet-logo-wordmark">
-        <span className="sachet-logo-hi">सचेत</span>
-        <span className="sachet-logo-en">Sachet</span>
+        <span className="sachet-logo-name">{APP_NAME}</span>
       </span>
     </span>
   );

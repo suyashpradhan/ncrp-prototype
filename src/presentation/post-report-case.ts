@@ -1159,7 +1159,7 @@ export function getPostSubmissionTimeline(
       id: "report-prepared",
       timeLabel: formatApplicationTime(milestones.preparedAt, locale),
       title: hi ? "रिपोर्ट तैयार हुई" : "Report prepared",
-      sourceRefs: [{ type: "SYSTEM", label: hi ? "स्रोत: सचेत" : "Source: Sachet" }],
+      sourceRefs: [{ type: "SYSTEM", label: hi ? "स्रोत: सचेत" : "Source: सचेत" }],
     },
     {
       id: "report-reviewed",
