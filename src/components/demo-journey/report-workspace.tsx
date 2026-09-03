@@ -104,6 +104,8 @@ type ReportWorkspaceProps = {
   transcription: TranscriptionResult | null;
   hasAudio: boolean;
   isRecording: boolean;
+  isTranscribing: boolean;
+  recordingLevels: number[];
   recordingSeconds: number;
   isDemoIncident: boolean;
   experienceMode: ExperienceMode | null;
@@ -126,6 +128,7 @@ type ReportWorkspaceProps = {
   onStartRecording: () => void;
   onStopRecording: () => void;
   onRecordAgain: () => void;
+  onTranscriptionChange: (value: TranscriptionResult) => void;
   onScreenshotsChange: (event: ChangeEvent<HTMLInputElement>) => void;
   onRemoveScreenshot: (index: number) => void;
   onOrganizeReport: () => void;
@@ -277,7 +280,7 @@ function EvidenceRows({
                 </span>
                 <span className="evidence-row-copy">
                   <strong>{file.name}</strong>
-                  <small>{file.type.replace("image/", "").toUpperCase()}</small>
+                  <small>{locale === "hi" ? "तैयार" : "Ready"}</small>
                 </span>
                 <span className="evidence-row-action">
                   {t("workspace.view")}
@@ -720,9 +723,49 @@ function SourceSummary({
   );
 }
 
+function MicrophoneIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
+      <rect x="8" y="3" width="8" height="12" rx="4" />
+      <path d="M5 11a7 7 0 0 0 14 0M12 18v3M9 21h6" />
+    </svg>
+  );
+}
+
+function RecordingWaveform({ levels }: { levels: number[] }) {
+  return (
+    <div className="recording-waveform" aria-hidden="true">
+      {levels.map((level, index) => (
+        <span key={index} style={{ height: `${Math.round(8 + level * 42)}px` }} />
+      ))}
+    </div>
+  );
+}
+
 function ReportInputPane(props: ReportWorkspaceProps) {
   const { locale, t } = useI18n();
   const processing = props.mode === "PROCESSING";
+  const [editingTranscript, setEditingTranscript] = useState(false);
+  const isSpeakMode = props.reportMethod === "SPEAK";
+  const recordingTime = `${Math.floor(props.recordingSeconds / 60)}:${String(
+    props.recordingSeconds % 60,
+  ).padStart(2, "0")}`;
+
+  function updateTranscript(value: string) {
+    if (!props.transcription) return;
+    props.onTranscriptionChange({
+      ...props.transcription,
+      originalTranscript: value,
+      // The citizen's edit is authoritative. Reuse the edited text for
+      // preparation so an older machine translation cannot override it.
+      englishTranscript: value,
+    });
+  }
+
+  function growTextarea(element: HTMLTextAreaElement) {
+    element.style.height = "auto";
+    element.style.height = `${Math.min(element.scrollHeight, 420)}px`;
+  }
 
   return (
     <section
@@ -737,7 +780,9 @@ function ReportInputPane(props: ReportWorkspaceProps) {
       <p className="pane-intro">
         {props.mode === "REVIEW" || props.mode === "READY"
           ? t("workspace.reviewIntro")
-          : t("workspace.intro")}
+          : locale === "hi"
+            ? "घटना अपने शब्दों में बताएं। रिपोर्ट की श्रेणी जानना जरूरी नहीं है।"
+            : "Describe the incident in your own words. You don't need to know the report category."}
       </p>
 
       {props.mode !== "REVIEW" && props.experienceMode !== "DEMO_CASE" ? (
@@ -761,83 +806,118 @@ function ReportInputPane(props: ReportWorkspaceProps) {
             />
             <small>{t("workspace.reporterNameHelp")}</small>
           </div>
-          <label className="visually-hidden" htmlFor="incident-narrative">
-            {t("workspace.whatHappened")}
-          </label>
-            <textarea
-              id="incident-narrative"
-              data-report-field-id="incident-narrative"
-            rows={8}
-            value={props.narrative}
-            disabled={processing}
-            onChange={(event) => props.onNarrativeChange(event.target.value)}
-            placeholder={t("workspace.placeholder")}
-            maxLength={8000}
-          />
-          <div className="composer-actions">
-            <button
-              className={
-                props.isRecording
-                  ? "recording-button recording-button-active"
-                  : "recording-button"
-              }
-              type="button"
-              disabled={processing}
-              onClick={
-                props.isRecording
-                  ? props.onStopRecording
-                  : props.hasAudio
-                    ? props.onRecordAgain
-                    : props.onStartRecording
-              }
-            >
-              <span aria-hidden="true">●</span>
-              {props.isRecording
-                ? t("workspace.stopRecording")
-                : props.hasAudio
-                  ? t("workspace.recordAgain")
-                  : t("workspace.speak")}
-            </button>
-            <label
-              className="evidence-add-button"
-              htmlFor="incident-screenshots"
-              data-report-field-id="source-evidence"
-              tabIndex={0}
-              role="button"
-              onKeyDown={(event) => {
-                if (event.key === "Enter" || event.key === " ") {
-                  event.preventDefault();
-                  document
-                    .querySelector<HTMLInputElement>("#incident-screenshots")
-                    ?.click();
-                }
-              }}
-            >
+          <fieldset className="report-method-fieldset">
+            <legend>{locale === "hi" ? "आप कैसे बताना चाहेंगे?" : "How would you like to tell us?"}</legend>
+            <div className="report-method-switch">
+              <button type="button" aria-pressed={isSpeakMode} disabled={processing || props.isRecording} onClick={() => props.onReportMethodChange("SPEAK")}>{locale === "hi" ? "बोलें" : "Speak"}</button>
+              <button type="button" aria-pressed={!isSpeakMode} disabled={processing || props.isRecording} onClick={() => props.onReportMethodChange("TYPE")}>{locale === "hi" ? "लिखें" : "Type"}</button>
+            </div>
+          </fieldset>
+
+          {isSpeakMode ? (
+            <div className={`voice-capture-surface${props.isRecording ? " voice-capture-recording" : ""}`}>
+              {props.isRecording ? (
+                <>
+                  <p className="voice-status" role="status" aria-live="polite">{locale === "hi" ? "सुन रहे हैं…" : "Listening…"}</p>
+                  <RecordingWaveform levels={props.recordingLevels} />
+                  <strong className="voice-timer">{recordingTime}</strong>
+                  <button className="primary-button" type="button" onClick={props.onStopRecording}>{t("workspace.stopRecording")}</button>
+                </>
+              ) : props.isTranscribing ? (
+                <div className="voice-processing" role="status" aria-live="polite">
+                  <span className="loading-marker" aria-hidden="true" />
+                  <strong>{locale === "hi" ? "रिकॉर्डिंग को लिखा जा रहा है…" : "Turning your recording into text…"}</strong>
+                  <p>{locale === "hi" ? "लंबी रिकॉर्डिंग में थोड़ा अधिक समय लग सकता है।" : "Longer recordings may take a little more time."}</p>
+                </div>
+              ) : props.transcription ? (
+                <div className="voice-transcript-editor">
+                  <h2>{locale === "hi" ? "हमने यह सुना" : "What we heard"}</h2>
+                  {editingTranscript ? (
+                    <textarea value={props.transcription.originalTranscript} onChange={(event) => { updateTranscript(event.target.value); growTextarea(event.currentTarget); }} rows={6} maxLength={8000} aria-label={locale === "hi" ? "रिकॉर्डिंग का लिखित रूप संपादित करें" : "Edit recording transcript"} />
+                  ) : props.draft ? (
+                    <details className="compact-source-disclosure voice-transcript-compact">
+                      <summary>
+                        <span>{languageLabel(props.transcription.languageCode)} · {recordingTime}</span>
+                        <strong>{locale === "hi" ? "लिखित रूप देखें" : "View transcript"}</strong>
+                      </summary>
+                      <p>{props.transcription.originalTranscript}</p>
+                    </details>
+                  ) : (
+                    <p>{props.transcription.originalTranscript}</p>
+                  )}
+                  <div className="voice-transcript-actions">
+                    <button className="text-button" type="button" onClick={() => setEditingTranscript((current) => !current)}>{editingTranscript ? (locale === "hi" ? "संपादन पूरा" : "Finish editing") : (locale === "hi" ? "लिखित रूप बदलें" : "Edit text")}</button>
+                    <button className="text-button" type="button" onClick={() => { setEditingTranscript(false); props.onRecordAgain(); }}>{t("workspace.recordAgain")}</button>
+                  </div>
+                </div>
+              ) : props.hasAudio ? (
+                <div className="voice-processing">
+                  <strong>{locale === "hi" ? "रिकॉर्डिंग सुरक्षित है" : "Recording saved"}</strong>
+                  <button className="secondary-button" type="button" onClick={props.onRecordAgain}>{t("workspace.recordAgain")}</button>
+                </div>
+              ) : (
+                <>
+                  <span className="voice-microphone" aria-hidden="true"><MicrophoneIcon /></span>
+                  <h2>{locale === "hi" ? "बोलकर बताएं" : "Speak"}</h2>
+                  <button className="primary-button" type="button" disabled={processing} onClick={props.onStartRecording}>{t("workspace.startRecording")}</button>
+                </>
+              )}
+            </div>
+          ) : (
+            <div className="typed-incident-input">
+              <label htmlFor="incident-narrative">{t("workspace.whatHappened")}</label>
+              <textarea
+                id="incident-narrative"
+                data-report-field-id="incident-narrative"
+                rows={7}
+                value={props.narrative}
+                disabled={processing}
+                onChange={(event) => { props.onNarrativeChange(event.target.value); growTextarea(event.currentTarget); }}
+                placeholder={locale === "hi" ? "उदाहरण: कल मुझे KYC का संदेश मिला और ₹5,000 डेबिट हो गए…" : "Example: I received a KYC message yesterday and ₹5,000 was debited…"}
+                maxLength={8000}
+              />
+            </div>
+          )}
+
+          <section className="composer-evidence" aria-labelledby="composer-evidence-heading">
+            <div>
+              <h2 id="composer-evidence-heading">{t("workspace.evidence")}</h2>
+              <p>{locale === "hi" ? "उपलब्ध हो तो मददगार" : "Helpful if available"}</p>
+            </div>
+            <p>{locale === "hi" ? "घटना से जुड़े स्क्रीनशॉट जोड़ें।" : "Add screenshots connected to the incident."}</p>
+            <label className="evidence-add-button" htmlFor="incident-screenshots" data-report-field-id="source-evidence" tabIndex={0} role="button" onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); document.querySelector<HTMLInputElement>("#incident-screenshots")?.click(); } }}>
               <span aria-hidden="true">＋</span> {t("workspace.addEvidence")}
             </label>
-            <input
-              id="incident-screenshots"
-              className="visually-hidden"
-              type="file"
-              accept="image/png,image/jpeg,image/webp"
-              multiple
-              disabled={processing}
-              onChange={props.onScreenshotsChange}
-            />
-            {props.isRecording || props.hasAudio ? (
-              <span className="recording-time" aria-live="polite">
-                {Math.floor(props.recordingSeconds / 60)}:
-                {String(props.recordingSeconds % 60).padStart(2, "0")} / 2:00
-              </span>
-            ) : null}
-          </div>
+            <input id="incident-screenshots" className="visually-hidden" type="file" accept="image/png,image/jpeg,image/webp" multiple disabled={processing} onChange={props.onScreenshotsChange} />
+            <EvidenceRows screenshots={props.screenshots} draft={props.draft} isDemoIncident={false} onRemoveScreenshot={props.onRemoveScreenshot} />
+          </section>
           <p className="composer-safety">{t("workspace.safety")}</p>
+          {!props.draft ? (
+            <button
+              className="primary-button input-prepare-action"
+              type="button"
+              disabled={
+                processing ||
+                props.isRecording ||
+                props.isTranscribing ||
+                !props.reporterName.trim() ||
+                !(
+                  props.narrative.trim() ||
+                  props.hasAudio ||
+                  props.screenshots.length > 0
+                )
+              }
+              onClick={props.onOrganizeReport}
+            >
+              {t("workspace.organise")}
+            </button>
+          ) : null}
         </div>
       ) : props.mode === "REVIEW" ? (
         <p className="review-source-intro">{t("workspace.reviewIntro")}</p>
       ) : null}
 
-      <SourceSummary
+      {props.experienceMode === "DEMO_CASE" || props.mode === "REVIEW" ? <SourceSummary
         narrative={props.narrative}
         transcription={props.transcription}
         screenshots={props.screenshots}
@@ -848,7 +928,7 @@ function ReportInputPane(props: ReportWorkspaceProps) {
         onDemoNarrationLanguageChange={props.onDemoNarrationLanguageChange}
         onRemoveScreenshot={props.onRemoveScreenshot}
         compact={props.mode === "REVIEW" || Boolean(props.draft)}
-      />
+      /> : null}
       {props.unavailableEvidenceNames.length > 0 ? (
         <aside className="evidence-reattach-note" role="status">
           <strong>
@@ -2180,8 +2260,8 @@ function ReportStatusCard({
         : hi ? "आपका बयान और सबूत सुरक्षित हैं।" : "Your statement and evidence are saved."
       : isEmpty
         ? hi
-          ? "बाईं ओर बताएं कि क्या हुआ। हम जानकारी को आपकी समीक्षा के लिए व्यवस्थित करेंगे।"
-          : "Tell us what happened on the left. We’ll organise the details for you to review."
+          ? "हम जानकारी को आपकी समीक्षा के लिए व्यवस्थित करेंगे।"
+          : "We'll organise the details for you to review."
         : readiness?.state === "STALE"
           ? hi ? "आगे बढ़ने से पहले रिपोर्ट को नई जानकारी के साथ अपडेट करें।" : "Update the report with the new information before continuing."
           : readiness?.state === "NEEDS_CLARIFICATION"
@@ -2217,14 +2297,16 @@ function ReportStatusCard({
       {isEmpty ? <EmptyReportIllustration /> : null}
       <h2>{title}</h2>
       <p>{support}</p>
-      <button
-        className="primary-button"
-        type="button"
-        disabled={props.mode === "PROCESSING" || (!props.draft && !sourceReady)}
-        onClick={onPrimaryAction}
-      >
-        {actionLabel}
-      </button>
+      {!isEmpty ? (
+        <button
+          className="primary-button"
+          type="button"
+          disabled={props.mode === "PROCESSING" || (!props.draft && !sourceReady)}
+          onClick={onPrimaryAction}
+        >
+          {actionLabel}
+        </button>
+      ) : null}
     </section>
   );
 }
@@ -2709,6 +2791,7 @@ export function ReportWorkspace(props: ReportWorkspaceProps) {
       )
     : [];
   const sourceReady = Boolean(
+    !props.isTranscribing &&
     props.reporterName.trim() &&
     (props.narrative.trim() || props.hasAudio || props.screenshots.length > 0),
   );

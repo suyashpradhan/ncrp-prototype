@@ -59,9 +59,6 @@ export function AppShell({ children }: AppShellProps) {
             <span>{appName(locale)}</span>
           </Link>
           <div className="header-actions">
-            <Link className="header-about-link" href="/about">
-              {locale === "hi" ? "परिचय" : "About"}
-            </Link>
             <div
               className="language-switch"
               role="group"

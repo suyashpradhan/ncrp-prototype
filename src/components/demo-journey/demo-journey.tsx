@@ -283,20 +283,6 @@ async function compressScreenshot(file: File): Promise<File> {
   });
 }
 
-function UrgentMoneyGuidance() {
-  const { locale } = useI18n();
-  return (
-    <a className="landing-helpline" href="tel:1930">
-      <span>
-        {locale === "hi"
-          ? "क्या हाल ही में पैसे गए हैं?"
-          : "Lost money recently?"}
-      </span>
-      <strong>{locale === "hi" ? "अभी 1930 पर कॉल करें" : "Call 1930"}</strong>
-    </a>
-  );
-}
-
 function SachetPreview() {
   const { locale } = useI18n();
   const hi = locale === "hi";
@@ -310,8 +296,9 @@ function SachetPreview() {
           : "Example of shared information becoming a prepared report"
       }
     >
+      <p className="sachet-preview-label">{hi ? "क्या हुआ" : "What happened"}</p>
       <blockquote className="sachet-proof-story">
-        {hi ? "“पहले ₹5,000, फिर ₹15,000 गए…”" : "“I lost ₹5,000, then ₹15,000…”"}
+        {hi ? "“कल मुझे SBI KYC का संदेश मिला। पहले ₹5,000, फिर ₹15,000 गए।”" : "“Yesterday I received an SBI KYC message. ₹5,000 went first, then ₹15,000.”"}
       </blockquote>
 
       <div className="sachet-preview-connector" aria-hidden="true">
@@ -320,11 +307,50 @@ function SachetPreview() {
       </div>
 
       <div className="sachet-proof-result">
-        <strong>{hi ? "2 लेन-देन" : "2 transactions"}</strong>
-        <strong>{hi ? "कुल ₹20,000" : "₹20,000 total"}</strong>
-        <span>{hi ? "स्रोत जुड़े हुए" : "Sources linked"}</span>
+        <p className="sachet-preview-label">{hi ? "सचेत ने तैयार किया" : "Sachet prepared"}</p>
+        <strong>{hi ? "वित्तीय धोखाधड़ी" : "Financial fraud"}</strong>
+        <span>{hi ? "₹20,000 रिपोर्ट किया गया नुकसान" : "₹20,000 reported loss"}</span>
+        <span>{hi ? "2 लेन-देन" : "2 transactions"}</span>
+        <span>{hi ? "2 सितम्बर 2026" : "2 Sep 2026"}</span>
+        <b>{hi ? "स्रोत जुड़े हुए" : "Sources linked"}</b>
       </div>
     </aside>
+  );
+}
+
+function LandingCaseCheck() {
+  const { locale } = useI18n();
+  const hi = locale === "hi";
+  return (
+    <section className="landing-case-check" aria-labelledby="landing-case-check-heading">
+      <div>
+        <p className="eyebrow">{hi ? "मामले की जाँच" : "Case check"}</p>
+        <h2 id="landing-case-check-heading">{hi ? "यह चुपचाप अनुमान नहीं लगाता।" : "It won't quietly guess."}</h2>
+        <p>{hi ? "सचेत जरूरी जानकारी का स्रोत दिखाता है और गड़बड़ी होने पर आपसे पूछता है।" : "Sachet shows where important details came from and asks when something does not add up."}</p>
+      </div>
+      <div className="landing-conflict-example">
+        <dl>
+          <div><dt>{hi ? "आपने कहा" : "You said"}</dt><dd>₹25,000 {hi ? "कुल" : "total"}</dd></div>
+          <div><dt>{hi ? "लेन-देन" : "Transactions"}</dt><dd>₹5,000 + ₹15,000</dd></div>
+        </dl>
+        <strong>{hi ? "एक जानकारी पर ध्यान दें" : "Something needs your attention"}</strong>
+        <p>{hi ? "लेन-देन का कुल ₹20,000 है।" : "The transactions add up to ₹20,000."}</p>
+        <span className="landing-example-action">{hi ? "राशि जाँचें →" : "Review amount →"}</span>
+      </div>
+    </section>
+  );
+}
+
+function LandingSteps() {
+  const { locale } = useI18n();
+  const hi = locale === "hi";
+  const steps = hi
+    ? [["बताएं", "जो हुआ उसे अपने शब्दों में बताएं।"], ["मामला जाँचें", "सचेत ने जो समझा, उसकी जाँच करें।"], ["आगे बढ़ें", "रिपोर्ट जमा करें और अगला कदम देखें।"]]
+    : [["Tell us", "Describe what happened in your own words."], ["Check the case", "Review what Sachet understood."], ["Continue", "Submit the report and see what to do next."]];
+  return (
+    <section className="landing-steps" aria-label={hi ? "रिपोर्ट बनाने के तीन चरण" : "Three steps to prepare a report"}>
+      {steps.map(([title, description], index) => <article key={title}><span>{index + 1}</span><h2>{title}</h2><p>{description}</p></article>)}
+    </section>
   );
 }
 
@@ -339,7 +365,7 @@ export function DemoJourney() {
     resetDemo,
   } = useDemoCase();
   const [view, setView] = useState<JourneyView>("ENTRY");
-  const [reportMethod, setReportMethod] = useState<ReportMethod>("TYPE");
+  const [reportMethod, setReportMethod] = useState<ReportMethod>("SPEAK");
   const [draft, setDraft] = useState<IncidentDraft | null>(null);
   const [narrative, setNarrative] = useState("");
   const [reporterName, setReporterName] = useState("");
@@ -348,6 +374,10 @@ export function DemoJourney() {
     useState<TranscriptionResult | null>(null);
   const [audio, setAudio] = useState<Blob | null>(null);
   const [isRecording, setIsRecording] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [recordingLevels, setRecordingLevels] = useState<number[]>(
+    () => Array.from({ length: 24 }, () => 0.08),
+  );
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [loadingMessage, setLoadingMessage] = useState(
     "workspace.readingEvidence",
@@ -387,6 +417,9 @@ export function DemoJourney() {
   const recorderRef = useRef<MediaRecorder | null>(null);
   const recorderChunksRef = useRef<Blob[]>([]);
   const recordingStartedAtRef = useRef<number | null>(null);
+  const recordingTranscriptionRunRef = useRef(0);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const audioFrameRef = useRef<number | null>(null);
   const pendingReportFocusRef = useRef(false);
   const draftRecoveryReadyRef = useRef(false);
   const amountResolution =
@@ -687,6 +720,7 @@ export function DemoJourney() {
           recorderRef.current.stream
             .getTracks()
             .forEach((track) => track.stop());
+          stopAudioVisualization();
           setIsRecording(false);
         }
         return Math.min(next, 120);
@@ -695,7 +729,20 @@ export function DemoJourney() {
     return () => window.clearInterval(timer);
   }, [isRecording]);
 
+  function stopAudioVisualization() {
+    if (audioFrameRef.current !== null) {
+      window.cancelAnimationFrame(audioFrameRef.current);
+      audioFrameRef.current = null;
+    }
+    if (audioContextRef.current) {
+      void audioContextRef.current.close();
+      audioContextRef.current = null;
+    }
+    setRecordingLevels(Array.from({ length: 24 }, () => 0.08));
+  }
+
   function resetInputs() {
+    recordingTranscriptionRunRef.current += 1;
     setDraft(null);
     setNarrative("");
     setReporterName("");
@@ -707,6 +754,8 @@ export function DemoJourney() {
     setMissingAnswers({});
     setSelectedReportedAmount(null);
     setIsTranscriptionError(false);
+    setIsTranscribing(false);
+    stopAudioVisualization();
     setPreparationFailure(null);
     setIsDemoIncident(false);
     setSubmittedReference(SACHET_DEMO_REFERENCE);
@@ -715,7 +764,7 @@ export function DemoJourney() {
     setIsDraftSaved(false);
     preparedAtRef.current = null;
     setPreparedSourceSignature(null);
-    setReportMethod("TYPE");
+    setReportMethod("SPEAK");
   }
 
   function setCurrentView(nextView: JourneyView) {
@@ -888,19 +937,45 @@ export function DemoJourney() {
   async function startRecording() {
     setFormError(null);
     setPreparationFailure(null);
+    setIsTranscriptionError(false);
+    let stream: MediaStream | null = null;
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const preferredType = MediaRecorder.isTypeSupported(
         "audio/webm;codecs=opus",
       )
         ? "audio/webm;codecs=opus"
         : "audio/webm";
       const recorder = new MediaRecorder(stream, { mimeType: preferredType });
+      const transcriptionRun = recordingTranscriptionRunRef.current + 1;
+      recordingTranscriptionRunRef.current = transcriptionRun;
+      try {
+        const audioContext = new window.AudioContext();
+        const analyser = audioContext.createAnalyser();
+        analyser.fftSize = 64;
+        analyser.smoothingTimeConstant = 0.72;
+        audioContext.createMediaStreamSource(stream).connect(analyser);
+        audioContextRef.current = audioContext;
+        const samples = new Uint8Array(analyser.frequencyBinCount);
+        const drawLevels = () => {
+          analyser.getByteFrequencyData(samples);
+          setRecordingLevels(
+            Array.from({ length: 24 }, (_, index) =>
+              Math.max(0.08, Math.min(1, (samples[index] ?? 0) / 190)),
+            ),
+          );
+          audioFrameRef.current = window.requestAnimationFrame(drawLevels);
+        };
+        drawLevels();
+      } catch {
+        setRecordingLevels(Array.from({ length: 24 }, () => 0.22));
+      }
       recorderChunksRef.current = [];
       recorder.ondataavailable = (event) => {
         if (event.data.size > 0) recorderChunksRef.current.push(event.data);
       };
-      recorder.onstop = () => {
+      recorder.onstop = async () => {
+        stopAudioVisualization();
         const recording = new Blob(recorderChunksRef.current, {
           type: recorder.mimeType,
         });
@@ -912,6 +987,24 @@ export function DemoJourney() {
         recordingStartedAtRef.current = null;
         setRecordingSeconds(duration);
         setAudio(recording);
+        setIsTranscribing(true);
+        try {
+          const result = await transcribeRecording(recording, duration);
+          if (recordingTranscriptionRunRef.current !== transcriptionRun) return;
+          setTranscription(result);
+        } catch {
+          if (recordingTranscriptionRunRef.current !== transcriptionRun) return;
+          setIsTranscriptionError(true);
+          setFormError(
+            locale === "hi"
+              ? "हम रिकॉर्डिंग को लिखित रूप में नहीं बदल पाए। आपकी रिकॉर्डिंग और दूसरी जानकारी सुरक्षित है।"
+              : "We couldn't transcribe this recording. Your recording and other information are still here.",
+          );
+        } finally {
+          if (recordingTranscriptionRunRef.current === transcriptionRun) {
+            setIsTranscribing(false);
+          }
+        }
       };
       recorderRef.current = recorder;
       setAudio(null);
@@ -921,6 +1014,8 @@ export function DemoJourney() {
       setIsRecording(true);
       recorder.start();
     } catch {
+      stream?.getTracks().forEach((track) => track.stop());
+      stopAudioVisualization();
       setFormError(
         locale === "hi"
           ? "माइक्रोफ़ोन उपलब्ध नहीं है। आप घटना लिख सकते हैं या सबूत जोड़ सकते हैं।"
@@ -932,16 +1027,20 @@ export function DemoJourney() {
   function stopRecording() {
     if (recorderRef.current?.state === "recording") recorderRef.current.stop();
     recorderRef.current?.stream.getTracks().forEach((track) => track.stop());
+    stopAudioVisualization();
     setIsRecording(false);
   }
 
   function recordAgain() {
+    recordingTranscriptionRunRef.current += 1;
     setAudio(null);
     setTranscription(null);
     setRecordingSeconds(0);
     setIsTranscriptionError(false);
     setPreparationFailure(null);
     setFormError(null);
+    setIsTranscribing(false);
+    stopAudioVisualization();
   }
 
   async function handleScreenshots(event: ChangeEvent<HTMLInputElement>) {
@@ -1365,17 +1464,17 @@ export function DemoJourney() {
     ) : (
       <section className="service-entry section-pad">
         <div className="shell service-entry-inner">
-          <div className="service-entry-layout">
+          <div className="service-entry-layout landing-hero-layout">
             <div className="service-entry-copy">
               <h1>
                 {locale === "hi"
-                  ? "हमें बताएं कि क्या हुआ। ऐसी रिपोर्ट पाएँ जिस पर आप भरोसा कर सकें।"
-                  : "Tell us what happened. Get a report you can trust."}
+                  ? "हमें बताएं कि क्या हुआ। भरोसेमंद साइबर अपराध रिपोर्ट पाएँ।"
+                  : "Tell us what happened. Get a cybercrime report you can trust."}
               </h1>
               <p className="service-entry-support">
                 {locale === "hi"
-                  ? "बोलें, लिखें या सबूत जोड़ें। सचेत घटना को व्यवस्थित करता है और केवल बाकी जरूरी जानकारी पूछता है।"
-                  : "Speak, type, or add evidence. Sachet organises the incident and asks only for what is still needed."}
+                  ? "सचेत आपकी कहानी और सबूत को ऐसी रिपोर्ट में बदलता है जिसकी आप जाँच कर सकते हैं।"
+                  : "Sachet turns your story and evidence into a report you can review."}
               </p>
               <div className="service-entry-actions">
                 <button
@@ -1385,7 +1484,7 @@ export function DemoJourney() {
                 >
                   {hasSubmittedCase
                     ? locale === "hi" ? "मामला देखें" : "View case"
-                    : locale === "hi" ? "रिपोर्ट शुरू करें" : "Start report"}
+                    : locale === "hi" ? "रिपोर्ट शुरू करें" : "Start a report"}
                 </button>
                 <button
                   className="secondary-button"
@@ -1397,11 +1496,19 @@ export function DemoJourney() {
                     : locale === "hi" ? "डेमो देखें" : "Try demo"}
                 </button>
               </div>
-              <UrgentMoneyGuidance />
               <p className="landing-capability-line">{locale === "hi" ? "स्वतंत्र हैकाथॉन प्रोटोटाइप · NCRP से जुड़ा नहीं" : "Independent hackathon prototype · Not connected to NCRP"}</p>
             </div>
             <SachetPreview />
           </div>
+          <LandingCaseCheck />
+          <LandingSteps />
+          <section className="landing-urgent-strip" aria-labelledby="landing-urgent-heading">
+            <div>
+              <h2 id="landing-urgent-heading">{locale === "hi" ? "क्या पैसे जा चुके हैं?" : "Already lost money?"}</h2>
+              <p>{locale === "hi" ? "यदि अभी तक नहीं किया है, तो तुरंत 1930 पर कॉल करें। सचेत में रिपोर्ट भी तैयार कर सकते हैं।" : "Call 1930 promptly if you have not already. You can still prepare your report with Sachet."}</p>
+            </div>
+            <a className="primary-button" href="tel:1930">{locale === "hi" ? "1930 पर कॉल करें" : "Call 1930"}</a>
+          </section>
         </div>
       </section>
     );
@@ -1433,6 +1540,8 @@ export function DemoJourney() {
         transcription={transcription}
         hasAudio={Boolean(audio)}
         isRecording={isRecording}
+        isTranscribing={isTranscribing}
+        recordingLevels={recordingLevels}
         recordingSeconds={recordingSeconds}
         isDemoIncident={isDemoIncident}
         experienceMode={experienceMode}
@@ -1455,6 +1564,7 @@ export function DemoJourney() {
         onStartRecording={() => void startRecording()}
         onStopRecording={stopRecording}
         onRecordAgain={recordAgain}
+        onTranscriptionChange={setTranscription}
         onScreenshotsChange={(event) => void handleScreenshots(event)}
         onRemoveScreenshot={(index) => {
           setScreenshots((current) =>
