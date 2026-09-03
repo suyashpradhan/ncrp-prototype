@@ -53,7 +53,11 @@ export type DeterministicFinancialFacts = {
   mentionedInstitutions: string[];
   monetaryMentions: MonetaryMention[];
   transactionAmounts: number[];
+  statedTotalLoss: number | null;
   reportedAmount: number | null;
+  openingBalance: number | null;
+  intermediateBalances: number[];
+  closingBalance: number | null;
   lossStateExplicit: boolean;
   lossUncertaintyExplicit: boolean;
 };
@@ -141,7 +145,7 @@ function classifyMonetaryRole(text: string, index: number, length: number): Mone
     return "BLOCKED_AMOUNT";
   }
   if (/\b(?:balance|account had|had in (?:my|the) account|starting with|started with)\b/.test(before)) {
-    return /\b(?:now|remaining|left|after|current)\b/.test(near)
+    return /\b(?:now|remaining|left|after|current|became|ending|closing|finally)\b/.test(near)
       ? "BALANCE_AFTER"
       : "BALANCE_BEFORE";
   }
@@ -151,8 +155,7 @@ function classifyMonetaryRole(text: string, index: number, length: number): Mone
       : "REFUND_PROMISED";
   }
   if (
-    /\b(?:total(?: loss)?|altogether)\b/.test(near) ||
-    /\b(?:lost|loss of)\s*$/.test(before) ||
+    /\b(?:total(?: loss)?|altogether|in all)\b/.test(near) ||
     /^\s*(?:was|is)?\s*(?:in\s+)?total\b/.test(after)
   ) {
     return "STATED_TOTAL_LOSS";
@@ -275,6 +278,11 @@ export function deriveFinancialFactsFromText(text: string): DeterministicFinanci
     : [];
   const statedTotal = statedTotalMention?.amount ?? null;
   const componentTotal = transactionAmounts.reduce((sum, amount) => sum + amount, 0);
+  const openingBalance = monetaryMentions.find(({ role }) => role === "BALANCE_BEFORE")?.amount ?? null;
+  const balanceAfterValues = monetaryMentions
+    .filter(({ role }) => role === "BALANCE_AFTER")
+    .map(({ amount }) => amount);
+  const closingBalance = balanceAfterValues.at(-1) ?? null;
 
   return {
     financialLossState,
@@ -286,9 +294,13 @@ export function deriveFinancialFactsFromText(text: string): DeterministicFinanci
         : mention,
     ),
     transactionAmounts,
+    statedTotalLoss: statedTotal,
     reportedAmount: financialLossState === "YES"
       ? statedTotal ?? (componentTotal > 0 ? componentTotal : null)
       : null,
+    openingBalance,
+    intermediateBalances: balanceAfterValues.slice(0, -1),
+    closingBalance,
     lossStateExplicit: explicitUncertainLoss || explicitNoLoss || blockedOnly || explicitLoss,
     lossUncertaintyExplicit: explicitUncertainLoss,
   };
@@ -301,9 +313,42 @@ const CHANNEL_PATTERNS: ReadonlyArray<[RegExp, string]> = [
   [/\btelegram\b/i, "Telegram"],
   [/\b(?:sms|text message)\b/i, "SMS / text message"],
   [/\b(?:e-?mail|email)\b/i, "Email"],
+  [/\b(?:phone call|called me|caller|telephone call)\b/i, "Phone call"],
+  [/\b(?:message|messaged|chat)\b/i, "Messages"],
   [/\b(?:website|web site|webpage|web page|https?:\/\/|www\.)\b/i, "Website"],
   [/\b(?:mobile app|banking app|application|app)\b/i, "Mobile app"],
 ];
+
+function communicationChannelsFromText(text: string): string[] {
+  return Array.from(new Set(
+    CHANNEL_PATTERNS
+      .filter(([pattern]) => pattern.test(text))
+      .map(([, label]) => label)
+      .filter((label) => label !== "Mobile app" || /\b(?:mobile app|banking app|application)\b/i.test(text)),
+  ));
+}
+
+function approximateEventTime(context: string): string | null {
+  if (/\bmorning\b/i.test(context)) return "Morning";
+  if (/\bevening\b/i.test(context)) return "Evening";
+  if (/\b(?:night|tonight)\b/i.test(context)) return "Night";
+  const match = context.match(/\b(?:at|around|about|approximately)\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm))\b/i);
+  return match?.[1] ?? null;
+}
+
+function incidentWideTimeIsSupported(text: string): boolean {
+  return /\b(?:all (?:this|of this)|the (?:whole|entire) incident|everything)\b[^.!?\n]{0,50}\b(?:morning|afternoon|evening|night|\d{1,2}(?::\d{2})?\s*(?:am|pm))\b/i.test(text);
+}
+
+function paymentInstitutionIsSupported(context: string, institution: string): boolean {
+  const escaped = institution.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`(?:from\\s+(?:my\\s+)?|using\\s+|through\\s+|via\\s+)${escaped}\\b`, "i").test(context);
+}
+
+function institutionIsOnlyImpersonated(context: string, institution: string): boolean {
+  return /\b(?:impersonat|pretended|claimed|posing|fake|said (?:they|he|she) (?:were|was)|kyc)\b/i.test(context) &&
+    !paymentInstitutionIsSupported(context, institution);
+}
 
 const KNOWN_PLATFORM_PATTERNS: ReadonlyArray<[RegExp, string]> = [
   [/\bfacebook\b/i, "Facebook"],
@@ -518,6 +563,7 @@ export function normalizeIncidentDraft(
   );
   const seenTransactionIds = new Set<string>();
   const transactions = transactionSource.map((transaction, index) => {
+      const mention = canonicalMentions[index];
       const preferredId = transaction.id || `transaction-${index + 1}`;
       const id = seenTransactionIds.has(preferredId)
         ? `${preferredId}-${index + 1}`
@@ -528,17 +574,36 @@ export function normalizeIncidentDraft(
       return {
         ...transaction,
         id,
+        institution:
+          !hasCitizenConfirmedTransaction &&
+          transaction.institution &&
+          mention &&
+          institutionIsOnlyImpersonated(mention.context, transaction.institution)
+            ? null
+            : transaction.institution,
         currency: transaction.currency ?? "INR",
         transactionDate: transaction.transactionDate ??
           (transactionDateFromIncident ? normalizedIncidentDate : null),
         referenceNumber: normalizedUtr && normalizedUtr === normalizedReference
           ? null
           : transaction.referenceNumber,
+        approximateTime: transaction.approximateTime ??
+          (mention ? approximateEventTime(mention.context) : null),
         status: transaction.amount || transaction.transactionIdOrUtr || transaction.referenceNumber
           ? "KNOWN" as const
           : "MISSING" as const,
       };
     });
+  const derivedChannels = communicationChannelsFromText(financialSourceText);
+  const communicationChannels = Array.from(new Set([
+    ...draft.adaptiveFacts.communicationChannels.filter((channel) => channel !== "Other"),
+    ...derivedChannels,
+  ]));
+  const incidentTime = transactions.length > 1 &&
+    !draft.citizenConfirmedFields.includes("incident.incidentTime") &&
+    !incidentWideTimeIsSupported(financialSourceText)
+      ? null
+      : draft.incident.approximateTime ?? relativeContext.approximateTime;
   const mentionedInstitutions = Array.from(new Set([
     ...draft.mentionedInstitutions,
     ...extracted.mentionedInstitutions,
@@ -579,8 +644,8 @@ export function normalizeIncidentDraft(
         (/\b(?:intimate|private|nude|sexual)\s+(?:image|photo|video|material)/i.test(financialSourceText) ? true : null),
       impersonation: draft.adaptiveFacts.impersonation ?? impersonation,
       impersonatedEntity: draft.adaptiveFacts.impersonatedEntity ?? impersonatedEntityFromText(financialSourceText),
-      communicationChannels: draft.adaptiveFacts.communicationChannels.length > 0
-        ? draft.adaptiveFacts.communicationChannels
+      communicationChannels: communicationChannels.length > 0
+        ? communicationChannels
         : [normalizeIncidentChannel(draft)].filter((value): value is string => Boolean(value)),
       requestedSensitiveInfo: Array.from(new Set([
         ...draft.adaptiveFacts.requestedSensitiveInfo,
@@ -602,12 +667,27 @@ export function normalizeIncidentDraft(
       ...draft.incident,
       financialLossState,
       moneyLost,
+      statedTotalLoss: financialLossState === "YES"
+        ? draft.citizenConfirmedFields.includes("incident.statedTotalLoss")
+          ? draft.incident.statedTotalLoss
+          : extracted.statedTotalLoss
+        : null,
+      citizenConfirmedLoss: draft.citizenConfirmedFields.includes("incident.citizenConfirmedLoss")
+        ? draft.incident.citizenConfirmedLoss
+        : null,
       reportedAmount: financialLossState === "YES"
         ? extracted.reportedAmount ?? draft.incident.reportedAmount
         : null,
+      openingBalance: extracted.openingBalance ?? draft.incident.openingBalance,
+      intermediateBalances: extracted.intermediateBalances.length > 0
+        ? extracted.intermediateBalances
+        : draft.incident.intermediateBalances,
+      closingBalance: extracted.closingBalance ?? draft.incident.closingBalance,
       incidentDate: normalizedIncidentDate,
-      approximateTime: draft.incident.approximateTime ?? relativeContext.approximateTime,
-      occurredOn: normalizeIncidentChannel(draft),
+      approximateTime: incidentTime,
+      occurredOn: communicationChannels.length > 1
+        ? "Multiple channels"
+        : communicationChannels[0] ?? normalizeIncidentChannel(draft),
     },
     transactions,
   };

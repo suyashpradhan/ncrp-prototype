@@ -87,7 +87,12 @@ export const IncidentDraftSchema = z.object({
   incident: z.object({
     financialLossState: FinancialLossStateSchema,
     moneyLost: z.boolean().nullable(),
+    statedTotalLoss: z.number().positive().nullable(),
+    citizenConfirmedLoss: z.number().positive().nullable(),
     reportedAmount: z.number().positive().nullable(),
+    openingBalance: z.number().nonnegative().nullable(),
+    intermediateBalances: z.array(z.number().nonnegative()),
+    closingBalance: z.number().nonnegative().nullable(),
     incidentDate: z.string().nullable(),
     incidentDateWithoutYear: z.string().regex(/^\d{2}-\d{2}$/).nullable(),
     approximateTime: z.string().nullable(),
@@ -190,6 +195,16 @@ export function safeParseIncidentDraft(value: unknown) {
   }
   return IncidentDraftSchema.safeParse({
     ...candidate,
+    incident: candidate.incident && typeof candidate.incident === "object"
+      ? {
+          statedTotalLoss: null,
+          citizenConfirmedLoss: null,
+          openingBalance: null,
+          intermediateBalances: [],
+          closingBalance: null,
+          ...(candidate.incident as Record<string, unknown>),
+        }
+      : candidate.incident,
     adaptiveFacts: {
       ...LEGACY_ADAPTIVE_FACT_DEFAULTS,
       ...(adaptiveFacts as Record<string, unknown>),

@@ -6,6 +6,7 @@ import { SYNTHETIC_NCRP_PROFILE } from "../experience/profile";
 import { sanitizeSensitiveText } from "../incident/sensitive-text";
 import { deriveFinancialFactsFromText } from "../incident/normalization";
 import { getIncidentCapabilities, getPlatformConfig } from "../incident/capabilities";
+import { resolveFinancialLoss } from "../incident/financial-summary";
 import { textForLocale, type UiLocale } from "../i18n/i18n-provider";
 import { formatCurrency } from "./format";
 
@@ -262,6 +263,12 @@ export function deriveReportGroups(
   };
   const missingQuestions = deriveMissingQuestions(draft);
   const missingByField = new Map(missingQuestions.map((question) => [question.field, question]));
+  const transactionMissingQuestion = (
+    field: MissingQuestion["field"],
+    index: number,
+  ) => missingQuestions.find(
+    (question) => question.field === field && question.transactionIndex === index,
+  );
   const missingCount = (group: ReportGroupId) => missingQuestions
     .filter((question) => MISSING_GROUP[question.field] === group).length;
   const localizedCategory = locale === "hi"
@@ -397,43 +404,37 @@ export function deriveReportGroups(
         fields: ([
           makeField(`transaction-${index}-amount`, copy("field.amount"), transaction.amount === null ? null : formatCurrency(transaction.amount), {
             source: copy("field.fromShared"),
-            missingQuestion: index === 0 ? missingByField.get("transactionAmount") : undefined,
+            missingQuestion: transactionMissingQuestion("transactionAmount", index),
           }),
           makeField(`transaction-${index}-institution`, copy("field.institution"), transaction.institution === "SBI" && locale === "hi" ? "एसबीआई" : transaction.institution, {
-            missingQuestion: index === 0 ? missingByField.get("institution") : undefined,
+            missingQuestion: transactionMissingQuestion("institution", index),
           }),
           makeField(`transaction-${index}-account`, copy("field.account"), transaction.accountOrUpiId === "Synthetic SBI account ending 0024" ? copy("field.syntheticSbiAccount") : transaction.accountOrUpiId, {
-            missingQuestion: index === 0 ? missingByField.get("accountOrUpiId") : undefined,
+            missingQuestion: transactionMissingQuestion("accountOrUpiId", index),
           }),
-          makeField(`transaction-${index}-utr`, copy("field.transactionReference"), transaction.transactionIdOrUtr, {
+          makeField(`transaction-${index}-utr`, copy("field.transactionReference"), transaction.transactionIdOrUtr ?? transaction.referenceNumber, {
             source:
               transaction.transactionIdOrUtr &&
               transaction.transactionIdOrUtr !== CITIZEN_DOES_NOT_HAVE
                 ? copy("field.fromShared")
                 : undefined,
             helpText: copy("field.transactionReferenceHelp"),
-            missingQuestion: index === 0 ? missingByField.get("transactionIdOrUtr") : undefined,
+            missingQuestion: transactionMissingQuestion("transactionIdOrUtr", index),
           }),
           makeField(`transaction-${index}-date`, copy("field.transactionDate"), formatDate(transaction.transactionDate, locale), {
-            missingQuestion: index === 0 ? missingByField.get("transactionDate") : undefined,
+            missingQuestion: transactionMissingQuestion("transactionDate", index),
           }),
           makeField(`transaction-${index}-time`, copy("field.approxTime"), transaction.approximateTime, {
             helpText: locale === "hi"
               ? "यदि उपलब्ध हो तो उपयोगी। लगभग समय भी ठीक है।"
               : "Helpful if available. Approximate time is okay.",
           }),
-          makeField(`transaction-${index}-reference`, copy("field.reference"), transaction.referenceNumber),
         ] as ReportFieldView[]).filter((item) =>
           item.state !== "NOT_PROVIDED_OPTIONAL" || Boolean(item.missingQuestion),
         ),
       }));
 
-  const transactionTotal = draft.transactions.reduce(
-    (total, transaction) => total + (transaction.amount ?? 0),
-    0,
-  );
-  const displayedReportedAmount = draft.incident.reportedAmount ??
-    (transactionTotal > 0 ? transactionTotal : null);
+  const displayedReportedAmount = resolveFinancialLoss(draft).resolvedLoss;
 
   const evidenceFields = draft.classification.reportFamily === "WOMEN_CHILDREN_RELATED_CRIME" && draft.evidence.length > 0
     ? [makeField(

@@ -3,6 +3,7 @@ import { assertCaseReconciles } from "../domain/reconciliation";
 import { DEMO_NOW, syntheticCase } from "../data/synthetic-case";
 import type { IncidentDraft } from "./schema";
 import { sanitizeSensitiveText } from "./sensitive-text";
+import { resolveFinancialLoss, type ResolvedLossSource } from "./financial-summary";
 
 const PORTION_RATIOS = [0.365, 0.21, 0.125] as const;
 const GENERIC_INCIDENT_LABELS = new Set([
@@ -15,6 +16,10 @@ export type ReportedAmountResolution = {
   transactionAmount: number | null;
   selectedAmount: number | null;
   hasConflict: boolean;
+  statedTotalLoss: number | null;
+  computedTransactionLoss: number | null;
+  resolvedLoss: number | null;
+  resolvedLossSource: ResolvedLossSource;
 };
 
 export type SyntheticCitizenProfile = {
@@ -37,37 +42,21 @@ export type BuiltSyntheticCase = {
   now: string;
 };
 
-function cleanAmount(value: number | null | undefined): number | null {
-  return typeof value === "number" && Number.isFinite(value) && value > 0
-    ? Math.round(value)
-    : null;
-}
-
 export function resolveReportedAmount(
   draft: IncidentDraft,
   selectedAmount?: number | null,
 ): ReportedAmountResolution {
-  const statementAmount = cleanAmount(draft.incident.reportedAmount);
-  const summedTransactions = draft.transactions.reduce(
-    (total, transaction) => total + (cleanAmount(transaction.amount) ?? 0),
-    0,
-  );
-  const transactionAmount = summedTransactions > 0 ? summedTransactions : null;
-  const comparisonBase = Math.max(statementAmount ?? 0, transactionAmount ?? 0);
-  const hasConflict = Boolean(
-    statementAmount &&
-      transactionAmount &&
-      Math.abs(statementAmount - transactionAmount) > Math.max(100, comparisonBase * 0.01),
-  );
-  const confirmedSelection = cleanAmount(selectedAmount);
+  const summary = resolveFinancialLoss(draft, selectedAmount);
 
   return {
-    statementAmount,
-    transactionAmount,
-    hasConflict,
-    selectedAmount: hasConflict
-      ? confirmedSelection
-      : transactionAmount ?? statementAmount,
+    statementAmount: summary.statedTotalLoss,
+    transactionAmount: summary.computedTransactionLoss,
+    selectedAmount: summary.resolvedLoss,
+    hasConflict: summary.hasExplicitTotalConflict,
+    statedTotalLoss: summary.statedTotalLoss,
+    computedTransactionLoss: summary.computedTransactionLoss,
+    resolvedLoss: summary.resolvedLoss,
+    resolvedLossSource: summary.resolvedLossSource,
   };
 }
 

@@ -109,6 +109,18 @@ const CLARIFICATION_FIELDS = new Set<MissingQuestion["field"]>([
   "incidentDateYear",
 ]);
 
+function questionTarget(question: MissingQuestion) {
+  const base = QUESTION_TARGETS[question.field];
+  if (question.transactionIndex === undefined) return base;
+  return {
+    ...base,
+    fieldId: base.fieldId.replace(
+      /^transaction-0-/,
+      `transaction-${question.transactionIndex}-`,
+    ),
+  };
+}
+
 function contractSection(definition: NcrpFieldDefinition): ReportGroupId {
   if (definition.group === "TRANSACTIONS") return "TRANSACTIONS";
   if (definition.group === "COMPLAINANT" || definition.group === "ADDRESS" || definition.group === "IDENTITY_DOCUMENT") {
@@ -166,12 +178,18 @@ export function deriveReportReadiness(input: {
   } = input;
   const questions = deriveMissingQuestions(draft);
   const representedContractIds = new Set(
-    questions.map((question) => QUESTION_CONTRACT_IDS[question.field]).filter(Boolean),
+    questions
+      .map((question) =>
+        question.transactionIndex && question.transactionIndex > 0
+          ? null
+          : QUESTION_CONTRACT_IDS[question.field],
+      )
+      .filter(Boolean),
   );
   const items: MissingRequirement[] = questions.map((question) => {
-    const target = QUESTION_TARGETS[question.field];
+    const target = questionTarget(question);
     return {
-      id: `question.${question.field}`,
+      id: `question.${question.field}.${question.transactionIndex ?? "case"}`,
       fieldId: target.fieldId,
       sectionId: target.sectionId,
       label: locale === "hi" ? question.questionHi : question.question,

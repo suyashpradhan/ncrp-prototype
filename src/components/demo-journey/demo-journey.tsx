@@ -1320,7 +1320,15 @@ export function DemoJourney() {
       );
       return;
     }
-    setDraft(applyMissingAnswer(draft, question.field, answer));
+    setDraft(applyMissingAnswer(
+      draft,
+      question.field,
+      answer,
+      question.transactionIndex ?? 0,
+    ));
+    if (question.transactionIndex !== undefined) {
+      setSelectedReportedAmount(null);
+    }
     setMissingAnswers({});
     setFormError(null);
   }
@@ -1590,8 +1598,21 @@ export function DemoJourney() {
           setMissingAnswers((current) => ({ ...current, [field]: value }))
         }
         onSaveMissingAnswer={saveMissingAnswer}
-        onDraftChange={setDraft}
-        onReportedAmountSelect={setSelectedReportedAmount}
+        onDraftChange={(nextDraft) => {
+          setDraft(nextDraft);
+          setSelectedReportedAmount(null);
+        }}
+        onReportedAmountSelect={(amount) => {
+          setSelectedReportedAmount(amount);
+          setDraft((current) => current ? {
+            ...current,
+            incident: { ...current.incident, citizenConfirmedLoss: amount },
+            citizenConfirmedFields: Array.from(new Set([
+              ...current.citizenConfirmedFields,
+              "incident.citizenConfirmedLoss",
+            ])),
+          } : current);
+        }}
         onReportFamilyChange={changeReportFamily}
         onDemoNarrationLanguageChange={chooseDemoNarration}
         onReview={reviewReport}

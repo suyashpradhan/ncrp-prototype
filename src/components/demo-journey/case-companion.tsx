@@ -3,6 +3,7 @@
 import { useState, type ChangeEvent } from "react";
 import { useI18n } from "../../i18n/i18n-provider";
 import type { IncidentDraft } from "../../incident/schema";
+import { resolveFinancialLoss } from "../../incident/financial-summary";
 import {
   DEMO_OFFICIAL_ACKNOWLEDGEMENT,
   explainSuppliedStatus,
@@ -164,7 +165,7 @@ export function CaseCompanion({
   const stages = getPossibleStages(draft.classification.reportFamily, locale);
   const isFinancialFraud =
     draft.classification.reportFamily === "FINANCIAL_FRAUD";
-  const amount = draft.incident.reportedAmount;
+  const amount = resolveFinancialLoss(draft).resolvedLoss;
   const institution = draft.transactions[0]?.institution;
   const incidentDate = draft.incident.incidentDate;
   const evidenceCount = draft.evidence.length;

@@ -10,6 +10,7 @@ export type MissingQuestion = {
   question: string;
   questionHi: string;
   inputType: "text" | "date" | "time" | "number";
+  transactionIndex?: number;
 };
 
 const QUESTIONS: Record<MissingQuestion["field"], MissingQuestion> = {
@@ -131,19 +132,88 @@ const QUESTIONS: Record<MissingQuestion["field"], MissingQuestion> = {
 
 const FINANCIAL_QUESTION_PRIORITY: readonly MissingQuestion["field"][] = [
   "moneyLost",
-  "transactionAmount",
   "incidentDateYear",
   "incidentDate",
   "incidentApproximateTime",
-  "institution",
-  "transactionIdOrUtr",
-  "transactionDate",
-  "accountOrUpiId",
-  "transactionApproximateTime",
   "delayInReporting",
   "delayReason",
   "occurredOn",
 ];
+
+const TRANSACTION_REQUIREMENT_KEYS = new Set<ReportRequirementKey>([
+  "institution",
+  "accountOrUpiId",
+  "transactionAmount",
+  "transactionIdOrUtr",
+  "transactionDate",
+  "transactionApproximateTime",
+]);
+
+const TRANSACTION_QUESTION_PRIORITY: readonly ReportRequirementKey[] = [
+  "transactionIdOrUtr",
+  "institution",
+  "transactionDate",
+  "accountOrUpiId",
+  "transactionAmount",
+];
+
+function transactionValueMissing(
+  draft: IncidentDraft,
+  index: number,
+  field: ReportRequirementKey,
+): boolean {
+  const transaction = draft.transactions[index];
+  if (!transaction) return false;
+  switch (field) {
+    case "institution": return !transaction.institution;
+    case "accountOrUpiId": return !transaction.accountOrUpiId;
+    case "transactionAmount": return !(transaction.amount && transaction.amount > 0);
+    case "transactionIdOrUtr": return !(transaction.transactionIdOrUtr ?? transaction.referenceNumber);
+    case "transactionDate": return !transaction.transactionDate;
+    case "transactionApproximateTime": return !transaction.approximateTime;
+    default: return false;
+  }
+}
+
+function transactionQuestion(
+  field: ReportRequirementKey,
+  transactionIndex: number,
+  amount: number | null,
+): MissingQuestion {
+  const base = QUESTIONS[field];
+  const number = transactionIndex + 1;
+  const amountEn = amount ? `₹${amount.toLocaleString("en-IN")}` : `transaction ${number}`;
+  const amountHi = amount ? `₹${amount.toLocaleString("en-IN")}` : `लेन-देन ${number}`;
+  const questions: Partial<Record<ReportRequirementKey, [string, string]>> = {
+    institution: [
+      `For the ${amountEn} payment, which bank or payment app did you use?`,
+      `${amountHi} के भुगतान के लिए आपने किस बैंक या भुगतान ऐप का उपयोग किया?`,
+    ],
+    transactionIdOrUtr: [
+      `For the ${amountEn} payment, do you have the transaction reference?`,
+      `${amountHi} के भुगतान का लेन-देन संदर्भ क्या आपके पास है?`,
+    ],
+    transactionDate: [
+      `When did the ${amountEn} payment happen?`,
+      `${amountHi} का भुगतान कब हुआ?`,
+    ],
+    accountOrUpiId: [
+      `For the ${amountEn} payment, which account or payment ID was used?`,
+      `${amountHi} के भुगतान में कौन-सा खाता या भुगतान ID उपयोग हुआ?`,
+    ],
+    transactionAmount: [
+      `How much was paid in transaction ${number}?`,
+      `लेन-देन ${number} में कितनी राशि दी गई?`,
+    ],
+  };
+  const copy = questions[field];
+  return {
+    ...base,
+    question: copy?.[0] ?? base.question,
+    questionHi: copy?.[1] ?? base.questionHi,
+    transactionIndex,
+  };
+}
 
 function requirementMissing(draft: IncidentDraft, field: ReportRequirementKey): boolean {
   const primaryTransaction = draft.transactions[0];
@@ -181,9 +251,27 @@ export function deriveMissingQuestions(draft: IncidentDraft): MissingQuestion[] 
     missing.push(QUESTIONS.incidentDateYear);
   }
   for (const requirement of requirements) {
+    if (TRANSACTION_REQUIREMENT_KEYS.has(requirement.key)) continue;
     if (requirement.key === "incidentDate" && draft.incident.incidentDateWithoutYear) continue;
     if (requirement.key === "moneyLost" && financialFacts.lossUncertaintyExplicit) continue;
     if (requirementMissing(draft, requirement.key)) missing.push(QUESTIONS[requirement.key]);
+  }
+
+  if (draft.incident.financialLossState === "YES" && draft.transactions.length > 0) {
+    const requiredTransactionFields = new Set(
+      requirements
+        .filter((item) => TRANSACTION_REQUIREMENT_KEYS.has(item.key))
+        .map((item) => item.key),
+    );
+    outer: for (let index = 0; index < draft.transactions.length; index += 1) {
+      for (const field of TRANSACTION_QUESTION_PRIORITY) {
+        if (!requiredTransactionFields.has(field)) continue;
+        if (transactionValueMissing(draft, index, field)) {
+          missing.push(transactionQuestion(field, index, draft.transactions[index]?.amount ?? null));
+          break outer;
+        }
+      }
+    }
   }
 
   if (draft.classification.reportFamily === "FINANCIAL_FRAUD") {
@@ -202,6 +290,7 @@ export function applyMissingAnswer(
   draft: IncidentDraft,
   field: MissingQuestion["field"],
   value: string,
+  transactionIndex = 0,
 ): IncidentDraft {
   const answer = value.trim();
   if (!answer) return draft;
@@ -224,6 +313,8 @@ export function applyMissingAnswer(
           ...draft.incident,
           financialLossState,
           moneyLost: selected,
+          statedTotalLoss: selected ? draft.incident.statedTotalLoss : null,
+          citizenConfirmedLoss: null,
           reportedAmount: selected ? draft.incident.reportedAmount : null,
         },
         transactions: selected ? draft.transactions : [],
@@ -325,7 +416,7 @@ export function applyMissingAnswer(
     };
   }
 
-  const firstTransaction = draft.transactions[0] ?? {
+  const targetTransaction = draft.transactions[transactionIndex] ?? {
     id: "transaction-1",
     institution: null,
     currency: "INR",
@@ -344,16 +435,16 @@ export function applyMissingAnswer(
     return draft;
   }
   const updatedTransaction = field === "institution"
-    ? { ...firstTransaction, institution: answer }
+    ? { ...targetTransaction, institution: answer }
     : field === "accountOrUpiId"
-      ? { ...firstTransaction, accountOrUpiId: answer }
+      ? { ...targetTransaction, accountOrUpiId: answer }
       : field === "transactionAmount"
-        ? { ...firstTransaction, amount: parsedTransactionAmount }
+        ? { ...targetTransaction, amount: parsedTransactionAmount }
         : field === "transactionIdOrUtr"
-          ? { ...firstTransaction, transactionIdOrUtr: answer }
+          ? { ...targetTransaction, transactionIdOrUtr: answer }
           : field === "transactionDate"
-            ? { ...firstTransaction, transactionDate: answer }
-            : { ...firstTransaction, approximateTime: answer };
+            ? { ...targetTransaction, transactionDate: answer }
+            : { ...targetTransaction, approximateTime: answer };
   const confirmedTransactionField = field === "institution"
     ? "institution"
     : field === "accountOrUpiId"
@@ -368,13 +459,17 @@ export function applyMissingAnswer(
 
   return {
     ...draft,
-    transactions: [
-      { ...updatedTransaction, status: "KNOWN" as const },
-      ...draft.transactions.slice(1),
-    ],
+    incident: { ...draft.incident, citizenConfirmedLoss: null },
+    transactions: draft.transactions.length > 0
+      ? draft.transactions.map((transaction, index) =>
+          index === transactionIndex
+            ? { ...updatedTransaction, status: "KNOWN" as const }
+            : transaction,
+        )
+      : [{ ...updatedTransaction, status: "KNOWN" as const }],
     citizenConfirmedFields: Array.from(new Set([
       ...draft.citizenConfirmedFields,
-      `transactions.0.${confirmedTransactionField}`,
+      `transactions.${transactionIndex}.${confirmedTransactionField}`,
     ])),
     missingRequiredFields: draft.missingRequiredFields.filter((item) => item !== field),
   };

@@ -1,5 +1,6 @@
 import type { IncidentDraft } from "../incident/schema";
 import { getIncidentCapabilities } from "../incident/capabilities";
+import { resolveFinancialLoss } from "../incident/financial-summary";
 import type { UiLocale } from "../i18n/i18n-provider";
 import { deriveIncidentTimeline, type IncidentTimelineEvent } from "./incident-timeline";
 import {
@@ -178,14 +179,7 @@ function incidentPathLabel(draft: IncidentDraft, locale: UiLocale): string {
 }
 
 function totalReportedLoss(draft: IncidentDraft): number | null {
-  const transactionTotal = draft.transactions.reduce(
-    (total, transaction) => total + (transaction.amount ?? 0),
-    0,
-  );
-  if (transactionTotal > 0) return transactionTotal;
-  return draft.incident.financialLossState === "YES"
-    ? draft.incident.reportedAmount
-    : null;
+  return resolveFinancialLoss(draft).resolvedLoss;
 }
 
 export function getCaseSummary(
@@ -232,7 +226,9 @@ export function getCaseSummary(
     items.push({
       id: "channel",
       label: hi ? "माध्यम" : "Channel",
-      value: draft.incident.occurredOn,
+      value: hi && draft.incident.occurredOn === "Multiple channels"
+        ? "कई माध्यम"
+        : draft.incident.occurredOn,
     });
   }
   const affectedAccount = draft.adaptiveFacts.affectedAccount;

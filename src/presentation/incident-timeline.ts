@@ -153,19 +153,20 @@ export function deriveIncidentTimeline(
     });
   }
 
-  const transaction = draft.transactions[0];
-  if (transaction?.amount) {
+  draft.transactions.forEach((transaction, index) => {
+    if (!transaction.amount) return;
     const institution = transaction.institution?.trim();
     const transactionEvidenceIndex = draft.evidence.findIndex(
       (item) => item.type === "TRANSACTION_SCREENSHOT",
     );
     events.push({
-      id: "transaction",
-      timeLabel: displayTime(transaction.approximateTime, locale),
+      id: `transaction-${transaction.id}`,
+      timeLabel: displayTime(transaction.approximateTime, locale) ??
+        (index > 0 ? (locale === "hi" ? "बाद में" : "Later") : null),
       title:
         locale === "hi"
-          ? `${formatCurrency(transaction.amount)}${institution ? ` का ${institution} लेन-देन` : " का लेन-देन"} दर्ज हुआ`
-          : `${formatCurrency(transaction.amount)} transaction${institution ? ` with ${institution}` : ""} was recorded`,
+          ? `लेन-देन ${index + 1}: ${formatCurrency(transaction.amount)}${institution ? ` का ${institution} लेन-देन` : " का भुगतान"} दर्ज हुआ`
+          : `Transaction ${index + 1}: ${formatCurrency(transaction.amount)} payment${institution ? ` using ${institution}` : ""} was recorded`,
       sourceRefs: [
         transactionEvidenceIndex >= 0
           ? {
@@ -179,7 +180,7 @@ export function deriveIncidentTimeline(
             },
       ],
     });
-  }
+  });
 
   return events.length >= 2 ? events : [];
 }

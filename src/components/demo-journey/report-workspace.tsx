@@ -31,6 +31,7 @@ import {
 } from "../../incident/ncrp-compatible-complaint";
 import type { ExperienceMode, ReporterProfile } from "../../experience/profile";
 import { getPlatformConfig } from "../../incident/capabilities";
+import { resolveFinancialLoss } from "../../incident/financial-summary";
 import { useI18n } from "../../i18n/i18n-provider";
 import {
   CITIZEN_DOES_NOT_HAVE,
@@ -1463,8 +1464,13 @@ function ReportGroup({
   const saveSection = (nextDraft: IncidentDraft, confirmedFields: string[]) => {
     onDraftChange({
       ...nextDraft,
+      incident: group.id === "TRANSACTIONS"
+        ? { ...nextDraft.incident, citizenConfirmedLoss: null }
+        : nextDraft.incident,
       citizenConfirmedFields: Array.from(new Set([
-        ...draft.citizenConfirmedFields,
+        ...draft.citizenConfirmedFields.filter((field) =>
+          group.id !== "TRANSACTIONS" || field !== "incident.citizenConfirmedLoss"
+        ),
         ...confirmedFields,
       ])),
     });
@@ -1556,12 +1562,7 @@ function ReportGroup({
     const time = getField("incident-time");
     const channel = getField("occurred-on");
     const narrative = getField("incident-description");
-    const reportedAmount =
-      draft.incident.reportedAmount ??
-      draft.transactions.reduce(
-        (total, transaction) => total + (transaction.amount ?? 0),
-        0,
-      );
+    const reportedAmount = resolveFinancialLoss(draft).resolvedLoss ?? 0;
     const summaryIds = new Set([
       "subcategory",
       "incident-date",
@@ -1594,7 +1595,18 @@ function ReportGroup({
                 {locale === "hi" ? "पैसे गए: नहीं" : "Money lost: No"}
               </strong>
             ) : null}
-            <span>{channel?.value}</span>
+            {draft.transactions.length > 0 ? (
+              <span>
+                {locale === "hi"
+                  ? `${draft.transactions.length} लेन-देन`
+                  : `${draft.transactions.length} ${draft.transactions.length === 1 ? "transaction" : "transactions"}`}
+              </span>
+            ) : null}
+            <span>
+              {locale === "hi" && channel?.value === "Multiple channels"
+                ? "कई माध्यम"
+                : channel?.value}
+            </span>
             <span>
               {date?.value}
               {time?.value ? ` · ${time.value}` : ""}
@@ -1886,10 +1898,7 @@ function ReportReview(props: ReportWorkspaceProps) {
       return t("field.fromStatement");
     return t("field.fromShared");
   };
-  const reviewTotal = props.draft.transactions.reduce(
-    (sum, transaction) => sum + (transaction.amount ?? 0),
-    0,
-  ) || props.draft.incident.reportedAmount;
+  const reviewTotal = resolveFinancialLoss(props.draft).resolvedLoss;
   const integrity = getCaseIntegritySummary(props.draft, {
     locale,
     isDemoIncident: props.isDemoIncident,
@@ -3106,6 +3115,7 @@ export function ReportWorkspace(props: ReportWorkspaceProps) {
           ...props.draft.incident,
           financialLossState: state,
           moneyLost: state === "YES" ? true : state === "NO" ? false : null,
+          statedTotalLoss: state === "NO" ? null : props.draft.incident.statedTotalLoss,
           reportedAmount: state === "NO" ? null : props.draft.incident.reportedAmount,
         },
         transactions: state === "NO" ? [] : props.draft.transactions,

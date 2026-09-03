@@ -3,6 +3,7 @@ import { sanitizeSensitiveText } from "../incident/sensitive-text";
 import type { UiLocale } from "../i18n/i18n-provider";
 import { formatCurrency } from "./format";
 import { getIncidentCapabilities } from "../incident/capabilities";
+import { resolveFinancialLoss } from "../incident/financial-summary";
 
 function line(label: string, value: string | null | undefined) {
   if (!value || value === CITIZEN_DOES_NOT_HAVE || value === "UNKNOWN") return null;
@@ -27,8 +28,7 @@ export function getSafeCaseSummary(
 ): string {
   const hi = locale === "hi";
   const capabilities = getIncidentCapabilities(draft);
-  const total = draft.transactions.reduce((sum, item) => sum + (item.amount ?? 0), 0) ||
-    draft.incident.reportedAmount;
+  const total = resolveFinancialLoss(draft).resolvedLoss;
   const safeType = capabilities.threatOrExtortion
     ? hi ? "धमकी / जबरन वसूली" : "Threat / extortion"
     : capabilities.accountCompromise

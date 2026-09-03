@@ -1,4 +1,5 @@
 import type { IncidentDraft } from "./schema";
+import { resolveFinancialLoss } from "./financial-summary";
 
 export type CaseConsistencyIssue = {
   id: string;
@@ -57,15 +58,12 @@ export function getDuplicateTransactionCandidates(
 
 export function getCaseConsistencyIssues(draft: IncidentDraft): CaseConsistencyIssue[] {
   const issues: CaseConsistencyIssue[] = [];
-  const transactionTotal = draft.transactions.reduce(
-    (total, transaction) => total + (transaction.amount ?? 0),
-    0,
-  );
+  const financialSummary = resolveFinancialLoss(draft);
+  const transactionTotal = financialSummary.computedTransactionLoss ?? 0;
 
   if (
-    draft.incident.reportedAmount &&
-    transactionTotal > 0 &&
-    draft.incident.reportedAmount !== transactionTotal
+    financialSummary.hasExplicitTotalConflict &&
+    !draft.incident.citizenConfirmedLoss
   ) {
     issues.push({
       id: "reported-total-mismatch",
@@ -73,7 +71,7 @@ export function getCaseConsistencyIssues(draft: IncidentDraft): CaseConsistencyI
       severity: "BLOCKING",
       affectedFieldIds: ["reported-amount-conflict", "transaction-total"],
       sourceValues: [
-        { label: "From your statement", value: draft.incident.reportedAmount },
+        { label: "From your statement", value: financialSummary.statedTotalLoss ?? 0 },
         { label: "From your transactions", value: transactionTotal },
       ],
       title: "Check the total amount",

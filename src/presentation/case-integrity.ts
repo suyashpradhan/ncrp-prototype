@@ -1,5 +1,6 @@
 import { getCaseConsistencyIssues } from "../incident/case-consistency";
 import { CITIZEN_DOES_NOT_HAVE, type IncidentDraft } from "../incident/schema";
+import { resolveFinancialLoss } from "../incident/financial-summary";
 import type { UiLocale } from "../i18n/i18n-provider";
 import { deriveEvidenceContributions } from "./evidence-contributions";
 import { formatCurrency, formatIndiaShortDateWithYear } from "./format";
@@ -15,8 +16,7 @@ export type CaseIntegritySummary = {
 };
 
 function totalLoss(draft: IncidentDraft) {
-  const total = draft.transactions.reduce((sum, item) => sum + (item.amount ?? 0), 0);
-  return total || draft.incident.reportedAmount;
+  return resolveFinancialLoss(draft).resolvedLoss;
 }
 
 export function getCaseIntegritySummary(

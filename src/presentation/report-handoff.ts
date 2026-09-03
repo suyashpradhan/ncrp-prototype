@@ -5,6 +5,7 @@ import { sanitizeSensitiveText } from "../incident/sensitive-text";
 import type { UiLocale } from "../i18n/i18n-provider";
 import { formatCurrency } from "./format";
 import { getIncidentCapabilities } from "../incident/capabilities";
+import { resolveFinancialLoss } from "../incident/financial-summary";
 
 export type NextAction = {
   id: string;
@@ -73,14 +74,13 @@ export function buildCallBrief(
 
   const hi = locale === "hi";
   const transaction = draft.transactions[0];
+  const transactionCount = draft.transactions.length;
   const hasUnresolvedConflict = Boolean(
     amountResolution?.hasConflict && !amountResolution.selectedAmount,
   );
   const confirmedAmount = hasUnresolvedConflict
     ? null
-    : amountResolution?.selectedAmount ??
-      transaction?.amount ??
-      draft.incident.reportedAmount;
+    : amountResolution?.selectedAmount ?? resolveFinancialLoss(draft).resolvedLoss;
   const date = formatDate(
     draft.incident.incidentDate ?? transaction?.transactionDate ?? null,
     locale,
@@ -89,7 +89,9 @@ export function buildCallBrief(
     draft.incident.approximateTime ?? transaction?.approximateTime ?? null,
     locale,
   );
-  const institution = transaction?.institution?.trim() || null;
+  const institution = transactionCount === 1
+    ? transaction?.institution?.trim() || null
+    : null;
   const context = financialContext(draft, locale);
   const reference = transaction?.transactionIdOrUtr;
   const evidence = draft.evidence.filter(
@@ -114,13 +116,17 @@ export function buildCallBrief(
     ]
       .filter(Boolean)
       .join(" ");
-    const event = hi
-      ? `${formatCurrency(confirmedAmount)}${institution ? ` मेरे ${institution} खाते से` : ""} डेबिट हुए${context ? `, ${context}` : ""}।`
-      : `${formatCurrency(confirmedAmount)} was debited${institution ? ` from my ${institution} account` : ""}${context ? ` ${context}` : ""}.`;
+    const event = transactionCount > 1
+      ? hi
+        ? `${transactionCount} भुगतानों में कुल ${formatCurrency(confirmedAmount)} का नुकसान हुआ${context ? `, ${context}` : ""}।`
+        : `I reported ${transactionCount} payments totalling ${formatCurrency(confirmedAmount)}${context ? ` ${context}` : ""}.`
+      : hi
+        ? `${formatCurrency(confirmedAmount)}${institution ? ` मेरे ${institution} खाते से` : ""} डेबिट हुए${context ? `, ${context}` : ""}।`
+        : `${formatCurrency(confirmedAmount)} was debited${institution ? ` from my ${institution} account` : ""}${context ? ` ${context}` : ""}.`;
     lines.push([when, event].filter(Boolean).join(hi ? " " : ", "));
   }
 
-  if (reference && reference !== CITIZEN_DOES_NOT_HAVE) {
+  if (transactionCount === 1 && reference && reference !== CITIZEN_DOES_NOT_HAVE) {
     lines.push(
       hi
         ? `लेन-देन संदर्भ: ${reference}।`

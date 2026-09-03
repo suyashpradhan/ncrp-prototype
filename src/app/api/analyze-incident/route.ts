@@ -70,7 +70,14 @@ Rules:
 56. Keep requestedSensitiveInfo and sharedSensitiveInfo separate. Include concise names such as OTP, Bank details, Aadhaar, PAN, Password, Email, UPI ID or Photo only when supported. Requested never means shared.
 57. Set credentialExposure only when sensitive credentials were actually shared or exposed, maliciousLink only when a suspicious link interaction is supported, and remoteAccess only when remote-control or screen-sharing access is supported.
 58. recoveryEmailChanged and phoneNumberChanged describe those specific supported account recovery changes. Unknown remains null.
-59. Multiple harms may coexist. Preserve account compromise, financial loss, threat, impersonation and exposure facts together instead of discarding secondary dimensions.`;
+59. Multiple harms may coexist. Preserve account compromise, financial loss, threat, impersonation and exposure facts together instead of discarding secondary dimensions.
+60. Set incident.statedTotalLoss only when the citizen explicitly identifies an amount as the total, for example “in total”, “total loss” or “altogether”. A first payment or debit is never a stated total.
+61. Keep openingBalance, intermediateBalances and closingBalance as balance context. Never create transactions from balance values or use a balance difference as a transaction.
+62. Do not perform or rely on arithmetic for the final displayed loss. Preserve every actual payment in transactions; the application deterministically resolves their sum.
+63. For a multi-event story, incident.approximateTime is only the time of the whole incident. Keep a time belonging to one payment on that transaction and leave the overall time null unless the source describes the whole incident at that time.
+64. Preserve every supported communication channel in adaptiveFacts.communicationChannels. Use incident.occurredOn as a concise single-channel or multiple-channel summary, never “Other” when named channels are known.
+65. A bank or organisation being impersonated is not the transaction institution. Populate transactions[].institution only when the source supports the bank or payment service actually used for that payment.
+66. incident.citizenConfirmedLoss is application-owned correction metadata. Always return null during initial extraction.`;
 
 type InputContent =
   | { type: "input_text"; text: string }
