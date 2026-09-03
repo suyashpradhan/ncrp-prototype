@@ -15,6 +15,10 @@
   --success: #287052;
   --success-bg: #f1f8f4;
   --focus: #3b5ccc;
+  --page-max: 1480px;
+  --page-gutter-total: 80px;
+  --radius-control: 8px;
+  --radius-surface: 14px;
 }
 
 * {
@@ -99,8 +103,9 @@ h3 {
   outline-offset: 3px;
 }
 
-.shell {
-  width: min(calc(100% - 40px), 1480px);
+.shell,
+.report-workspace-shell {
+  width: min(calc(100% - var(--page-gutter-total)), var(--page-max));
   margin-inline: auto;
 }
 
@@ -164,43 +169,38 @@ h3 {
   text-decoration: none;
 }
 
-.brand-mark {
-  width: 34px;
-  height: 34px;
-  display: block;
-  flex: 0 0 auto;
-}
-
-.journey-back-nav {
-  background: var(--background);
-}
-
-.journey-back-nav > .shell {
-  min-height: 52px;
-  display: flex;
-  align-items: center;
-}
-
-.journey-back-button {
-  min-height: 44px;
-  margin-left: -10px;
-  padding: 7px 10px;
+.sachet-logo {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  color: var(--secondary);
-  background: transparent;
-  border: 0;
-  border-radius: 8px;
-  font: inherit;
-  font-size: 14px;
-  font-weight: 650;
-  cursor: pointer;
+  gap: 9px;
 }
 
-.journey-back-button:hover {
+.sachet-logo-mark {
+  width: 36px;
+  height: 36px;
+  display: block;
+  flex: 0 0 auto;
   color: var(--text);
-  background: #f1f0ed;
+}
+
+.sachet-logo-wordmark {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  white-space: nowrap;
+}
+
+.sachet-logo-hi {
+  font-family: var(--font-devanagari), var(--font-manrope), sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.sachet-logo-en {
+  font-family: var(--font-amiamie), var(--font-manrope), sans-serif;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.025em;
 }
 
 .header-actions,
@@ -306,7 +306,7 @@ h3 {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 10px;
+  border-radius: var(--radius-control);
   border: 1px solid transparent;
   font-size: 15px;
   font-weight: 700;
@@ -366,7 +366,7 @@ textarea {
   color: var(--text);
   background: var(--surface);
   border: 1px solid var(--border-strong);
-  border-radius: 12px;
+  border-radius: var(--radius-control);
 }
 
 input {
@@ -387,7 +387,7 @@ textarea {
 }
 
 .service-entry-inner {
-  width: min(calc(100% - 40px), 1320px);
+  width: min(calc(100% - var(--page-gutter-total)), var(--page-max));
   padding-block: 0;
 }
 
@@ -407,6 +407,8 @@ textarea {
   margin-bottom: 18px;
   font-size: clamp(50px, 5vw, 64px);
   line-height: 1.08;
+  font-family: var(--font-amiamie), var(--font-manrope), sans-serif;
+  font-weight: 800;
 }
 
 .service-entry-support {
@@ -437,7 +439,7 @@ textarea {
   gap: 9px;
   color: var(--urgent);
   background: var(--urgent-bg);
-  border-radius: 10px;
+  border-radius: var(--radius-control);
   font-size: 14px;
   text-decoration: none;
 }
@@ -459,7 +461,7 @@ textarea {
   padding: 18px;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: var(--radius-surface);
   box-shadow:
     0 1px 2px rgba(30, 20, 20, 0.03),
     0 10px 30px rgba(50, 20, 20, 0.04);
@@ -512,6 +514,14 @@ textarea {
 .landing-case-check h2 {
   max-width: 560px;
   font-size: clamp(30px, 3vw, 38px);
+  font-family: var(--font-amiamie), var(--font-manrope), sans-serif;
+  font-weight: 800;
+}
+
+html[data-ui-locale="hi"] .service-entry h1,
+html[data-ui-locale="hi"] .landing-case-check h2 {
+  font-family: var(--font-devanagari), var(--font-manrope), sans-serif;
+  font-weight: 700;
 }
 
 .landing-case-check > div:first-child > p:last-child {
@@ -524,7 +534,7 @@ textarea {
   padding: 22px;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: var(--radius-surface);
 }
 
 .landing-conflict-example dl {
@@ -807,11 +817,6 @@ textarea {
 
 .report-workspace-stage {
   padding-block: 32px;
-}
-
-.report-workspace-shell {
-  width: min(calc(100% - 48px), 1480px);
-  margin-inline: auto;
 }
 
 .report-workspace {
@@ -2453,7 +2458,7 @@ dd {
   padding: 32px;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: var(--radius-surface);
 }
 
 .complaint-success-content {
@@ -2461,7 +2466,7 @@ dd {
 }
 
 .post-submission-shell {
-  width: min(calc(100% - 40px), 900px);
+  width: min(calc(100% - var(--page-gutter-total)), var(--page-max));
 }
 
 .post-submission-content {
@@ -3130,6 +3135,10 @@ html[data-ui-locale="hi"] .companion-eyebrow {
 }
 
 @media (max-width: 899px) {
+  :root {
+    --page-gutter-total: 48px;
+  }
+
   .service-entry {
     padding-block: 64px 72px;
   }
@@ -3186,9 +3195,8 @@ html[data-ui-locale="hi"] .companion-eyebrow {
 }
 
 @media (max-width: 560px) {
-  .shell,
-  .report-workspace-shell {
-    width: min(calc(100% - 28px), 1160px);
+  :root {
+    --page-gutter-total: 32px;
   }
 
   .header-inner {
@@ -3199,18 +3207,26 @@ html[data-ui-locale="hi"] .companion-eyebrow {
     gap: 8px;
   }
 
-  .brand-mark {
+  .sachet-logo-mark {
     width: 30px;
     height: 30px;
+  }
+
+  .sachet-logo-wordmark {
+    gap: 5px;
+  }
+
+  .sachet-logo-hi {
+    font-size: 16px;
+  }
+
+  .sachet-logo-en {
+    font-size: 19px;
   }
 
   .header-actions,
   .language-switch {
     gap: 7px;
-  }
-
-  .journey-back-nav > .shell {
-    min-height: 48px;
   }
 
   .language-switch button {

@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Manrope, Noto_Sans_Devanagari } from "next/font/google";
+import localFont from "next/font/local";
 import type { ReactNode } from "react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/next";
@@ -21,6 +22,23 @@ const notoDevanagari = Noto_Sans_Devanagari({
   subsets: ["devanagari"],
   display: "swap",
   variable: "--font-devanagari",
+});
+
+const amiamie = localFont({
+  src: [
+    {
+      path: "../../public/fonts/Amiamie-Regular.otf",
+      weight: "400",
+      style: "normal",
+    },
+    {
+      path: "../../public/fonts/Amiamie-Black.otf",
+      weight: "800",
+      style: "normal",
+    },
+  ],
+  display: "swap",
+  variable: "--font-amiamie",
 });
 
 export const metadata: Metadata = {
@@ -58,7 +76,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${manrope.variable} ${notoDevanagari.variable}`}
+      className={`${manrope.variable} ${notoDevanagari.variable} ${amiamie.variable}`}
       data-scroll-behavior="smooth"
     >
       <body>

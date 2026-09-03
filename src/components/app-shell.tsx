@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { appName } from "../config/brand";
 import { useI18n } from "../i18n/i18n-provider";
 import { useJourneyNavigation } from "../navigation/journey-navigation";
+import { SachetLogo } from "./sachet-logo";
 
 type AppShellProps = {
   children: ReactNode;
@@ -13,19 +13,7 @@ type AppShellProps = {
 
 export function AppShell({ children }: AppShellProps) {
   const { locale, setLocale, t } = useI18n();
-  const pathname = usePathname();
-  const router = useRouter();
   const { controls } = useJourneyNavigation();
-  const isJourneyPage = pathname === "/";
-  const showBack = !isJourneyPage || Boolean(controls);
-
-  function goBack() {
-    if (isJourneyPage && controls) {
-      controls.onBack();
-      return;
-    }
-    router.back();
-  }
 
   return (
     <>
@@ -45,18 +33,10 @@ export function AppShell({ children }: AppShellProps) {
             onClick={(event) => {
               if (!controls) return;
               controls.onHome();
-              if (isJourneyPage) event.preventDefault();
+              event.preventDefault();
             }}
           >
-            <img
-              className="brand-mark"
-              src="/brand/sachet-mark.svg"
-              alt=""
-              width="34"
-              height="34"
-              aria-hidden="true"
-            />
-            <span>{appName(locale)}</span>
+            <SachetLogo />
           </Link>
           <div className="header-actions">
             <div
@@ -83,28 +63,6 @@ export function AppShell({ children }: AppShellProps) {
           </div>
         </div>
       </header>
-      {showBack ? (
-        <nav
-          className="journey-back-nav"
-          aria-label={locale === "hi" ? "पेज नेविगेशन" : "Page navigation"}
-        >
-          <div className="shell">
-            <button
-              className="journey-back-button"
-              type="button"
-              onClick={goBack}
-              aria-label={
-                locale === "hi"
-                  ? "पिछले पेज पर वापस जाएँ"
-                  : "Go back to the previous page"
-              }
-            >
-              <span aria-hidden="true">←</span>
-              {locale === "hi" ? "वापस" : "Back"}
-            </button>
-          </div>
-        </nav>
-      ) : null}
       <main id="main-content" tabIndex={-1}>
         {children}
       </main>
