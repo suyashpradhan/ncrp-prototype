@@ -6,7 +6,6 @@ import type { IncidentDraft } from "../../incident/schema";
 import { useI18n } from "../../i18n/i18n-provider";
 import { deriveEvidenceContributions } from "../../presentation/evidence-contributions";
 import {
-  downloadCitizenReport,
   getSafeCaseSummary,
 } from "../../presentation/safe-case-copy";
 import {
@@ -32,6 +31,36 @@ const DEMO_EVIDENCE_PATHS: Record<string, string> = {
   "demo-message": "/demo/evidence/kyc-message-demo.png",
   "demo-transaction": "/demo/evidence/bank-transaction-demo.png",
 };
+
+function PrintableCaseReport({
+  draft,
+  prototypeReference,
+  milestones,
+}: Pick<PostSubmissionCaseHomeProps, "draft" | "prototypeReference" | "milestones">) {
+  const { locale } = useI18n();
+  const hi = locale === "hi";
+  const summary = getCaseSummary(draft, locale);
+  const submitted = new Intl.DateTimeFormat(hi ? "hi-IN" : "en-IN", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "Asia/Kolkata",
+  }).format(new Date(milestones.submittedAt));
+  return (
+    <article className="complaint-packet" aria-label={hi ? "प्रिंट करने योग्य रिपोर्ट" : "Printable report"}>
+      <header>
+        <p className="packet-brand">Sachet</p>
+        <h1>{hi ? "तैयार साइबर अपराध रिपोर्ट" : "Prepared cybercrime report"}</h1>
+        <p>{draft.officialMapping.subCategoryLabel ?? draft.officialMapping.categoryLabel ?? draft.citizenSummary.incidentLabel}</p>
+      </header>
+      <section><h2>{hi ? "संदर्भ" : "Reference"}</h2><p>{prototypeReference}</p><p>{hi ? "जमा किया गया" : "Submitted"}: {submitted}</p></section>
+      <section><h2>{hi ? "मामले का सार" : "Case summary"}</h2><dl>{summary.map((item) => <div key={item.id}><dt>{item.label}</dt><dd>{item.value}</dd></div>)}</dl></section>
+      {draft.incident.narrative ? <section><h2>{hi ? "घटना का विवरण" : "Incident summary"}</h2><p>{draft.incident.narrative}</p></section> : null}
+      {draft.transactions.length > 0 ? <section><h2>{hi ? "लेन-देन" : "Transactions"}</h2>{draft.transactions.map((transaction, index) => <dl key={transaction.id}><div><dt>{hi ? "लेन-देन" : "Transaction"}</dt><dd>{index + 1}</dd></div>{transaction.amount ? <div><dt>{hi ? "राशि" : "Amount"}</dt><dd>₹{transaction.amount.toLocaleString("en-IN")}</dd></div> : null}{transaction.institution ? <div><dt>{hi ? "बैंक या भुगतान ऐप" : "Bank / payment institution"}</dt><dd>{transaction.institution}</dd></div> : null}{transaction.transactionIdOrUtr && transaction.transactionIdOrUtr !== "__CITIZEN_DOES_NOT_HAVE__" ? <div><dt>{hi ? "लेन-देन संदर्भ" : "Transaction reference"}</dt><dd>{transaction.transactionIdOrUtr}</dd></div> : null}</dl>)}</section> : null}
+      {draft.evidence.length > 0 ? <section><h2>{hi ? "सबूत" : "Evidence"}</h2><p>{draft.evidence.length} {hi ? "सबूत आइटम रिपोर्ट में शामिल" : "evidence items included with the report"}</p></section> : null}
+      <footer><p>{hi ? "प्रोटोटाइप प्रति। यह आधिकारिक NCRP पावती या सरकारी सबमिशन रसीद नहीं है।" : "Prototype copy. Not an official NCRP acknowledgement or government submission receipt."}</p></footer>
+    </article>
+  );
+}
 
 function EvidenceIncluded({
   draft,
@@ -197,6 +226,13 @@ export function PostSubmissionCaseHome({
     window.setTimeout(() => setCopiedValue(null), 1600);
   }
 
+  function printReport() {
+    const previousTitle = document.title;
+    document.title = "Sachet — Prepared cybercrime report";
+    window.addEventListener("afterprint", () => { document.title = previousTitle; }, { once: true });
+    window.print();
+  }
+
   return (
     <section
       className="journey-stage post-submission-case section-pad"
@@ -208,7 +244,7 @@ export function PostSubmissionCaseHome({
         <div className="reading-shell post-submission-content">
           <header className="post-submission-header">
             <span className="success-mark" aria-hidden="true">✓</span>
-            <h1>{hi ? "रिपोर्ट जमा हो गई" : "Report submitted"}</h1>
+            <h1 tabIndex={-1}>{hi ? "रिपोर्ट जमा हो गई" : "Report submitted"}</h1>
             <p>
               {hi
                 ? "आपकी रिपोर्ट इस प्रोटोटाइप में दर्ज की गई है।"
@@ -245,8 +281,8 @@ export function PostSubmissionCaseHome({
               <button className="secondary-button" type="button" onClick={() => void copyText(getSafeCaseSummary(draft, prototypeReference, locale), "SUMMARY")}>
                 {copiedValue === "SUMMARY" ? (hi ? "सार कॉपी हो गया" : "Summary copied") : (hi ? "मामले का सार कॉपी करें" : "Copy case summary")}
               </button>
-              <button className="secondary-button" type="button" onClick={() => downloadCitizenReport(draft, prototypeReference, locale, milestones.submittedAt)}>
-                {hi ? "रिपोर्ट डाउनलोड करें" : "Download report"}
+              <button className="secondary-button" type="button" onClick={printReport}>
+                {hi ? "प्रिंट करें या PDF सहेजें" : "Print or save PDF"}
               </button>
             </div>
           </section>
@@ -329,6 +365,7 @@ export function PostSubmissionCaseHome({
           <button className="secondary-button" type="button" onClick={onStartNewReport}>
             {hi ? "नई रिपोर्ट शुरू करें" : "Start new report"}
           </button>
+          <PrintableCaseReport draft={draft} prototypeReference={prototypeReference} milestones={milestones} />
         </div>
       </div>
     </section>

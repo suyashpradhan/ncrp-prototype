@@ -349,6 +349,9 @@ button:disabled {
   font-size: 14px;
   font-weight: 700;
   cursor: pointer;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
 }
 
 .text-button:hover {
@@ -619,9 +622,29 @@ textarea {
 
 .journey-progress-current {
   color: var(--text) !important;
-  box-shadow: inset 0 -2px var(--text);
+  box-shadow: inset 0 -2px var(--urgent);
 }
 
+.journey-progress-number {
+  width: 28px;
+  height: 28px;
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border: 1px solid var(--border-strong);
+  border-radius: 50%;
+  color: var(--secondary);
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.journey-progress-current .journey-progress-number {
+  color: #fff;
+  background: var(--urgent);
+  border-color: var(--urgent);
+}
+
+.journey-progress-complete .journey-progress-number,
 .journey-progress-check,
 .ready-mark {
   color: var(--success);
@@ -1032,23 +1055,39 @@ textarea {
   width: min(100%, 420px);
   height: auto;
   margin-block: 14px;
-  color: var(--text);
-  background: var(--surface);
+  color: #181817;
+  background: #ffffff;
+  border-radius: 12px;
 }
 
 .utr-example rect:first-child {
-  fill: var(--surface);
-  stroke: var(--border-strong);
+  fill: #ffffff;
+  stroke: #a9a59f;
 }
 
 .utr-example text {
-  fill: currentColor;
+  fill: #181817;
   font: 14px system-ui, sans-serif;
 }
 
 .utr-example-highlight {
-  fill: var(--primary-050);
-  stroke: var(--primary);
+  fill: #fff1f2;
+  stroke: #9f1d2d;
+}
+
+.journey-stage a:not(.primary-button):not(.secondary-button),
+.post-submission-case a:not(.primary-button):not(.secondary-button) {
+  color: var(--text);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+  cursor: pointer;
+}
+
+.journey-stage a:not(.primary-button):not(.secondary-button):hover,
+.post-submission-case a:not(.primary-button):not(.secondary-button):hover {
+  color: var(--urgent);
+  text-decoration-thickness: 2px;
 }
 
 .field-copy-button {

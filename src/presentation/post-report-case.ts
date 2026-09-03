@@ -54,7 +54,7 @@ function formatApplicationTime(value: string, locale: UiLocale): string {
 }
 
 function formatKnownTime(value: string | null, locale: UiLocale): string | null {
-  if (!value) return null;
+  if (!value || value === "__CITIZEN_DOES_NOT_HAVE__" || value === "UNKNOWN") return null;
   const match = /^(\d{1,2}):(\d{2})$/.exec(value);
   if (!match) return value;
   const hours = Number(match[1]);

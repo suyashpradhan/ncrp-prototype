@@ -22,18 +22,20 @@ export function JourneyProgress({
 
   return (
     <ol className="journey-progress" aria-label={t("journey.progressLabel")}>
-      {JOURNEY_STEPS.map((step, index) => (
+      {JOURNEY_STEPS.map((step, index) => {
+        const completed = index < currentIndex || (index === currentIndex && completeCurrent);
+        const currentStep = step.id === current && !completeCurrent;
+        return (
         <li
           key={step.id}
-          className={step.id === current && !completeCurrent ? "journey-progress-current" : undefined}
-          aria-current={step.id === current && !completeCurrent ? "step" : undefined}
+          className={currentStep ? "journey-progress-current" : completed ? "journey-progress-complete" : "journey-progress-upcoming"}
+          aria-current={currentStep ? "step" : undefined}
         >
+          <span className="journey-progress-number" aria-hidden="true">{completed ? "✓" : index + 1}</span>
           <span>{t(step.labelKey)}</span>
-          {index < currentIndex || (index === currentIndex && completeCurrent) ? (
-            <span className="journey-progress-check" aria-label={t("journey.completed")}>✓</span>
-          ) : null}
         </li>
-      ))}
+        );
+      })}
     </ol>
   );
 }

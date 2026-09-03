@@ -364,8 +364,9 @@ export function deriveReportGroups(
             missingQuestion: index === 0 ? missingByField.get("transactionDate") : undefined,
           }),
           makeField(`transaction-${index}-time`, copy("field.approxTime"), transaction.approximateTime, {
-            helpText: copy("field.approxTimeHelp"),
-            missingQuestion: index === 0 ? missingByField.get("transactionApproximateTime") : undefined,
+            helpText: locale === "hi"
+              ? "यदि उपलब्ध हो तो उपयोगी। लगभग समय भी ठीक है।"
+              : "Helpful if available. Approximate time is okay.",
           }),
           makeField(`transaction-${index}-reference`, copy("field.reference"), transaction.referenceNumber),
         ],

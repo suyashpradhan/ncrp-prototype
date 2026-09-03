@@ -39,6 +39,46 @@ export type DeterministicFinancialFacts = {
   reportedAmount: number | null;
 };
 
+export type IncidentNormalizationOptions = {
+  reportingDate?: string;
+};
+
+function validDateOnly(value: string | undefined): value is string {
+  return Boolean(value && /^\d{4}-\d{2}-\d{2}$/.test(value));
+}
+
+function shiftDateOnly(value: string, days: number): string {
+  const [year, month, day] = value.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day + days, 12));
+  return date.toISOString().slice(0, 10);
+}
+
+export function resolveRelativeIncidentContext(
+  text: string,
+  reportingDate?: string,
+): { incidentDate: string | null; approximateTime: string | null } {
+  if (!validDateOnly(reportingDate)) {
+    return { incidentDate: null, approximateTime: null };
+  }
+  const normalized = text.toLowerCase();
+  const isYesterday = /\byesterday\b|\blast night\b/.test(normalized);
+  const isToday = /\btoday\b|\btonight\b/.test(normalized);
+  if (!isYesterday && !isToday) {
+    return { incidentDate: null, approximateTime: null };
+  }
+  const approximateTime = /\bmorning\b/.test(normalized)
+    ? "Morning"
+    : /\bevening\b/.test(normalized)
+      ? "Evening"
+      : /\bnight\b|\btonight\b/.test(normalized)
+        ? "Night"
+        : null;
+  return {
+    incidentDate: isYesterday ? shiftDateOnly(reportingDate, -1) : reportingDate,
+    approximateTime,
+  };
+}
+
 function parseAmount(raw: string, unit: string | undefined): number | null {
   const numeric = Number(raw.replaceAll(",", ""));
   if (!Number.isFinite(numeric) || numeric <= 0) return null;
@@ -173,7 +213,10 @@ export function normalizeIncidentChannel(draft: IncidentDraft): string | null {
   return "Other";
 }
 
-export function normalizeIncidentDraft(draft: IncidentDraft): IncidentDraft {
+export function normalizeIncidentDraft(
+  draft: IncidentDraft,
+  options: IncidentNormalizationOptions = {},
+): IncidentDraft {
   const reportCategory = draft.classification.reportFamily === "OUT_OF_SCOPE_OR_UNCLEAR"
     ? null
     : draft.classification.reportFamily;
@@ -184,6 +227,10 @@ export function normalizeIncidentDraft(draft: IncidentDraft): IncidentDraft {
     ...draft.evidence.flatMap((item) => item.extractedFacts),
   ].filter(Boolean).join("\n");
   const extracted = deriveFinancialFactsFromText(supportedText);
+  const relativeContext = resolveRelativeIncidentContext(
+    supportedText,
+    options.reportingDate,
+  );
   const isFinancialIncident = draft.classification.reportFamily === "FINANCIAL_FRAUD";
   const financialLossState = isFinancialIncident
     ? extracted.financialLossState !== "UNKNOWN"
@@ -218,11 +265,23 @@ export function normalizeIncidentDraft(draft: IncidentDraft): IncidentDraft {
           amount,
         }))
       : existingTransactions;
+  const normalizedIncidentDate = draft.incident.incidentDate ?? relativeContext.incidentDate;
+  const evidenceHasSeparateTransactionDate = draft.evidence.some(
+    (item) => item.type === "TRANSACTION_SCREENSHOT" &&
+      item.extractedFacts.some((fact) => /\bdate(?:d)?\b|\btransaction date\b|तारीख/i.test(fact)),
+  );
+  const transactionDateFromIncident = Boolean(
+    normalizedIncidentDate &&
+    !evidenceHasSeparateTransactionDate &&
+    /\b(?:after that|then|later|subsequently)\b[\s\S]*\b(?:paid|debited|transferred|sent)\b|\b(?:paid|debited|transferred|sent)\b[\s\S]*\b(?:after that|then|later|subsequently)\b/i.test(supportedText),
+  );
   const transactions = transactionSource.length > 0
     ? transactionSource.map((transaction, index) => ({
         ...transaction,
         id: transaction.id || `transaction-${index + 1}`,
         currency: transaction.currency ?? "INR",
+        transactionDate: transaction.transactionDate ??
+          (transactionDateFromIncident ? normalizedIncidentDate : null),
         status: transaction.amount || transaction.transactionIdOrUtr || transaction.referenceNumber
           ? "KNOWN" as const
           : "MISSING" as const,
@@ -235,7 +294,7 @@ export function normalizeIncidentDraft(draft: IncidentDraft): IncidentDraft {
         accountOrUpiId: null,
         transactionIdOrUtr: null,
         amount,
-        transactionDate: null,
+        transactionDate: transactionDateFromIncident ? normalizedIncidentDate : null,
         approximateTime: null,
         referenceNumber: null,
         status: "KNOWN" as const,
@@ -274,6 +333,8 @@ export function normalizeIncidentDraft(draft: IncidentDraft): IncidentDraft {
       reportedAmount: financialLossState === "YES"
         ? draft.incident.reportedAmount ?? extracted.reportedAmount
         : null,
+      incidentDate: normalizedIncidentDate,
+      approximateTime: draft.incident.approximateTime ?? relativeContext.approximateTime,
       occurredOn: normalizeIncidentChannel(draft),
     },
     transactions,

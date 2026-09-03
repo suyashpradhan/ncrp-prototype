@@ -43,7 +43,6 @@ const FINANCIAL_TRANSACTION_REQUIREMENTS: readonly ReportRequirement[] = [
   { key: "transactionAmount", group: "TRANSACTIONS" },
   { key: "transactionIdOrUtr", group: "TRANSACTIONS" },
   { key: "transactionDate", group: "TRANSACTIONS" },
-  { key: "transactionApproximateTime", group: "TRANSACTIONS" },
 ];
 
 const SOCIAL_ACCOUNT_REQUIREMENTS: readonly ReportRequirement[] = [

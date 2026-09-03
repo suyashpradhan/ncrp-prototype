@@ -222,7 +222,7 @@ export const NCRP_FIELD_DEFINITIONS: readonly NcrpFieldDefinition[] = [
   { id: "transactions.0.transactionIdOrUtr", group: "TRANSACTIONS", labelKey: "field.transactionReference", required: true, sourceReference: portalAndChecklist, supportedInPrototype: true, ...financialOnly },
   { id: "transactions.0.amount", group: "TRANSACTIONS", labelKey: "field.amount", required: true, sourceReference: portalAndChecklist, supportedInPrototype: true, ...financialOnly },
   { id: "transactions.0.transactionDate", group: "TRANSACTIONS", labelKey: "field.transactionDate", required: true, sourceReference: portalAndChecklist, supportedInPrototype: true, ...financialOnly },
-  { id: "transactions.0.approximateTime", group: "TRANSACTIONS", labelKey: "field.approxTime", required: true, sourceReference: portalAndChecklist, supportedInPrototype: true, ...financialOnly },
+  { id: "transactions.0.approximateTime", group: "TRANSACTIONS", labelKey: "field.approxTime", required: false, sourceReference: portalAndChecklist, supportedInPrototype: true, ...financialOnly },
   { id: "transactions.0.referenceNumber", group: "TRANSACTIONS", labelKey: "field.reference", required: false, sourceReference: portalAndChecklist, supportedInPrototype: true, ...financialOnly },
   { id: "adaptive.platform", group: "INCIDENT", labelKey: "field.occurredOn", required: true, sourceReference: portalAndChecklist, supportedInPrototype: true, reportFamilies: ["OTHER_CYBER_CRIME", "WOMEN_CHILDREN_RELATED_CRIME"] },
   { id: "adaptive.affectedAccount", group: "INCIDENT", labelKey: "field.socialHandle", required: true, sourceReference: portalAndChecklist, supportedInPrototype: true, ...profileHackingOnly },

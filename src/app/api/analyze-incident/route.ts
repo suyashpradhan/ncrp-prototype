@@ -72,6 +72,10 @@ export async function POST(request: Request) {
     const narrative = String(formData.get("narrative") ?? "").trim().slice(0, 8_000);
     const englishTranscript = String(formData.get("englishTranscript") ?? "").trim().slice(0, 8_000);
     const reportingFor = String(formData.get("reportingFor") ?? "SELF").slice(0, 40);
+    const reportingDateValue = String(formData.get("reportingDate") ?? "");
+    const reportingDate = /^\d{4}-\d{2}-\d{2}$/.test(reportingDateValue)
+      ? reportingDateValue
+      : undefined;
     const screenshots = formData.getAll("screenshots").filter((item): item is File => item instanceof File);
 
     if (!narrative && !englishTranscript && screenshots.length === 0) {
@@ -116,7 +120,9 @@ export async function POST(request: Request) {
     });
 
     if (!response.output_parsed) throw new Error("No structured incident draft returned.");
-    const normalizedDraft = normalizeIncidentDraft(response.output_parsed);
+    const normalizedDraft = normalizeIncidentDraft(response.output_parsed, {
+      reportingDate,
+    });
     return Response.json(normalizedDraft, { headers: { "Cache-Control": "no-store" } });
   } catch {
     return Response.json(

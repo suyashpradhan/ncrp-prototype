@@ -247,6 +247,18 @@ function reportSourceSignature(input: {
   });
 }
 
+function currentIndiaDate(): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    timeZone: "Asia/Kolkata",
+  }).formatToParts(new Date());
+  const part = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((item) => item.type === type)?.value ?? "";
+  return `${part("year")}-${part("month")}-${part("day")}`;
+}
+
 async function compressScreenshot(file: File): Promise<File> {
   if (file.size <= 1_500_000 || typeof createImageBitmap === "undefined") {
     return file;
@@ -674,6 +686,17 @@ export function DemoJourney() {
     if (view !== "ENTRY") {
       document.querySelector<HTMLElement>("[data-journey-focus]")?.focus();
     }
+  }, [view]);
+
+  useEffect(() => {
+    if (view !== "SUCCESS") return;
+    const frame = window.requestAnimationFrame(() => {
+      const caseHome = document.querySelector<HTMLElement>(".post-submission-case");
+      const heading = caseHome?.querySelector<HTMLElement>("h1");
+      caseHome?.scrollIntoView({ behavior: "auto", block: "start" });
+      heading?.focus({ preventScroll: true });
+    });
+    return () => window.cancelAnimationFrame(frame);
   }, [view]);
 
   useEffect(() => {
@@ -1194,6 +1217,7 @@ export function DemoJourney() {
         preparedTranscription?.englishTranscript ?? "",
       );
       data.append("reportingFor", "SELF");
+      data.append("reportingDate", currentIndiaDate());
       screenshots.forEach((file) =>
         data.append("screenshots", file, file.name),
       );

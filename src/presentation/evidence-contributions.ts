@@ -35,7 +35,7 @@ function formatDate(value: string | null, locale: UiLocale) {
 }
 
 function formatTime(value: string | null, locale: UiLocale) {
-  if (!value) return null;
+  if (!value || value === "__CITIZEN_DOES_NOT_HAVE__" || value === "UNKNOWN") return null;
   const [hours, minutes] = value.split(":").map(Number);
   if (!Number.isInteger(hours) || !Number.isInteger(minutes)) return value;
   return new Intl.DateTimeFormat(locale === "hi" ? "hi-IN" : "en-IN", {

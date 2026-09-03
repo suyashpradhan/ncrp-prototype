@@ -1553,7 +1553,14 @@ function ReportGroup({
     const state = getField("reporter-state");
     const district = getField("reporter-district");
     const city = getField("reporter-city");
-    const identity = getField("reporter-identity-document");
+    const conciseProfileIds = new Set([
+      "reporter-name",
+      "reporter-mobile",
+      "reporter-email",
+      "reporter-state",
+      "reporter-district",
+      "reporter-city",
+    ]);
     return (
       <div
         className="report-group report-group-profile"
@@ -1575,12 +1582,6 @@ function ReportGroup({
                   .join(" · ")}
               </dd>
             </div>
-            <div>
-              <dt>{identity?.label}</dt>
-              <dd>
-                {identity?.value} <span className="ready-mark">✓</span>
-              </dd>
-            </div>
           </dl>
         </section>
         <details className="report-summary-disclosure">
@@ -1588,10 +1589,10 @@ function ReportGroup({
             {t("workspace.fullProfile")} <span aria-hidden="true">→</span>
           </summary>
           <div className="report-summary-disclosure-content">
-            {group.sections.map((section) => (
+            {group.sections.filter((section) => section.fields.some((field) => conciseProfileIds.has(field.id))).map((section) => (
               <section key={section.id} className="report-field-section">
                 {section.title ? <h3>{section.title}</h3> : null}
-                {section.fields.map(renderField)}
+                {section.fields.filter((field) => conciseProfileIds.has(field.id)).map(renderField)}
               </section>
             ))}
           </div>
@@ -2156,8 +2157,8 @@ function ReportStatusCard({
         : hi ? "आपका बयान और सबूत सुरक्षित हैं।" : "Your statement and evidence are saved."
       : isEmpty
         ? hi
-          ? "क्या हुआ बताएं या सबूत जोड़ें। सचेत जानकारी को ऐसी रिपोर्ट में व्यवस्थित करेगा जिसे आप जाँच सकते हैं।"
-          : "Tell us what happened, or add evidence. Sachet will organise the information into a report you can review."
+          ? "बाईं ओर बताएं कि क्या हुआ। हम जानकारी को आपकी समीक्षा के लिए व्यवस्थित करेंगे।"
+          : "Tell us what happened on the left. We’ll organise the details for you to review."
         : readiness?.state === "STALE"
           ? hi ? "आगे बढ़ने से पहले रिपोर्ट को नई जानकारी के साथ अपडेट करें।" : "Update the report with the new information before continuing."
           : readiness?.state === "NEEDS_CLARIFICATION"

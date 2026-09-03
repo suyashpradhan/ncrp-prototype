@@ -76,7 +76,7 @@ const EN_TEXT: Record<string, string> = {
   "workspace.tell": "Tell us what happened",
   "workspace.yourInformation": "What you shared",
   "workspace.intro":
-    "Describe the fraud in your own words. You can speak, type, or add evidence you already have.",
+    "Speak, type, or add evidence. You don't need to know the report category.",
   "workspace.reporterNameQuestion": "What is your name?",
   "workspace.reporterNamePlaceholder": "Enter a test name",
   "workspace.reporterNameHelp": "Use test information only for this prototype.",
@@ -94,7 +94,7 @@ const EN_TEXT: Record<string, string> = {
   "workspace.addEvidence": "Add evidence",
   "workspace.useDemo": "Try demo case",
   "workspace.chooseScreenshots": "Choose screenshots",
-  "workspace.maxImages": "Maximum 2 images.",
+  "workspace.maxImages": "Maximum 8 images.",
   "workspace.safety":
     "Use test information only. Do not upload OTPs, PINs, passwords or CVVs.",
   "workspace.describe": "Describe what happened",
