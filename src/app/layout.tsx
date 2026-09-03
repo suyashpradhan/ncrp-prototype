@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Noto_Sans_Devanagari } from "next/font/google";
-import localFont from "next/font/local";
+import { Noto_Sans_Devanagari, Nunito } from "next/font/google";
 import type { ReactNode } from "react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/next";
@@ -18,21 +17,10 @@ const notoDevanagari = Noto_Sans_Devanagari({
   variable: "--font-devanagari",
 });
 
-const amiamie = localFont({
-  src: [
-    {
-      path: "../../public/fonts/Amiamie-Regular.otf",
-      weight: "400",
-      style: "normal",
-    },
-    {
-      path: "../../public/fonts/Amiamie-Black.otf",
-      weight: "800",
-      style: "normal",
-    },
-  ],
+const nunito = Nunito({
+  subsets: ["latin"],
   display: "swap",
-  variable: "--font-amiamie",
+  variable: "--font-nunito",
 });
 
 export const metadata: Metadata = {
@@ -70,7 +58,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${notoDevanagari.variable} ${amiamie.variable}`}
+      className={`${notoDevanagari.variable} ${nunito.variable}`}
       data-scroll-behavior="smooth"
     >
       <body>
