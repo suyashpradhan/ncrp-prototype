@@ -100,7 +100,7 @@ h3 {
 }
 
 .shell {
-  width: min(calc(100% - 40px), 1160px);
+  width: min(calc(100% - 40px), 1480px);
   margin-inline: auto;
 }
 
@@ -755,7 +755,6 @@ textarea {
 
 /* Journey and workspace */
 .journey-progress {
-  max-width: 600px;
   margin: 0 0 28px;
   padding: 8px 0 0;
   display: grid;
@@ -1442,7 +1441,9 @@ textarea {
 
 .utr-example text {
   fill: #181817;
-  font: 14px system-ui, sans-serif;
+  font:
+    14px system-ui,
+    sans-serif;
 }
 
 .utr-example-highlight {
@@ -1784,11 +1785,16 @@ textarea {
   display: block;
   background:
     radial-gradient(circle at 50% 6px, #817d78 0 4px, transparent 4.5px),
-    linear-gradient(var(--border), var(--border)) 50% 15px / 1px calc(100% - 10px) no-repeat;
+    linear-gradient(var(--border), var(--border)) 50% 15px / 1px
+      calc(100% - 10px) no-repeat;
 }
 
 .incident-timeline > ol > li:last-child .timeline-marker {
-  background: radial-gradient(circle at 50% 6px, #817d78 0 4px, transparent 4.5px);
+  background: radial-gradient(
+    circle at 50% 6px,
+    #817d78 0 4px,
+    transparent 4.5px
+  );
 }
 
 .incident-timeline time {
