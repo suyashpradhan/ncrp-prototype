@@ -8,7 +8,7 @@ import { deriveEvidenceContributions } from "../../presentation/evidence-contrib
 import {
   getCaseSummary,
   getPostReportActions,
-  getPostReportProcessExplanation,
+  getProcessExplainer,
   getPostSubmissionTimeline,
   type PostReportMilestones,
 } from "../../presentation/post-report-case";
@@ -176,7 +176,7 @@ export function PostSubmissionCaseHome({
   const hi = locale === "hi";
   const summary = getCaseSummary(draft, locale);
   const actions = getPostReportActions(draft, locale);
-  const process = getPostReportProcessExplanation(draft, locale);
+  const process = getProcessExplainer(draft, locale);
   const timeline = getPostSubmissionTimeline(
     draft,
     locale,
@@ -252,18 +252,41 @@ export function PostSubmissionCaseHome({
             <h2 id="post-report-process-heading">{hi ? "आगे क्या होता है" : "What happens next"}</h2>
             <div className="post-report-process-part">
               <h3>{hi ? "अभी क्या पता है" : "Known now"}</h3>
-              {process.knownNow.map((item) => <p key={item}>{item}</p>)}
+              <p className="post-report-known-state">
+                <strong>{process.currentKnownState.title}</strong>
+                <span>{process.currentKnownState.description}</span>
+              </p>
             </div>
             <div className="post-report-process-part">
-              <h3>
-                {hi
-                  ? "आधिकारिक प्रक्रिया में संभावित अगले चरण"
-                  : "Possible next steps in the official process"}
-              </h3>
-              <ul>
-                {process.possibleNextSteps.map((item) => <li key={item}>{item}</li>)}
+              <h3>{process.possibleNextStagesHeading}</h3>
+              <ol className="post-report-stage-list">
+                {process.possibleNextStages.map((stage, index) => (
+                  <li key={stage.id}>
+                    <span aria-hidden="true">{index + 1}</span>
+                    <div>
+                      <strong>{stage.title}</strong>
+                      <p>{stage.description}</p>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            </div>
+            <div className="post-report-process-part">
+              <h3>{hi ? "इसका क्या अर्थ नहीं है" : "What this does not mean"}</h3>
+              <ul className="post-report-boundary-list">
+                {process.importantBoundaries.map((boundary) => (
+                  <li key={boundary}>{boundary}</li>
+                ))}
               </ul>
             </div>
+            {process.keepReady && process.keepReady.length > 0 ? (
+              <div className="post-report-process-part">
+                <h3>{hi ? "तैयार रखें" : "Keep ready"}</h3>
+                <ul className="post-report-keep-ready-list">
+                  {process.keepReady.map((item) => <li key={item}>{item}</li>)}
+                </ul>
+              </div>
+            ) : null}
           </section>
 
           <section className="companion-section post-report-timeline-section">

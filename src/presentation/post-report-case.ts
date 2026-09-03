@@ -25,9 +25,21 @@ export type PostReportAction = {
   href?: string;
 };
 
-export type PostReportProcessExplanation = {
-  knownNow: string[];
-  possibleNextSteps: string[];
+export type ProcessExplainerStage = {
+  id: string;
+  title: string;
+  description: string;
+};
+
+export type ProcessExplainer = {
+  currentKnownState: {
+    title: string;
+    description: string;
+  };
+  possibleNextStagesHeading: string;
+  possibleNextStages: ProcessExplainerStage[];
+  importantBoundaries: string[];
+  keepReady?: string[];
 };
 
 function formatApplicationTime(value: string, locale: UiLocale): string {
@@ -463,36 +475,488 @@ export function getPostReportActions(
   ];
 }
 
-export function getPostReportProcessExplanation(
+function processKeepReadyItems(
   draft: IncidentDraft,
   locale: UiLocale,
-): PostReportProcessExplanation {
+  kind:
+    | "FINANCIAL_LOSS"
+    | "ATTEMPTED_SCAM"
+    | "ACCOUNT_COMPROMISE"
+    | "RANSOMWARE"
+    | "SENSITIVE_ABUSE"
+    | "GENERAL",
+): string[] {
   const hi = locale === "hi";
-  const possibleNextSteps = [
-    hi
-      ? "यदि आधिकारिक NCRP प्रक्रिया के माध्यम से जमा किया जाए, तो ट्रैक की जा सकने वाली शिकायत को पावती या संदर्भ मिल सकता है।"
-      : "If submitted through the official NCRP process, a trackable complaint can receive an acknowledgement or reference.",
-    hi
-      ? "शिकायत को संबंधित राज्य या केंद्रशासित प्रदेश की कानून-प्रवर्तन एजेंसी संभाल सकती है।"
-      : "The complaint may then be handled by the relevant State or UT law-enforcement agency.",
+  const hasEvidence = draft.evidence.some(
+    (item) => item.type !== "VOICE_STATEMENT",
+  );
+  const hasTransactionReference = draft.transactions.some(
+    (transaction) =>
+      Boolean(
+        transaction.transactionIdOrUtr &&
+          transaction.transactionIdOrUtr !== "__CITIZEN_DOES_NOT_HAVE__",
+      ),
+  );
+  const platform =
+    draft.adaptiveFacts.platform ?? draft.classification.platform;
+
+  if (kind === "FINANCIAL_LOSS") {
+    return [
+      hasTransactionReference
+        ? hi
+          ? "लेन-देन के संदर्भ और विवरण"
+          : "Transaction references and details"
+        : hi
+          ? "आपके पास उपलब्ध लेन-देन की जानकारी"
+          : "Any transaction details you have",
+      hi ? "बैंक या भुगतान सेवा से हुई बातचीत" : "Bank or payment-service communication",
+      hasEvidence
+        ? hi
+          ? "रिपोर्ट में शामिल संदेश और स्क्रीनशॉट"
+          : "Messages and screenshots included with the report"
+        : hi
+          ? "आपके पास उपलब्ध संबंधित संदेश या स्क्रीनशॉट"
+          : "Any relevant messages or screenshots you have",
+      hi ? "प्रोटोटाइप रिपोर्ट और संदर्भ" : "Prototype report and reference",
+    ];
+  }
+
+  if (kind === "ACCOUNT_COMPROMISE") {
+    return [
+      platform
+        ? hi
+          ? `${platform} खाते या प्रोफ़ाइल का विवरण`
+          : `${platform} account or profile details`
+        : hi
+          ? "प्रभावित खाते या प्रोफ़ाइल का विवरण"
+          : "Affected account or profile details",
+      hi ? "सुरक्षा ईमेल या चेतावनियाँ, यदि मिली हों" : "Any security emails or alerts received",
+      hasEvidence
+        ? hi
+          ? "रिपोर्ट में शामिल स्क्रीनशॉट और संदेश"
+          : "Screenshots and messages included with the report"
+        : hi
+          ? "आपके पास उपलब्ध संबंधित स्क्रीनशॉट या संदेश"
+          : "Any relevant screenshots or messages you have",
+      hi ? "प्रोटोटाइप रिपोर्ट और संदर्भ" : "Prototype report and reference",
+    ];
+  }
+
+  if (kind === "ATTEMPTED_SCAM") {
+    const identifiers = new Set(
+      draft.suspectIdentifiers.map((identifier) => identifier.type),
+    );
+    const items: string[] = [];
+    if (identifiers.has("PHONE")) {
+      items.push(hi ? "भेजने वाले का फोन नंबर" : "Sender phone number");
+    }
+    if (identifiers.has("SOCIAL_HANDLE")) {
+      items.push(hi ? "भेजने वाले की प्रोफ़ाइल" : "Sender profile");
+    }
+    if (identifiers.has("URL")) {
+      items.push(hi ? "संबंधित वेबसाइट या लिंक" : "Relevant website or link");
+    }
+    items.push(
+      hasEvidence
+        ? hi
+          ? "रिपोर्ट में शामिल संदेश और स्क्रीनशॉट"
+          : "Messages and screenshots included with the report"
+        : hi
+          ? "आपके पास उपलब्ध संबंधित संदेश या स्क्रीनशॉट"
+          : "Any relevant messages or screenshots you have",
+    );
+    if (Object.values(draft.financialExposure).some(Boolean)) {
+      items.push(
+        hi
+          ? "मांगी या साझा की गई जानकारी का रिकॉर्ड"
+          : "A record of information requested or shared",
+      );
+    }
+    items.push(hi ? "प्रोटोटाइप रिपोर्ट और संदर्भ" : "Prototype report and reference");
+    return items.slice(0, 4);
+  }
+
+  if (kind === "RANSOMWARE") {
+    return [
+      draft.adaptiveFacts.affectedSystem
+        ? hi
+          ? `${draft.adaptiveFacts.affectedSystem} से जुड़ी जानकारी`
+          : `Information about ${draft.adaptiveFacts.affectedSystem}`
+        : hi
+          ? "प्रभावित उपकरण या सिस्टम की जानकारी"
+          : "Affected device or system information",
+      hi ? "फिरौती का संदेश, यदि उपलब्ध हो" : "The ransom message, if available",
+      hasEvidence
+        ? hi
+          ? "रिपोर्ट में शामिल संबंधित स्क्रीनशॉट"
+          : "Relevant screenshots included with the report"
+        : hi
+          ? "आपके पास उपलब्ध संबंधित स्क्रीनशॉट"
+          : "Any relevant screenshots you have",
+      hi ? "प्रोटोटाइप रिपोर्ट और संदर्भ" : "Prototype report and reference",
+    ];
+  }
+
+  if (kind === "SENSITIVE_ABUSE") {
+    return [
+      hi ? "संबंधित संदेश और खाता विवरण" : "Relevant messages and account details",
+      hasEvidence
+        ? hi
+          ? "रिपोर्ट में शामिल सुरक्षित सबूत"
+          : "Safely preserved evidence included with the report"
+        : hi
+          ? "आपके पास सुरक्षित रखे संबंधित सबूत"
+          : "Any relevant evidence you have preserved",
+      hi ? "प्रोटोटाइप रिपोर्ट और संदर्भ" : "Prototype report and reference",
+    ];
+  }
+
+  return [
+    hasEvidence
+      ? hi
+        ? "रिपोर्ट में शामिल संबंधित सबूत"
+        : "Relevant evidence included with the report"
+      : hi
+        ? "आपके पास उपलब्ध संबंधित जानकारी या सबूत"
+        : "Any relevant information or evidence you have",
+    hi ? "प्रोटोटाइप रिपोर्ट और संदर्भ" : "Prototype report and reference",
   ];
+}
+
+export function getProcessExplainer(
+  draft: IncidentDraft,
+  locale: UiLocale,
+): ProcessExplainer {
+  const hi = locale === "hi";
+  const family = draft.classification.reportFamily;
+  const categoryText = [
+    draft.classification.subCategory,
+    draft.officialMapping.subCategoryLabel,
+    draft.citizenSummary.incidentLabel,
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const isRansomware =
+    /ransomware|ransom|encrypted/i.test(categoryText) ||
+    Boolean(draft.adaptiveFacts.ransomMessagePresent) ||
+    Boolean(draft.adaptiveFacts.filesEncrypted);
+  const isAccountCompromise =
+    /profile hacking|account takeover|account compromise/i.test(categoryText) ||
+    Boolean(draft.adaptiveFacts.affectedAccount) ||
+    Boolean(draft.adaptiveFacts.accountAccessStatus);
+  const currentKnownState = {
+    title: hi ? "प्रोटोटाइप रिपोर्ट दर्ज हुई" : "Prototype report recorded",
+    description: hi
+      ? "आपकी रिपोर्ट इस प्रोटोटाइप में दर्ज की गई है। इसे NCRP या किसी अन्य सरकारी प्रणाली को जमा नहीं किया गया है।"
+      : "Your report has been recorded in this prototype. It has not been submitted to NCRP or another government system.",
+  };
+  const officialHeading = hi
+    ? "आधिकारिक प्रक्रिया में संभावित अगले चरण"
+    : "Possible next steps in the official process";
+
   if (
-    draft.classification.reportFamily === "FINANCIAL_FRAUD" &&
+    family === "OUT_OF_SCOPE_OR_UNCLEAR" &&
+    draft.classification.ambiguity === "OUT_OF_CYBER_SCOPE"
+  ) {
+    return {
+      currentKnownState,
+      possibleNextStagesHeading: hi
+        ? "इस घटना के लिए उपयुक्त अगला रास्ता"
+        : "The appropriate next path for this incident",
+      possibleNextStages: [
+        {
+          id: "outside-cyber-scope",
+          title: hi
+            ? "यह घटना साइबर अपराध रिपोर्टिंग प्रक्रिया से बाहर हो सकती है"
+            : "This incident may fall outside the cybercrime reporting process",
+          description: hi
+            ? "घटना के लिए संबंधित आपातकालीन, पुलिस या सेवा माध्यम का उपयोग करें।"
+            : "Use the relevant emergency, police or service channel for the incident.",
+        },
+      ],
+      importantBoundaries: [
+        hi
+          ? "यह प्रोटोटाइप रिकॉर्ड इस घटना को आधिकारिक साइबर शिकायत के रूप में स्वीकार किए जाने की पुष्टि नहीं करता।"
+          : "This prototype record does not confirm that the incident would be accepted as an official cyber complaint.",
+        hi
+          ? "यह FIR दर्ज होने या जाँच के परिणाम की पुष्टि नहीं करता।"
+          : "It does not confirm FIR registration or an investigation outcome.",
+      ],
+      keepReady: processKeepReadyItems(draft, locale, "GENERAL"),
+    };
+  }
+
+  if (
+    family === "OUT_OF_SCOPE_OR_UNCLEAR" ||
+    draft.classification.ambiguity !== "NONE"
+  ) {
+    return {
+      currentKnownState,
+      possibleNextStagesHeading: officialHeading,
+      possibleNextStages: [
+        {
+          id: "official-acknowledgement",
+          title: hi ? "आधिकारिक पावती" : "Official acknowledgement",
+          description: hi
+            ? "सफलतापूर्वक जमा की गई आधिकारिक शिकायत को संदर्भ मिल सकता है।"
+            : "A successfully submitted official complaint can receive a reference.",
+        },
+        {
+          id: "authority-review",
+          title: hi ? "शिकायत की समीक्षा" : "Complaint review",
+          description: hi
+            ? "रिपोर्टिंग रास्ते के अनुसार संबंधित प्राधिकरण शिकायत की समीक्षा कर सकता है और अधिक जानकारी मांग सकता है।"
+            : "The relevant authority may review the complaint and request more information depending on the reporting path.",
+        },
+      ],
+      importantBoundaries: [
+        hi
+          ? "यह किसी विशेष आधिकारिक रिपोर्टिंग रास्ते की पुष्टि नहीं करता।"
+          : "This does not confirm a particular official reporting path.",
+        hi
+          ? "यह FIR दर्ज होने या जाँच के परिणाम की पुष्टि नहीं करता।"
+          : "It does not confirm FIR registration or an investigation outcome.",
+      ],
+      keepReady: processKeepReadyItems(draft, locale, "GENERAL"),
+    };
+  }
+
+  if (family === "WOMEN_CHILDREN_RELATED_CRIME") {
+    return {
+      currentKnownState,
+      possibleNextStagesHeading: officialHeading,
+      possibleNextStages: [
+        {
+          id: "official-acknowledgement",
+          title: hi ? "आधिकारिक पावती" : "Official acknowledgement",
+          description: hi
+            ? "सफलतापूर्वक जमा की गई शिकायत को संदर्भ मिल सकता है।"
+            : "A successfully submitted complaint can receive a reference.",
+        },
+        {
+          id: "relevant-authority-handling",
+          title: hi ? "संबंधित प्राधिकरण द्वारा कार्रवाई" : "Relevant authority handling",
+          description: hi
+            ? "शिकायत संबंधित कानून-प्रवर्तन प्राधिकरण को भेजी जा सकती है।"
+            : "The complaint may be routed to the appropriate law-enforcement authority.",
+        },
+        {
+          id: "additional-information",
+          title: hi ? "अतिरिक्त जानकारी" : "Additional information",
+          description: hi
+            ? "मामले के अनुसार आगे संदेश, खाते का विवरण या सबूत मांगा जा सकता है।"
+            : "Further messages, account details or evidence may be requested depending on the case.",
+        },
+      ],
+      importantBoundaries: [
+        hi
+          ? "यह FIR दर्ज होने की पुष्टि नहीं करता।"
+          : "This does not confirm that an FIR has been registered.",
+        hi
+          ? "यह तत्काल पुलिस कार्रवाई या जाँच के परिणाम की पुष्टि नहीं करता।"
+          : "It does not confirm immediate police action or an investigation outcome.",
+      ],
+      keepReady: processKeepReadyItems(draft, locale, "SENSITIVE_ABUSE"),
+    };
+  }
+
+  if (isRansomware) {
+    return {
+      currentKnownState,
+      possibleNextStagesHeading: officialHeading,
+      possibleNextStages: [
+        {
+          id: "official-acknowledgement",
+          title: hi ? "आधिकारिक पावती" : "Official acknowledgement",
+          description: hi
+            ? "आधिकारिक रिपोर्टिंग प्रक्रिया में शिकायत को संदर्भ मिल सकता है।"
+            : "The complaint can receive a reference through the official reporting process.",
+        },
+        {
+          id: "complaint-handling",
+          title: hi ? "शिकायत पर कार्रवाई" : "Complaint handling",
+          description: hi
+            ? "संबंधित कानून-प्रवर्तन प्राधिकरण आगे की कार्रवाई संभाल सकता है।"
+            : "The relevant law-enforcement authority may handle subsequent action.",
+        },
+        {
+          id: "technical-evidence",
+          title: hi ? "अतिरिक्त तकनीकी सबूत" : "Additional technical evidence",
+          description: hi
+            ? "मामले के अनुसार उपकरण, फिरौती संदेश या घटना से जुड़े और सबूत मांगे जा सकते हैं।"
+            : "Further device, ransom-message or incident evidence may be requested depending on the case.",
+        },
+      ],
+      importantBoundaries: [
+        hi
+          ? "यह डिजिटल फॉरेंसिक जाँच शुरू होने की पुष्टि नहीं करता।"
+          : "This does not confirm that digital-forensics work has begun.",
+        hi
+          ? "यह FIR दर्ज होने या जाँच के परिणाम की पुष्टि नहीं करता।"
+          : "It does not confirm FIR registration or an investigation outcome.",
+      ],
+      keepReady: processKeepReadyItems(draft, locale, "RANSOMWARE"),
+    };
+  }
+
+  if (
+    family === "FINANCIAL_FRAUD" &&
     draft.incident.financialLossState === "YES"
   ) {
-    possibleNextSteps.push(
-      hi
-        ? "वित्तीय धोखाधड़ी की शिकायत में आधिकारिक धोखाधड़ी-प्रतिक्रिया प्रणाली के माध्यम से वित्तीय संस्थाएँ भी शामिल हो सकती हैं।"
-        : "A financial-fraud complaint may also involve financial institutions through the official fraud-response system.",
-    );
+    return {
+      currentKnownState,
+      possibleNextStagesHeading: officialHeading,
+      possibleNextStages: [
+        {
+          id: "official-acknowledgement",
+          title: hi ? "आधिकारिक पावती" : "Official acknowledgement",
+          description: hi
+            ? "आधिकारिक NCRP प्रक्रिया में सफलतापूर्वक जमा की गई शिकायत को पावती या संदर्भ मिल सकता है।"
+            : "A complaint successfully submitted through the official NCRP process can receive an acknowledgement or reference.",
+        },
+        {
+          id: "complaint-handling",
+          title: hi ? "शिकायत पर कार्रवाई" : "Complaint handling",
+          description: hi
+            ? "शिकायत आगे की कार्रवाई के लिए संबंधित राज्य या केंद्रशासित प्रदेश की कानून-प्रवर्तन एजेंसी को भेजी जा सकती है।"
+            : "The complaint may be routed to the relevant State or UT law-enforcement agency for further action.",
+        },
+        {
+          id: "financial-fraud-response",
+          title: hi ? "वित्तीय धोखाधड़ी प्रतिक्रिया" : "Financial-fraud response",
+          description: hi
+            ? "वित्तीय धोखाधड़ी की शिकायत में आधिकारिक प्रतिक्रिया प्रणाली और वित्तीय संस्थाएँ भी शामिल हो सकती हैं।"
+            : "A financial-fraud complaint may also involve the official financial-fraud response system and financial institutions.",
+        },
+        {
+          id: "restoration-or-grievance",
+          title: hi ? "बहाली या शिकायत प्रक्रिया" : "Restoration or grievance processes",
+          description: hi
+            ? "जहाँ लागू हो, बाद में आधिकारिक सरकारी प्रणालियों के माध्यम से बहाली या शिकायत प्रक्रियाएँ प्रासंगिक हो सकती हैं।"
+            : "Where applicable, later restoration or grievance processes may become relevant through official government systems.",
+        },
+      ],
+      importantBoundaries: [
+        hi
+          ? "इसका अर्थ यह नहीं है कि धनराशि फ्रीज़ की गई है।"
+          : "This does not mean that funds have been frozen.",
+        hi
+          ? "यह FIR दर्ज होने की पुष्टि नहीं करता।"
+          : "This does not confirm that an FIR has been registered.",
+        hi
+          ? "यह धनराशि वापस मिलने की पुष्टि नहीं करता।"
+          : "This does not confirm that money will be restored.",
+      ],
+      keepReady: processKeepReadyItems(draft, locale, "FINANCIAL_LOSS"),
+    };
   }
+
+  if (isAccountCompromise) {
+    return {
+      currentKnownState,
+      possibleNextStagesHeading: officialHeading,
+      possibleNextStages: [
+        {
+          id: "official-acknowledgement",
+          title: hi ? "आधिकारिक पावती" : "Official acknowledgement",
+          description: hi
+            ? "सफलतापूर्वक जमा की गई शिकायत को पावती या संदर्भ मिल सकता है।"
+            : "A successfully submitted complaint can receive an acknowledgement or reference.",
+        },
+        {
+          id: "complaint-handling",
+          title: hi ? "शिकायत पर कार्रवाई" : "Complaint handling",
+          description: hi
+            ? "शिकायत को संबंधित राज्य या केंद्रशासित प्रदेश की कानून-प्रवर्तन एजेंसी संभाल सकती है।"
+            : "The complaint may be handled by the relevant State or UT law-enforcement agency.",
+        },
+        {
+          id: "additional-information",
+          title: hi ? "अतिरिक्त जानकारी" : "Additional information",
+          description: hi
+            ? "मामले के अनुसार शिकायत संभालने वाला प्राधिकरण और जानकारी या सबूत मांग सकता है।"
+            : "The authority handling the complaint may require more information or evidence depending on the case.",
+        },
+      ],
+      importantBoundaries: [
+        hi
+          ? "यह खाते की रिकवरी की पुष्टि नहीं करता।"
+          : "This does not confirm that the account has been recovered.",
+        hi
+          ? "यह FIR दर्ज होने या जाँच के परिणाम की पुष्टि नहीं करता।"
+          : "This does not confirm FIR registration or an investigation outcome.",
+      ],
+      keepReady: processKeepReadyItems(draft, locale, "ACCOUNT_COMPROMISE"),
+    };
+  }
+
+  if (
+    family === "FINANCIAL_FRAUD" &&
+    draft.incident.financialLossState === "NO"
+  ) {
+    return {
+      currentKnownState,
+      possibleNextStagesHeading: officialHeading,
+      possibleNextStages: [
+        {
+          id: "official-acknowledgement",
+          title: hi ? "आधिकारिक पावती" : "Official acknowledgement",
+          description: hi
+            ? "ट्रैक की जा सकने वाली शिकायत को पावती या संदर्भ मिल सकता है।"
+            : "A trackable complaint can receive an acknowledgement or reference.",
+        },
+        {
+          id: "complaint-handling",
+          title: hi ? "शिकायत पर कार्रवाई" : "Complaint handling",
+          description: hi
+            ? "शिकायत की समीक्षा की जा सकती है या संबंधित राज्य या केंद्रशासित प्रदेश की कानून-प्रवर्तन एजेंसी को भेजा जा सकता है।"
+            : "The complaint may be reviewed or routed by the relevant State or UT law-enforcement agency.",
+        },
+        {
+          id: "additional-information",
+          title: hi ? "अतिरिक्त जानकारी" : "Additional information",
+          description: hi
+            ? "ज़रूरत पड़ने पर प्राधिकरण और सबूत या घटना का विवरण मांग सकता है।"
+            : "The authority may ask for further evidence or incident details if needed.",
+        },
+      ],
+      importantBoundaries: [
+        hi
+          ? "यह FIR दर्ज होने की पुष्टि नहीं करता।"
+          : "This does not confirm that an FIR has been registered.",
+        hi
+          ? "यह जाँच के परिणाम की पुष्टि नहीं करता।"
+          : "This does not confirm an investigation outcome.",
+      ],
+      keepReady: processKeepReadyItems(draft, locale, "ATTEMPTED_SCAM"),
+    };
+  }
+
   return {
-    knownNow: [
-      hi
-        ? "आपकी रिपोर्ट इस प्रोटोटाइप में दर्ज की गई है।"
-        : "Your report has been recorded in this prototype.",
+    currentKnownState,
+    possibleNextStagesHeading: officialHeading,
+    possibleNextStages: [
+      {
+        id: "official-acknowledgement",
+        title: hi ? "आधिकारिक पावती" : "Official acknowledgement",
+        description: hi
+          ? "सफलतापूर्वक जमा की गई आधिकारिक शिकायत को संदर्भ मिल सकता है।"
+          : "A successfully submitted official complaint can receive a reference.",
+      },
+      {
+        id: "authority-review",
+        title: hi ? "प्राधिकरण द्वारा समीक्षा" : "Authority review",
+        description: hi
+          ? "संबंधित प्राधिकरण शिकायत की समीक्षा कर सकता है और मामले के अनुसार अधिक जानकारी मांग सकता है।"
+          : "The relevant authority may review the complaint and request more information depending on the case.",
+      },
     ],
-    possibleNextSteps,
+    importantBoundaries: [
+      hi
+        ? "यह FIR दर्ज होने या जाँच के परिणाम की पुष्टि नहीं करता।"
+        : "This does not confirm FIR registration or an investigation outcome.",
+    ],
+    keepReady: processKeepReadyItems(draft, locale, "GENERAL"),
   };
 }
 

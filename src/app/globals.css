@@ -1946,6 +1946,42 @@ dd {
   font-size: 17px;
 }
 
+.post-report-known-state {
+  margin: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.post-report-known-state span,
+.post-report-stage-list p {
+  color: var(--secondary);
+}
+
+.post-report-stage-list {
+  margin: 14px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 18px;
+  list-style: none;
+}
+
+.post-report-stage-list > li {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  gap: 10px;
+}
+
+.post-report-stage-list > li > span {
+  color: var(--secondary);
+  font-size: 13px;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+}
+
+.post-report-stage-list p {
+  margin: 3px 0 0;
+}
+
 .post-report-process-part ul,
 .citizen-actions-list {
   padding-left: 22px;
