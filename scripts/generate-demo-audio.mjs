@@ -16,16 +16,52 @@ async function loadLocalEnvironment() {
 
 const narrations = [
   {
-    file: "kyc-fraud-hi.mp3",
-    languageCode: "hi-IN",
-    speaker: "priya",
-    text: "मुझे एसबीआई केवाईसी अपडेट करने का एक मैसेज आया था। मैंने उसमें दिए लिंक को खोला और ऐप के निर्देश माने। इसके बाद 22 अगस्त की सुबह लगभग सात बजे मेरे खाते से चालीस हजार रुपये निकल गए। बाद में मैंने उस नंबर पर संपर्क करने की कोशिश की, लेकिन कोई जवाब नहीं मिला।",
-  },
-  {
-    file: "kyc-fraud-en.mp3",
+    file: "amount-mismatch.mp3",
     languageCode: "en-IN",
     speaker: "priya",
-    text: "I received a message asking me to update my SBI KYC. I opened the link and followed the app instructions. At about seven in the morning on 22 August, forty thousand rupees was transferred from my account. I tried contacting the number afterward but received no response.",
+    text: "Yesterday I received an SBI KYC update message on WhatsApp. I opened the link. First ₹5,000 was debited, and later another ₹15,000 was debited. I thought the total loss was ₹25,000. I do not have the exact transaction references right now.",
+  },
+  {
+    file: "amount-mismatch-hi.mp3",
+    languageCode: "hi-IN",
+    speaker: "priya",
+    text: "कल मुझे व्हाट्सऐप पर एसबीआई केवाईसी अपडेट का संदेश आया। उसमें लिखा था कि केवाईसी अपडेट नहीं करने पर मेरा खाता बंद हो जाएगा। मैंने लिंक खोल दिया। पहले ₹5,000 और थोड़ी देर बाद ₹15,000 डेबिट हुए। मुझे लगा कि कुल ₹25,000 गए हैं। अभी मेरे पास लेन-देन के सही संदर्भ नहीं हैं।",
+  },
+  {
+    file: "account-compromise.mp3",
+    languageCode: "en-IN",
+    speaker: "shubh",
+    text: "Yesterday morning I received an Instagram password reset message. I opened the link because I thought it was official. After that, my Instagram password was reset. Later, I also found that I could not access my WhatsApp account. I am not sure whether both events are connected. No money was lost.",
+  },
+  {
+    file: "account-compromise-hi.mp3",
+    languageCode: "hi-IN",
+    speaker: "shubh",
+    text: "कल सुबह मुझे इंस्टाग्राम पासवर्ड रीसेट करने का संदेश मिला। मैंने लिंक खोला क्योंकि मुझे लगा कि वह आधिकारिक है। उसके बाद मेरा इंस्टाग्राम पासवर्ड रीसेट हो गया। बाद में मुझे पता चला कि मैं अपने व्हाट्सऐप खाते में भी प्रवेश नहीं कर पा रहा हूँ। मुझे नहीं पता कि दोनों घटनाएँ जुड़ी हुई हैं या नहीं। कोई पैसा नहीं गया।",
+  },
+  {
+    file: "lottery-attempt.mp3",
+    languageCode: "en-IN",
+    speaker: "ratan",
+    text: "I was told on WhatsApp and over a phone call that my number had been selected in a KBC lucky draw and that I had won ₹25 lakh. They asked for a ₹10,000 processing fee, an Aadhaar photo, and my bank details. I did not pay or share anything.",
+  },
+  {
+    file: "lottery-attempt-hi.mp3",
+    languageCode: "hi-IN",
+    speaker: "ratan",
+    text: "मुझे व्हाट्सऐप और फोन कॉल पर बताया गया कि मेरा नंबर केबीसी लकी ड्रॉ में चुना गया है और मैंने ₹25 लाख जीते हैं। इनाम लेने के लिए उन्होंने ₹10,000 प्रोसेसिंग फीस, आधार की फोटो और बैंक की जानकारी मांगी। मैंने कोई पैसा नहीं दिया और कोई जानकारी साझा नहीं की।",
+  },
+  {
+    file: "extortion.mp3",
+    languageCode: "en-IN",
+    speaker: "ishita",
+    text: "An unknown Telegram account threatened to share my private photos with my contacts unless I paid ₹20,000. The same threat later arrived by email. I made no payment, and I do not know the sender's real identity.",
+  },
+  {
+    file: "extortion-hi.mp3",
+    languageCode: "hi-IN",
+    speaker: "ishita",
+    text: "कल टेलीग्राम पर एक अनजान खाते ने संदेश भेजकर कहा कि उसके पास मेरी निजी तस्वीरें हैं। उसने धमकी दी कि अगर मैंने ₹20,000 नहीं दिए तो वह तस्वीरें मेरे संपर्कों को भेज देगा। बाद में वही धमकी ईमेल पर भी आई। मैंने कोई भुगतान नहीं किया और मुझे भेजने वाले की असली पहचान नहीं पता।",
   },
 ];
 
@@ -48,7 +84,8 @@ for (const narration of narrations) {
       language_code: narration.languageCode,
       model: "bulbul:v3",
       speaker: narration.speaker,
-      pace: 0.92,
+      pace: 0.96,
+      temperature: 0.7,
       output_audio_codec: "mp3",
     }),
   });

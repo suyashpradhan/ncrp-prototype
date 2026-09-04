@@ -415,6 +415,18 @@ function EvidenceRows({
   ) : null;
 
   if (compact) {
+    if (isDemoIncident) {
+      return (
+        <section
+          className="report-source-block demo-evidence-list"
+          aria-label={t("workspace.evidence")}
+        >
+          <h3>{locale === "hi" ? "सबूत देखें" : "Show Evidence"}</h3>
+          {rows}
+          {preview}
+        </section>
+      );
+    }
     return (
       <>
         <details className="report-source-block compact-source-disclosure">
@@ -572,11 +584,8 @@ function SourceSummary({
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackSeconds, setPlaybackSeconds] = useState(0);
-  const showWrittenStatement =
-    narrative.trim() && (isDemoIncident || !transcription);
-  const displayedNarrative = isDemoIncident
-    ? demoCase?.statement ?? narrative
-    : narrative;
+  const showWrittenStatement = !isDemoIncident && narrative.trim() && !transcription;
+  const displayedNarrative = narrative;
   const demoNarration = demoCase?.narrations[demoNarrationLanguage] ?? null;
 
   useEffect(() => {
@@ -599,7 +608,7 @@ function SourceSummary({
             <div>
               <h3>{t("workspace.yourStatement")}</h3>
               <p className="source-meta">
-                {demoCase?.sourceLanguage ?? demoNarration.nativeLabel} ·{" "}
+                {demoNarration.nativeLabel} ·{" "}
                 {t("workspace.approxSeconds", {
                   seconds: demoNarration.durationSeconds,
                 })}
@@ -658,9 +667,12 @@ function SourceSummary({
               ),
             )}
           </div>
+          <p className="source-transcript">
+            {demoNarration.originalTranscript}
+          </p>
         </div>
       ) : null}
-      {transcription ? (
+      {transcription && !isDemoIncident ? (
         compact ? (
           <details className="report-source-block compact-source-disclosure transcript-result">
             <summary>
@@ -727,20 +739,10 @@ function SourceSummary({
             </summary>
             <p className="source-transcript">{displayedNarrative}</p>
           </details>
-        ) : isDemoIncident ? (
-          <details className="report-source-block compact-source-disclosure typed-description-disclosure">
-            <summary>
-              <span>{t("workspace.typedDescription")}</span>
-              <strong>{t("workspace.viewStatement")} ↓</strong>
-            </summary>
-            <p className="source-transcript">{displayedNarrative}</p>
-          </details>
         ) : (
           <div className="report-source-block">
             <h3>
-              {isDemoIncident
-                ? t("workspace.typedDescription")
-                : t("workspace.yourStatement")}
+              {t("workspace.yourStatement")}
             </h3>
             <p className="source-transcript">{displayedNarrative}</p>
           </div>

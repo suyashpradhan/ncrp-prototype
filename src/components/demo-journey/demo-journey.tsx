@@ -389,8 +389,8 @@ export function DemoJourney() {
     {},
   );
   const [isDemoIncident, setIsDemoIncident] = useState(false);
-  const demoNarrationLanguage: DemoNarrationLanguage =
-    locale === "hi" ? "hi-IN" : "en-IN";
+  const [demoNarrationLanguage, setDemoNarrationLanguage] =
+    useState<DemoNarrationLanguage>("en-IN");
   const [selectedDemoCaseId, setSelectedDemoCaseId] =
     useState<DemoCaseId>(DEFAULT_DEMO_CASE_ID);
   const [demoCaseRevision, setDemoCaseRevision] = useState(0);
@@ -602,6 +602,9 @@ export function DemoJourney() {
       setDraft(restoredDraft.data);
       setNarrative(candidate.narrative);
       setTranscription(restoredTranscription.data);
+      setDemoNarrationLanguage(
+        candidate.demoNarrationLanguage as DemoNarrationLanguage,
+      );
       setRecordingSeconds(candidate.recordingSeconds);
       setSubmittedReference(candidate.submittedReference);
       const restoredMilestones = candidate.postReportMilestones;
@@ -872,8 +875,6 @@ export function DemoJourney() {
 
   function useDemoIncident(caseId: DemoCaseId = DEFAULT_DEMO_CASE_ID) {
     const demoCase = getDemoCase(caseId);
-    const narrationLanguage: DemoNarrationLanguage =
-      locale === "hi" ? "hi-IN" : "en-IN";
     clearPersistedDemoSession();
     clearUnfinishedReport();
     setRecoverableReport(null);
@@ -883,8 +884,8 @@ export function DemoJourney() {
     setDemoCaseRevision((current) => current + 1);
     beginExperience("DEMO_CASE", demoCase.citizen);
     setNarrative(demoCase.statement);
-    setTranscription(demoCase.narrations[narrationLanguage]);
-    setRecordingSeconds(demoCase.narrations[narrationLanguage].durationSeconds);
+    setTranscription(demoCase.narrations[demoNarrationLanguage]);
+    setRecordingSeconds(demoCase.narrations[demoNarrationLanguage].durationSeconds);
     setIsDemoIncident(true);
     setDraft(structuredClone(demoCase.draft));
     setSubmittedReference(demoCase.reference);
@@ -893,7 +894,7 @@ export function DemoJourney() {
       reportSourceSignature({
         narrative: demoCase.statement,
         reporterName: demoCase.citizen.displayName,
-        transcription: demoCase.narrations[narrationLanguage],
+        transcription: demoCase.narrations[demoNarrationLanguage],
         screenshots: [],
         audio: null,
       }),
@@ -954,7 +955,7 @@ export function DemoJourney() {
   }
 
   function chooseDemoNarration(language: DemoNarrationLanguage) {
-    setLocale(language === "hi-IN" ? "hi" : "en");
+    setDemoNarrationLanguage(language);
     setTranscription(activeDemoCase.narrations[language]);
     setRecordingSeconds(activeDemoCase.narrations[language].durationSeconds);
   }

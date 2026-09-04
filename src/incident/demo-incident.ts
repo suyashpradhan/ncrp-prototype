@@ -70,7 +70,6 @@ function demoProfile(
 function narration(
   languageCode: DemoNarrationLanguage,
   originalTranscript: string,
-  englishTranscript: string,
   durationSeconds: number,
   audioPath: string,
 ): DemoNarration {
@@ -81,7 +80,7 @@ function narration(
     durationSeconds,
     languageCode,
     originalTranscript,
-    englishTranscript,
+    englishTranscript: originalTranscript,
   };
 }
 
@@ -127,6 +126,23 @@ const lotteryStatement =
   "Mujhe WhatsApp aur ek call pe bola gaya ki mera number KBC lucky draw mein select hua hai aur maine ₹25 lakh jeeta hai. Prize lene ke liye ₹10,000 processing fee maang rahe the aur Aadhaar photo aur bank details WhatsApp pe bhejne ko bola. Maine koi paisa nahi diya aur details bhi share nahi ki.";
 const extortionStatement =
   "Kal Telegram par kisi unknown account ne message kiya ki unke paas meri private photos hain. Unhone bola ki agar maine ₹20,000 nahi diye toh woh photos mere contacts ko bhej denge. Baad mein same threat email par bhi aaya. Maine koi payment nahi kiya. Mujhe nahi pata account real identity kiski hai.";
+
+const amountMismatchEnglish =
+  "Yesterday I received an SBI KYC update message on WhatsApp. I opened the link. First ₹5,000 was debited, and later another ₹15,000 was debited. I thought the total loss was ₹25,000. I do not have the exact transaction references right now.";
+const amountMismatchHindi =
+  "कल मुझे व्हाट्सऐप पर एसबीआई केवाईसी अपडेट का संदेश आया। उसमें लिखा था कि केवाईसी अपडेट नहीं करने पर मेरा खाता बंद हो जाएगा। मैंने लिंक खोल दिया। पहले ₹5,000 और थोड़ी देर बाद ₹15,000 डेबिट हुए। मुझे लगा कि कुल ₹25,000 गए हैं। अभी मेरे पास लेन-देन के सही संदर्भ नहीं हैं।";
+const accountCompromiseEnglish =
+  "Yesterday morning I received an Instagram password reset message. I opened the link because I thought it was official. After that, my Instagram password was reset. Later, I also found that I could not access my WhatsApp account. I am not sure whether both events are connected. No money was lost.";
+const accountCompromiseHindi =
+  "कल सुबह मुझे इंस्टाग्राम पासवर्ड रीसेट करने का संदेश मिला। मैंने लिंक खोला क्योंकि मुझे लगा कि वह आधिकारिक है। उसके बाद मेरा इंस्टाग्राम पासवर्ड रीसेट हो गया। बाद में मुझे पता चला कि मैं अपने व्हाट्सऐप खाते में भी प्रवेश नहीं कर पा रहा हूँ। मुझे नहीं पता कि दोनों घटनाएँ जुड़ी हुई हैं या नहीं। कोई पैसा नहीं गया।";
+const lotteryEnglish =
+  "I was told on WhatsApp and over a phone call that my number had been selected in a KBC lucky draw and that I had won ₹25 lakh. They asked for a ₹10,000 processing fee, an Aadhaar photo, and my bank details. I did not pay or share anything.";
+const lotteryHindi =
+  "मुझे व्हाट्सऐप और फोन कॉल पर बताया गया कि मेरा नंबर केबीसी लकी ड्रॉ में चुना गया है और मैंने ₹25 लाख जीते हैं। इनाम लेने के लिए उन्होंने ₹10,000 प्रोसेसिंग फीस, आधार की फोटो और बैंक की जानकारी मांगी। मैंने कोई पैसा नहीं दिया और कोई जानकारी साझा नहीं की।";
+const extortionEnglish =
+  "An unknown Telegram account threatened to share my private photos with my contacts unless I paid ₹20,000. The same threat later arrived by email. I made no payment, and I do not know the sender's real identity.";
+const extortionHindi =
+  "कल टेलीग्राम पर एक अनजान खाते ने संदेश भेजकर कहा कि उसके पास मेरी निजी तस्वीरें हैं। उसने धमकी दी कि अगर मैंने ₹20,000 नहीं दिए तो वह तस्वीरें मेरे संपर्कों को भेज देगा। बाद में वही धमकी ईमेल पर भी आई। मैंने कोई भुगतान नहीं किया और मुझे भेजने वाले की असली पहचान नहीं पता।";
 
 const amountMismatchDraft: IncidentDraft = {
   classification: {
@@ -456,8 +472,8 @@ export const DEMO_CASES: readonly DemoCaseDefinition[] = [
     sourceLanguage: "Hinglish",
     statement: amountMismatchStatement,
     narrations: {
-      "en-IN": narration("en-IN", amountMismatchStatement, "Yesterday I received an SBI KYC update message on WhatsApp. I opened the link. First ₹5,000 was debited and later another ₹15,000. I thought the total loss was ₹25,000. I do not have the exact UTRs right now.", 20, "/demo/audio/amount-mismatch.mp3"),
-      "hi-IN": narration("hi-IN", amountMismatchStatement, "Yesterday I received an SBI KYC update message on WhatsApp. I opened the link. First ₹5,000 was debited and later another ₹15,000. I thought the total loss was ₹25,000. I do not have the exact UTRs right now.", 20, "/demo/audio/amount-mismatch.mp3"),
+      "en-IN": narration("en-IN", amountMismatchEnglish, 19, "/demo/audio/amount-mismatch.mp3"),
+      "hi-IN": narration("hi-IN", amountMismatchHindi, 25, "/demo/audio/amount-mismatch-hi.mp3"),
     },
     evidence: [
       { id: "demo-evidence-0", src: "/demo/evidence/asha-kyc-message-demo.svg", label: "WhatsApp KYC message", labelHi: "WhatsApp KYC संदेश", typeLabel: "Message screenshot", typeLabelHi: "संदेश का स्क्रीनशॉट" },
@@ -475,8 +491,8 @@ export const DEMO_CASES: readonly DemoCaseDefinition[] = [
     sourceLanguage: "English + Hinglish",
     statement: accountCompromiseStatement,
     narrations: {
-      "en-IN": narration("en-IN", accountCompromiseStatement, accountCompromiseStatement, 21, "/demo/audio/account-compromise.mp3"),
-      "hi-IN": narration("hi-IN", accountCompromiseStatement, accountCompromiseStatement, 21, "/demo/audio/account-compromise.mp3"),
+      "en-IN": narration("en-IN", accountCompromiseEnglish, 15, "/demo/audio/account-compromise.mp3"),
+      "hi-IN": narration("hi-IN", accountCompromiseHindi, 17, "/demo/audio/account-compromise-hi.mp3"),
     },
     evidence: [
       { id: "demo-evidence-0", src: "/demo/evidence/account-reset-demo.svg", label: "Instagram password-reset email", labelHi: "Instagram पासवर्ड-रीसेट ईमेल", typeLabel: "Email screenshot", typeLabelHi: "ईमेल का स्क्रीनशॉट" },
@@ -494,8 +510,8 @@ export const DEMO_CASES: readonly DemoCaseDefinition[] = [
     sourceLanguage: "Hindi / Hinglish",
     statement: lotteryStatement,
     narrations: {
-      "en-IN": narration("en-IN", lotteryStatement, "I was told on WhatsApp and a phone call that I had won ₹25 lakh in a KBC lucky draw. They asked for a ₹10,000 processing fee, an Aadhaar photo and bank details. I did not pay or share anything.", 19, "/demo/audio/lottery-attempt.mp3"),
-      "hi-IN": narration("hi-IN", lotteryStatement, "I was told on WhatsApp and a phone call that I had won ₹25 lakh in a KBC lucky draw. They asked for a ₹10,000 processing fee, an Aadhaar photo and bank details. I did not pay or share anything.", 19, "/demo/audio/lottery-attempt.mp3"),
+      "en-IN": narration("en-IN", lotteryEnglish, 16, "/demo/audio/lottery-attempt.mp3"),
+      "hi-IN": narration("hi-IN", lotteryHindi, 16, "/demo/audio/lottery-attempt-hi.mp3"),
     },
     evidence: [
       { id: "demo-evidence-0", src: "/demo/evidence/lottery-message-demo.svg", label: "WhatsApp lottery message", labelHi: "WhatsApp लॉटरी संदेश", typeLabel: "Message screenshot", typeLabelHi: "संदेश का स्क्रीनशॉट" },
@@ -513,8 +529,8 @@ export const DEMO_CASES: readonly DemoCaseDefinition[] = [
     sourceLanguage: "Hindi + English",
     statement: extortionStatement,
     narrations: {
-      "en-IN": narration("en-IN", extortionStatement, "An unknown Telegram account threatened to share my private photos with my contacts unless I paid ₹20,000. The same threat later arrived by email. I made no payment and do not know the sender's real identity.", 20, "/demo/audio/extortion.mp3"),
-      "hi-IN": narration("hi-IN", extortionStatement, "An unknown Telegram account threatened to share my private photos with my contacts unless I paid ₹20,000. The same threat later arrived by email. I made no payment and do not know the sender's real identity.", 20, "/demo/audio/extortion.mp3"),
+      "en-IN": narration("en-IN", extortionEnglish, 15, "/demo/audio/extortion.mp3"),
+      "hi-IN": narration("hi-IN", extortionHindi, 21, "/demo/audio/extortion-hi.mp3"),
     },
     evidence: [
       { id: "demo-evidence-0", src: "/demo/evidence/telegram-threat-demo.svg", label: "Redacted Telegram threat", labelHi: "छिपाया गया Telegram धमकी संदेश", typeLabel: "Message screenshot", typeLabelHi: "संदेश का स्क्रीनशॉट" },
