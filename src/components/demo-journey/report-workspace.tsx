@@ -650,15 +650,22 @@ function SourceSummary({
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackSeconds, setPlaybackSeconds] = useState(0);
+  const [audioUnavailable, setAudioUnavailable] = useState(false);
   const showWrittenStatement =
     !isDemoIncident && narrative.trim() && !transcription;
   const displayedNarrative = narrative;
   const demoNarration = demoCase?.narrations[demoNarrationLanguage] ?? null;
 
   useEffect(() => {
+    const player = audioRef.current;
     setIsPlaying(false);
     setPlaybackSeconds(0);
-    audioRef.current?.load();
+    setAudioUnavailable(false);
+    player?.load();
+    return () => {
+      player?.pause();
+      if (player) player.currentTime = 0;
+    };
   }, [demoCase?.id, demoNarration?.audioPath, demoNarrationLanguage]);
 
   const formatPlayback = (seconds: number) =>
@@ -681,14 +688,16 @@ function SourceSummary({
                 })}
               </p>
             </div>
-            {demoNarration.audioPath ? (
+            {demoNarration.audioPath && !audioUnavailable ? (
               <button
                 className="secondary-button compact-audio-button"
                 type="button"
                 onClick={() => {
                   const player = audioRef.current;
                   if (!player) return;
-                  if (player.paused) void player.play();
+                  if (player.paused) {
+                    void player.play().catch(() => setAudioUnavailable(true));
+                  }
                   else player.pause();
                 }}
               >
@@ -702,7 +711,7 @@ function SourceSummary({
               </button>
             ) : null}
           </div>
-          {demoNarration.audioPath ? (
+          {demoNarration.audioPath && !audioUnavailable ? (
             <audio
               ref={audioRef}
               src={demoNarration.audioPath}
@@ -710,10 +719,18 @@ function SourceSummary({
               onPlay={() => setIsPlaying(true)}
               onPause={() => setIsPlaying(false)}
               onEnded={() => setIsPlaying(false)}
+              onError={() => setAudioUnavailable(true)}
               onTimeUpdate={(event) =>
                 setPlaybackSeconds(event.currentTarget.currentTime)
               }
             />
+          ) : null}
+          {audioUnavailable ? (
+            <p className="source-note" role="status">
+              {locale === "hi"
+                ? "ऑडियो उपलब्ध नहीं है। नीचे पूरा बयान दिया गया है।"
+                : "Audio is unavailable. The full statement is shown below."}
+            </p>
           ) : null}
           <p className="demo-language-label">{t("workspace.sampleLanguage")}</p>
           <div

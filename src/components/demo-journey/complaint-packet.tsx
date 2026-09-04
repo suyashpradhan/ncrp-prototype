@@ -110,10 +110,12 @@ export function ComplaintPacket({
           </p>
         </header>
 
-        <section>
-          <h2>{hi ? "संदर्भ" : "Reference"}</h2>
-          <p>{reference}</p>
-        </section>
+        {reference ? (
+          <section>
+            <h2>{hi ? "संदर्भ" : "Reference"}</h2>
+            <p>{reference}</p>
+          </section>
+        ) : null}
 
         <section>
           <h2>{hi ? "रिपोर्टिंग श्रेणी" : "Reporting category"}</h2>

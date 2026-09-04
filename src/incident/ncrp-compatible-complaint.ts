@@ -431,7 +431,7 @@ export function buildNcrpCompatibleComplaint({
         institution: valueField(transaction.institution, [sourceFor(`transactions.${index}.institution`, structuredSource)], true),
         sourceAccountOrPaymentId: valueField(transaction.accountOrUpiId, [sourceFor(`transactions.${index}.accountOrUpiId`, profileSource)], true),
         transactionIdOrUtr: valueField(
-          transaction.transactionIdOrUtr,
+          transaction.transactionIdOrUtr ?? transaction.referenceNumber,
           [sourceFor(`transactions.${index}.transactionIdOrUtr`, structuredSource)],
           true,
         ),

@@ -350,7 +350,7 @@ export const HI_TEXT: Record<string, string> = {
   "workspace.whatShared": "आपने क्या दिया",
   "workspace.reportDetails": "रिपोर्ट की जानकारी",
   "workspace.saved": "आपका बयान सुरक्षित है।",
-  "workspace.reportingView": "रिपोर्टिंग कार्यक्षेत्र",
+  "workspace.reportingView": "शिकायत तैयार करने का पेज",
   "field.incident": "घटना",
   "field.transactions": "लेन-देन",
   "field.evidenceSuspect": "सबूत और संदिग्ध जानकारी",

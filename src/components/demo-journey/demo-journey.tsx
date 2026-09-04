@@ -45,6 +45,7 @@ import { useI18n } from "../../i18n/i18n-provider";
 import { useJourneyNavigation } from "../../navigation/journey-navigation";
 import { deriveReportReadiness } from "../../presentation/report-readiness";
 import type { PostReportMilestones } from "../../presentation/post-report-case";
+import type { NotificationChannel } from "../../notifications/citizen-nudges";
 import { DEMO_CASE_ACCESS, useDemoCase } from "../demo-case/demo-case-provider";
 import { PostSubmissionCaseHome } from "./post-submission-case-home";
 import {
@@ -63,7 +64,6 @@ type JourneyView =
   | "SUCCESS"
   | "ANALYSIS_ERROR";
 
-const SACHET_DEMO_REFERENCE = getDemoCase(DEFAULT_DEMO_CASE_ID).reference;
 const DEMO_SESSION_KEY = "sachet-deterministic-demo-v2";
 const UNFINISHED_REPORT_KEY = "sachet-unfinished-report-v1";
 const DEMO_POST_REPORT_MILESTONES: PostReportMilestones = {
@@ -88,6 +88,8 @@ type PersistedDemoSession = {
   submittedReference: string;
   postReportMilestones?: PostReportMilestones | null;
   demoCaseId?: DemoCaseId;
+  remindersEnabled?: boolean;
+  notificationChannel?: NotificationChannel;
 };
 
 type PersistedEvidenceMetadata = {
@@ -446,13 +448,14 @@ export function DemoJourney() {
   const [isTranscriptionError, setIsTranscriptionError] = useState(false);
   const [preparationFailure, setPreparationFailure] =
     useState<PreparationFailure>(null);
-  const [submittedReference, setSubmittedReference] = useState<string>(
-    SACHET_DEMO_REFERENCE,
-  );
+  const [submittedReference, setSubmittedReference] = useState("");
   const [postReportMilestones, setPostReportMilestones] =
     useState<PostReportMilestones | null>(null);
   const [submittedDraft, setSubmittedDraft] = useState<IncidentDraft | null>(null);
   const [submittedTranscription, setSubmittedTranscription] = useState<TranscriptionResult | null>(null);
+  const [remindersEnabled, setRemindersEnabled] = useState(false);
+  const [notificationChannel, setNotificationChannel] =
+    useState<NotificationChannel>("EMAIL");
   const [recoverableReport, setRecoverableReport] =
     useState<PersistedUnfinishedReport | null>(null);
   const [unavailableEvidenceNames, setUnavailableEvidenceNames] = useState<
@@ -499,9 +502,12 @@ export function DemoJourney() {
     audio,
   });
   const isReportStale = Boolean(
-    draft && preparedSourceSignature && currentSourceSignature !== preparedSourceSignature,
+    !isDemoIncident &&
+      draft &&
+      preparedSourceSignature &&
+      currentSourceSignature !== preparedSourceSignature,
   );
-  const hasSubmittedCase = Boolean(draft && postReportMilestones);
+  const hasSubmittedCase = Boolean(submittedDraft && postReportMilestones);
 
   useEffect(() => {
     const unfinished = readUnfinishedReport();
@@ -639,6 +645,18 @@ export function DemoJourney() {
         return;
       }
 
+      const restoredMilestones = candidate.postReportMilestones;
+      const validRestoredMilestones = Boolean(
+        restoredMilestones &&
+          typeof restoredMilestones.preparedAt === "string" &&
+          typeof restoredMilestones.reviewedAt === "string" &&
+          typeof restoredMilestones.submittedAt === "string",
+      );
+      if (candidate.view === "SUCCESS" && !validRestoredMilestones) {
+        clearPersistedDemoSession();
+        return;
+      }
+
       const restoredDemoCase = getDemoCase(
         candidate.demoCaseId ?? DEFAULT_DEMO_CASE_ID,
       );
@@ -652,21 +670,19 @@ export function DemoJourney() {
       );
       setRecordingSeconds(candidate.recordingSeconds);
       setSubmittedReference(candidate.submittedReference);
-      const restoredMilestones = candidate.postReportMilestones;
-      if (
-        restoredMilestones &&
-        typeof restoredMilestones.preparedAt === "string" &&
-        typeof restoredMilestones.reviewedAt === "string" &&
-        typeof restoredMilestones.submittedAt === "string"
-      ) {
+      if (candidate.view === "SUCCESS" && validRestoredMilestones) {
         setPostReportMilestones(restoredMilestones);
         setSubmittedDraft(structuredClone(restoredDraft.data));
         setSubmittedTranscription(structuredClone(restoredTranscription.data));
-        preparedAtRef.current = restoredMilestones.preparedAt;
+        preparedAtRef.current = restoredMilestones?.preparedAt ?? null;
+        setRemindersEnabled(candidate.remindersEnabled === true);
+        setNotificationChannel(
+          candidate.notificationChannel === "WHATSAPP" ? "WHATSAPP" : "EMAIL",
+        );
       } else {
-        setPostReportMilestones(DEMO_POST_REPORT_MILESTONES);
-        setSubmittedDraft(structuredClone(restoredDraft.data));
-        setSubmittedTranscription(structuredClone(restoredTranscription.data));
+        setPostReportMilestones(null);
+        setSubmittedDraft(null);
+        setSubmittedTranscription(null);
         preparedAtRef.current = DEMO_POST_REPORT_MILESTONES.preparedAt;
       }
       setIsDemoIncident(true);
@@ -712,6 +728,8 @@ export function DemoJourney() {
       submittedReference,
       postReportMilestones,
       demoCaseId: selectedDemoCaseId,
+      remindersEnabled,
+      notificationChannel,
     };
     try {
       window.sessionStorage.setItem(DEMO_SESSION_KEY, JSON.stringify(session));
@@ -724,8 +742,10 @@ export function DemoJourney() {
     experienceMode,
     isDemoIncident,
     narrative,
+    notificationChannel,
     postReportMilestones,
     recordingSeconds,
+    remindersEnabled,
     selectedDemoCaseId,
     submittedReference,
     transcription,
@@ -808,6 +828,16 @@ export function DemoJourney() {
 
   function resetInputs() {
     recordingTranscriptionRunRef.current += 1;
+    const recorder = recorderRef.current;
+    if (recorder) {
+      recorder.ondataavailable = null;
+      recorder.onstop = null;
+      if (recorder.state === "recording") recorder.stop();
+      recorder.stream.getTracks().forEach((track) => track.stop());
+      recorderRef.current = null;
+    }
+    recorderChunksRef.current = [];
+    recordingStartedAtRef.current = null;
     setDraft(null);
     setNarrative("");
     setReporterName("");
@@ -823,10 +853,12 @@ export function DemoJourney() {
     stopAudioVisualization();
     setPreparationFailure(null);
     setIsDemoIncident(false);
-    setSubmittedReference(SACHET_DEMO_REFERENCE);
+    setSubmittedReference("");
     setPostReportMilestones(null);
     setSubmittedDraft(null);
     setSubmittedTranscription(null);
+    setRemindersEnabled(false);
+    setNotificationChannel("EMAIL");
     setUnavailableEvidenceNames([]);
     setIsDraftSaved(false);
     preparedAtRef.current = null;
@@ -914,6 +946,7 @@ export function DemoJourney() {
     resetInputs();
     setSelectedDemoCaseId(DEFAULT_DEMO_CASE_ID);
     beginExperience("LIVE_TEST", createEmptyTestProfile());
+    setSubmittedReference("");
     journeyHistoryRef.current = ["ENTRY"];
     setCurrentView("REPORT_INPUT");
   }
@@ -959,6 +992,7 @@ export function DemoJourney() {
     resetDemo();
     resetInputs();
     beginExperience("LIVE_TEST", createEmptyTestProfile());
+    setSubmittedReference("");
     setReportMethod(recoverableReport.reportMethod);
     setReporterName(recoverableReport.reporterName);
     setNarrative(recoverableReport.narrative);
@@ -1298,6 +1332,16 @@ export function DemoJourney() {
           ? "आगे बढ़ने से पहले बोलें, लिखें या सबूत जोड़ें।"
           : "Speak, type what happened or add evidence before continuing.",
       );
+      return;
+    }
+
+    if (isDemoIncident) {
+      setFormError(null);
+      setIsTranscriptionError(false);
+      setPreparationFailure(null);
+      setPreparedSourceSignature(currentSourceSignature);
+      pendingReportFocusRef.current = true;
+      replaceView("ANALYSIS_RESULT");
       return;
     }
 
@@ -1718,6 +1762,10 @@ export function DemoJourney() {
         demoCase={isDemoIncident ? activeDemoCase : null}
         milestones={postReportMilestones}
         transcription={submittedTranscription}
+        remindersEnabled={remindersEnabled}
+        notificationChannel={notificationChannel}
+        onRemindersEnabledChange={setRemindersEnabled}
+        onNotificationChannelChange={setNotificationChannel}
         onDraftChange={(nextDraft) => {
           setDraft(nextDraft);
           setSubmittedDraft(nextDraft);

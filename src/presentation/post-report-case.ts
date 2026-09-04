@@ -230,18 +230,23 @@ export function getCaseSummary(
       value: formatIndiaShortDateWithYear(draft.incident.incidentDate, locale),
     });
   }
-  if (draft.incident.occurredOn) {
+  const incidentChannel = citizenVisibleValue(draft.incident.occurredOn);
+  if (incidentChannel) {
     items.push({
       id: "channel",
       label: hi ? "माध्यम" : "Channel",
-      value: hi && draft.incident.occurredOn === "Multiple channels"
+      value: hi && incidentChannel === "Multiple channels"
         ? "कई माध्यम"
-        : draft.incident.occurredOn,
+        : incidentChannel,
     });
   }
-  const affectedAccount = draft.adaptiveFacts.affectedAccount;
-  const affectedPlatforms = draft.adaptiveFacts.affectedPlatforms;
-  const affectedPlatform = draft.adaptiveFacts.platform ?? draft.classification.platform;
+  const affectedAccount = citizenVisibleValue(draft.adaptiveFacts.affectedAccount);
+  const affectedPlatforms = draft.adaptiveFacts.affectedPlatforms
+    .map((value) => citizenVisibleValue(value))
+    .filter((value): value is string => Boolean(value));
+  const affectedPlatform = citizenVisibleValue(
+    draft.adaptiveFacts.platform ?? draft.classification.platform,
+  );
   if (affectedPlatforms.length > 0) {
     items.push({
       id: "affected-platforms",
@@ -268,14 +273,14 @@ export function getCaseSummary(
       value: hi ? "दो अलग घटना-क्रम दर्ज हैं" : "Two separate incident threads are recorded",
     });
   }
-  if (
-    draft.transactions.length === 0 &&
-    draft.mentionedInstitutions.length > 0
-  ) {
+  const mentionedInstitutions = draft.mentionedInstitutions
+    .map((value) => citizenVisibleValue(value))
+    .filter((value): value is string => Boolean(value));
+  if (draft.transactions.length === 0 && mentionedInstitutions.length > 0) {
     items.push({
       id: "bank-mentioned",
       label: hi ? "बताया गया बैंक" : "Bank mentioned",
-      value: draft.mentionedInstitutions.join(", "),
+      value: mentionedInstitutions.join(", "),
     });
   }
   return items;
@@ -381,9 +386,11 @@ export function getPostReportActions(
     const institutionName =
       transactionInstitutions.length === 1 ? transactionInstitutions[0] : null;
     const knownReferences = draft.transactions.filter(
-      (transaction) =>
-        transaction.transactionIdOrUtr &&
-        !isInternalCaseValue(transaction.transactionIdOrUtr),
+      (transaction) => {
+        const reference =
+          transaction.transactionIdOrUtr ?? transaction.referenceNumber;
+        return reference && !isInternalCaseValue(reference);
+      },
     ).length;
     const actions: PostReportAction[] = [
       {
@@ -561,8 +568,14 @@ export function getPostReportActions(
   }
 
   if (isAccountCompromise) {
-    const platform = draft.adaptiveFacts.affectedPlatforms.join(" and ") ||
-      (draft.adaptiveFacts.platform ?? draft.classification.platform);
+    const platform =
+      draft.adaptiveFacts.affectedPlatforms
+        .map((value) => citizenVisibleValue(value))
+        .filter((value): value is string => Boolean(value))
+        .join(" and ") ||
+      citizenVisibleValue(
+        draft.adaptiveFacts.platform ?? draft.classification.platform,
+      );
     return [
       {
         id: "account-recovery",
@@ -626,7 +639,9 @@ export function getKeepReadyPacket(
     const details = [
       transaction.amount ? formatCurrency(transaction.amount) : null,
       citizenVisibleValue(transaction.institution),
-      citizenVisibleValue(transaction.transactionIdOrUtr),
+      citizenVisibleValue(
+        transaction.transactionIdOrUtr ?? transaction.referenceNumber,
+      ),
     ].filter((value): value is string => Boolean(value));
     if (details.length > 0) {
       items.push(
@@ -649,10 +664,15 @@ export function getKeepReadyPacket(
   }
 
   const affectedAccount =
-    draft.adaptiveFacts.affectedPlatforms.join(", ") ||
-    (draft.adaptiveFacts.affectedAccount ??
-      draft.adaptiveFacts.platform ??
-      draft.classification.platform);
+    draft.adaptiveFacts.affectedPlatforms
+      .map((value) => citizenVisibleValue(value))
+      .filter((value): value is string => Boolean(value))
+      .join(", ") ||
+    citizenVisibleValue(
+      draft.adaptiveFacts.affectedAccount ??
+        draft.adaptiveFacts.platform ??
+        draft.classification.platform,
+    );
   if (affectedAccount) {
     items.push(
       hi
@@ -680,14 +700,16 @@ function processKeepReadyItems(
     (item) => item.type !== "VOICE_STATEMENT",
   );
   const hasTransactionReference = draft.transactions.some(
-    (transaction) =>
-      Boolean(
-        transaction.transactionIdOrUtr &&
-          !isInternalCaseValue(transaction.transactionIdOrUtr),
-      ),
+    (transaction) => {
+      const reference =
+        transaction.transactionIdOrUtr ?? transaction.referenceNumber;
+      return Boolean(reference && !isInternalCaseValue(reference));
+    },
   );
-  const platform =
-    draft.adaptiveFacts.platform ?? draft.classification.platform;
+  const platform = citizenVisibleValue(
+    draft.adaptiveFacts.platform ?? draft.classification.platform,
+  );
+  const affectedSystem = citizenVisibleValue(draft.adaptiveFacts.affectedSystem);
 
   if (kind === "FINANCIAL_LOSS") {
     return [
@@ -767,10 +789,10 @@ function processKeepReadyItems(
 
   if (kind === "RANSOMWARE") {
     return [
-      draft.adaptiveFacts.affectedSystem
+      affectedSystem
         ? hi
-          ? `${draft.adaptiveFacts.affectedSystem} से जुड़ी जानकारी`
-          : `Information about ${draft.adaptiveFacts.affectedSystem}`
+          ? `${affectedSystem} से जुड़ी जानकारी`
+          : `Information about ${affectedSystem}`
         : hi
           ? "प्रभावित उपकरण या सिस्टम की जानकारी"
           : "Affected device or system information",

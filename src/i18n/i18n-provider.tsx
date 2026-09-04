@@ -187,7 +187,7 @@ const EN_TEXT: Record<string, string> = {
   "workspace.whatShared": "What you shared",
   "workspace.reportDetails": "Report details",
   "workspace.saved": "Your statement has been saved.",
-  "workspace.reportingView": "Reporting workspace view",
+  "workspace.reportingView": "Complaint preparation view",
   "field.incident": "Incident",
   "field.transactions": "Transaction",
   "field.evidenceSuspect": "Evidence and person or account involved",
@@ -401,8 +401,12 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   const [locale, setLocaleState] = useState<UiLocale>("en");
 
   useEffect(() => {
-    const saved = window.localStorage.getItem(STORAGE_KEY);
-    if (saved === "hi" || saved === "en") setLocaleState(saved);
+    try {
+      const saved = window.localStorage.getItem(STORAGE_KEY);
+      if (saved === "hi" || saved === "en") setLocaleState(saved);
+    } catch {
+      // The language switch still works in memory when storage is unavailable.
+    }
   }, []);
 
   useEffect(() => {
@@ -412,7 +416,11 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 
   const setLocale = useCallback((next: UiLocale) => {
     setLocaleState(next);
-    window.localStorage.setItem(STORAGE_KEY, next);
+    try {
+      window.localStorage.setItem(STORAGE_KEY, next);
+    } catch {
+      // Restricted browsing modes may block storage; do not block the UI.
+    }
   }, []);
 
   const t = useCallback(

@@ -1,6 +1,7 @@
 import type { IncidentDraft } from "../incident/schema";
 import type { UiLocale } from "../i18n/i18n-provider";
 import { getIncidentCapabilities } from "../incident/capabilities";
+import { isInternalCaseValue } from "../presentation/citizen-visible-value";
 
 export type NotificationChannel = "EMAIL" | "WHATSAPP";
 export type CitizenNudgeReason =
@@ -35,9 +36,11 @@ export function deriveCitizenNudges(
   const financialLoss =
     draft.incident.financialLossState === "YES" && draft.transactions.length > 0;
   const missingReference = draft.transactions.some(
-    (transaction) =>
-      !transaction.transactionIdOrUtr ||
-      transaction.transactionIdOrUtr === "__CITIZEN_DOES_NOT_HAVE__",
+    (transaction) => {
+      const reference =
+        transaction.transactionIdOrUtr ?? transaction.referenceNumber;
+      return !reference || isInternalCaseValue(reference);
+    },
   );
 
   if (financialLoss) {

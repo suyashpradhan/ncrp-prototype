@@ -43,6 +43,10 @@ type PostSubmissionCaseHomeProps = {
   demoCase: DemoCaseDefinition | null;
   milestones: PostReportMilestones;
   transcription: TranscriptionResult | null;
+  remindersEnabled: boolean;
+  notificationChannel: NotificationChannel;
+  onRemindersEnabledChange: (enabled: boolean) => void;
+  onNotificationChannelChange: (channel: NotificationChannel) => void;
   onDraftChange: (draft: IncidentDraft) => void;
   onStartNewReport: () => void;
 };
@@ -68,6 +72,30 @@ function PrintableCaseReport({
         ? transcription.englishTranscript
         : transcription.originalTranscript
     : draft.incident.narrative;
+  const affectedPlatforms = draft.adaptiveFacts.affectedPlatforms
+    .map((value) => citizenVisibleValue(value))
+    .filter((value): value is string => Boolean(value));
+  const messageSourcePlatforms = draft.adaptiveFacts.messageSourcePlatforms
+    .map((value) => citizenVisibleValue(value))
+    .filter((value): value is string => Boolean(value));
+  const affectedPlatform = citizenVisibleValue(draft.adaptiveFacts.platform);
+  const affectedAccount = citizenVisibleValue(
+    draft.adaptiveFacts.affectedAccount,
+  );
+  const profileUrl = citizenVisibleValue(draft.adaptiveFacts.profileUrl);
+  const accountAccessStatus = citizenVisibleValue(
+    draft.adaptiveFacts.accountAccessStatus,
+  );
+  const threatChannel = citizenVisibleValue(draft.adaptiveFacts.threatChannel);
+  const impersonatedEntity = citizenVisibleValue(
+    draft.adaptiveFacts.impersonatedEntity,
+  );
+  const showAffectedAccount = Boolean(
+    draft.adaptiveFacts.accountCompromise ||
+      affectedAccount ||
+      affectedPlatform ||
+      affectedPlatforms.length > 0,
+  );
   return (
     <article className="complaint-packet" aria-label={hi ? "प्रिंट करने योग्य रिपोर्ट" : "Printable report"}>
       <header>
@@ -75,12 +103,24 @@ function PrintableCaseReport({
         <h1>{hi ? "तैयार साइबर अपराध रिपोर्ट" : "Prepared cybercrime report"}</h1>
         <p>{draft.officialMapping.subCategoryLabel ?? draft.officialMapping.categoryLabel ?? draft.citizenSummary.incidentLabel}</p>
       </header>
-      <section><h2>{hi ? "संदर्भ" : "Reference"}</h2><p>{prototypeReference}</p><p>{hi ? "जमा किया गया" : "Submitted"}: {submitted}</p></section>
+      {prototypeReference ? <section><h2>{hi ? "संदर्भ" : "Reference"}</h2><p>{prototypeReference}</p><p>{hi ? "जमा किया गया" : "Submitted"}: {submitted}</p></section> : null}
       <section><h2>{hi ? "शिकायत की जानकारी" : "Complaint details"}</h2><dl>{summary.map((item) => <div key={item.id}><dt>{item.label}</dt><dd>{item.value}</dd></div>)}</dl></section>
       {displayedStatement ? <section><h2>{hi ? "घटना का विवरण" : "Incident summary"}</h2><p>{displayedStatement}</p></section> : null}
-      {draft.transactions.length > 0 ? <section><h2>{hi ? "लेन-देन" : "Transactions"}</h2>{draft.transactions.map((transaction, index) => <dl key={transaction.id}><div><dt>{hi ? "लेन-देन" : "Transaction"}</dt><dd>{index + 1}</dd></div>{transaction.amount ? <div><dt>{hi ? "राशि" : "Amount"}</dt><dd>₹{transaction.amount.toLocaleString("en-IN")}</dd></div> : null}{citizenVisibleValue(transaction.institution) ? <div><dt>{hi ? "बैंक या भुगतान ऐप" : "Bank or payment app"}</dt><dd>{citizenVisibleValue(transaction.institution)}</dd></div> : null}{transaction.transactionDate ? <div><dt>{hi ? "तारीख" : "Date"}</dt><dd>{formatIndiaShortDateWithYear(transaction.transactionDate, locale)}</dd></div> : null}{citizenVisibleValue(transaction.approximateTime) ? <div><dt>{hi ? "समय" : "Time"}</dt><dd>{citizenVisibleValue(transaction.approximateTime)}</dd></div> : null}{citizenVisibleValue(transaction.transactionIdOrUtr) ? <div><dt>{hi ? "लेन-देन संदर्भ / UTR" : "Transaction reference / UTR"}</dt><dd>{citizenVisibleValue(transaction.transactionIdOrUtr)}</dd></div> : null}</dl>)}</section> : null}
-      {draft.adaptiveFacts.accountCompromise || draft.adaptiveFacts.affectedAccount || draft.adaptiveFacts.affectedPlatforms.length > 0 ? <section><h2>{hi ? "प्रभावित खाता" : "Affected account"}</h2><dl>{draft.adaptiveFacts.affectedPlatforms.length > 0 ? <div><dt>{hi ? "प्रभावित खाते या सेवाएँ" : "Affected accounts or services"}</dt><dd>{draft.adaptiveFacts.affectedPlatforms.join(", ")}</dd></div> : draft.adaptiveFacts.platform ? <div><dt>{hi ? "प्लेटफ़ॉर्म" : "Platform"}</dt><dd>{draft.adaptiveFacts.platform}</dd></div> : null}{draft.adaptiveFacts.messageSourcePlatforms.length > 0 ? <div><dt>{hi ? "संदेश में बताई गई सेवा" : "Message source platform"}</dt><dd>{draft.adaptiveFacts.messageSourcePlatforms.join(", ")}</dd></div> : null}{draft.adaptiveFacts.affectedAccount ? <div><dt>{hi ? "खाता या प्रोफ़ाइल" : "Account or profile"}</dt><dd>{draft.adaptiveFacts.affectedAccount}</dd></div> : null}{draft.adaptiveFacts.profileUrl ? <div><dt>{hi ? "प्रोफ़ाइल URL" : "Profile URL"}</dt><dd>{draft.adaptiveFacts.profileUrl}</dd></div> : null}{draft.adaptiveFacts.accountAccessStatus ? <div><dt>{hi ? "पहुँच की स्थिति" : "Access status"}</dt><dd>{draft.adaptiveFacts.accountAccessStatus}</dd></div> : null}{draft.adaptiveFacts.multipleIncidentThreads ? <div><dt>{hi ? "घटना के हिस्से" : "Incident threads"}</dt><dd>{hi ? "दो अलग घटना-क्रम दर्ज हैं" : "Two separate incident threads are recorded"}</dd></div> : null}</dl></section> : null}
-      {draft.adaptiveFacts.threatOrExtortion || draft.adaptiveFacts.impersonation ? <section><h2>{hi ? "धमकी या प्रतिरूपण" : "Threat or impersonation"}</h2><dl>{draft.adaptiveFacts.demandedAmount ? <div><dt>{hi ? "मांगी गई राशि" : "Amount demanded"}</dt><dd>₹{draft.adaptiveFacts.demandedAmount.toLocaleString("en-IN")}</dd></div> : null}{draft.adaptiveFacts.threatChannel ? <div><dt>{hi ? "माध्यम" : "Channel"}</dt><dd>{draft.adaptiveFacts.threatChannel}</dd></div> : null}{draft.adaptiveFacts.impersonatedEntity ? <div><dt>{hi ? "दावा की गई पहचान" : "Claimed identity"}</dt><dd>{draft.adaptiveFacts.impersonatedEntity}</dd></div> : null}</dl></section> : null}
+      {draft.transactions.length > 0 ? <section><h2>{hi ? "लेन-देन" : "Transactions"}</h2>{draft.transactions.map((transaction, index) => { const reference = citizenVisibleValue(transaction.transactionIdOrUtr ?? transaction.referenceNumber); return <dl key={transaction.id}><div><dt>{hi ? "लेन-देन" : "Transaction"}</dt><dd>{index + 1}</dd></div>{transaction.amount ? <div><dt>{hi ? "राशि" : "Amount"}</dt><dd>₹{transaction.amount.toLocaleString("en-IN")}</dd></div> : null}{citizenVisibleValue(transaction.institution) ? <div><dt>{hi ? "बैंक या भुगतान ऐप" : "Bank or payment app"}</dt><dd>{citizenVisibleValue(transaction.institution)}</dd></div> : null}{transaction.transactionDate ? <div><dt>{hi ? "तारीख" : "Date"}</dt><dd>{formatIndiaShortDateWithYear(transaction.transactionDate, locale)}</dd></div> : null}{citizenVisibleValue(transaction.approximateTime) ? <div><dt>{hi ? "समय" : "Time"}</dt><dd>{citizenVisibleValue(transaction.approximateTime)}</dd></div> : null}{reference ? <div><dt>{hi ? "लेन-देन संदर्भ / UTR" : "Transaction reference / UTR"}</dt><dd>{reference}</dd></div> : null}</dl>; })}</section> : null}
+      {showAffectedAccount ? (
+        <section>
+          <h2>{hi ? "प्रभावित खाता" : "Affected account"}</h2>
+          <dl>
+            {affectedPlatforms.length > 0 ? <div><dt>{hi ? "प्रभावित खाते या सेवाएँ" : "Affected accounts or services"}</dt><dd>{affectedPlatforms.join(", ")}</dd></div> : affectedPlatform ? <div><dt>{hi ? "प्लेटफ़ॉर्म" : "Platform"}</dt><dd>{affectedPlatform}</dd></div> : null}
+            {messageSourcePlatforms.length > 0 ? <div><dt>{hi ? "संदेश में बताई गई सेवा" : "Message source platform"}</dt><dd>{messageSourcePlatforms.join(", ")}</dd></div> : null}
+            {affectedAccount ? <div><dt>{hi ? "खाता या प्रोफ़ाइल" : "Account or profile"}</dt><dd>{affectedAccount}</dd></div> : null}
+            {profileUrl ? <div><dt>{hi ? "प्रोफ़ाइल URL" : "Profile URL"}</dt><dd>{profileUrl}</dd></div> : null}
+            {accountAccessStatus ? <div><dt>{hi ? "पहुँच की स्थिति" : "Access status"}</dt><dd>{accountAccessStatus}</dd></div> : null}
+            {draft.adaptiveFacts.multipleIncidentThreads ? <div><dt>{hi ? "घटना के हिस्से" : "Incident threads"}</dt><dd>{hi ? "दो अलग घटना-क्रम दर्ज हैं" : "Two separate incident threads are recorded"}</dd></div> : null}
+          </dl>
+        </section>
+      ) : null}
+      {draft.adaptiveFacts.threatOrExtortion || draft.adaptiveFacts.impersonation ? <section><h2>{hi ? "धमकी या प्रतिरूपण" : "Threat or impersonation"}</h2><dl>{draft.adaptiveFacts.demandedAmount ? <div><dt>{hi ? "मांगी गई राशि" : "Amount demanded"}</dt><dd>₹{draft.adaptiveFacts.demandedAmount.toLocaleString("en-IN")}</dd></div> : null}{threatChannel ? <div><dt>{hi ? "माध्यम" : "Channel"}</dt><dd>{threatChannel}</dd></div> : null}{impersonatedEntity ? <div><dt>{hi ? "दावा की गई पहचान" : "Claimed identity"}</dt><dd>{impersonatedEntity}</dd></div> : null}</dl></section> : null}
       {draft.adaptiveFacts.requestedSensitiveInfo.length > 0 || draft.adaptiveFacts.sharedSensitiveInfo.length > 0 ? <section><h2>{hi ? "मांगी या साझा की गई जानकारी" : "Information requested or shared"}</h2>{draft.adaptiveFacts.requestedSensitiveInfo.length > 0 ? <p><strong>{hi ? "मांगी गई:" : "Requested:"}</strong> {draft.adaptiveFacts.requestedSensitiveInfo.join(", ")}</p> : null}{draft.adaptiveFacts.sharedSensitiveInfo.length > 0 ? <p><strong>{hi ? "साझा की गई:" : "Shared:"}</strong> {draft.adaptiveFacts.sharedSensitiveInfo.join(", ")}</p> : null}</section> : null}
       {draft.evidence.length > 0 ? <section><h2>{hi ? "सबूत" : "Evidence"}</h2><p>{draft.evidence.length} {hi ? "सबूत आइटम रिपोर्ट में शामिल" : "evidence items included with the report"}</p></section> : null}
       <footer><p>{hi ? "प्रोटोटाइप प्रति। यह आधिकारिक NCRP पावती या सरकारी सबमिशन रसीद नहीं है।" : "Prototype copy. Not an official NCRP acknowledgement or government submission receipt."}</p></footer>
@@ -253,6 +293,10 @@ export function PostSubmissionCaseHome({
   demoCase,
   milestones,
   transcription,
+  remindersEnabled,
+  notificationChannel,
+  onRemindersEnabledChange,
+  onNotificationChannelChange,
   onDraftChange,
   onStartNewReport,
 }: PostSubmissionCaseHomeProps) {
@@ -271,15 +315,13 @@ export function PostSubmissionCaseHome({
     milestones,
   );
   const [copiedValue, setCopiedValue] = useState<"REFERENCE" | "SUMMARY" | null>(null);
-  const missingReferenceIndex = draft.transactions.findIndex(
-    (transaction) => !transaction.transactionIdOrUtr,
-  );
+  const missingReferenceIndex = draft.transactions.findIndex((transaction) => {
+    if (transaction.transactionIdOrUtr === CITIZEN_DOES_NOT_HAVE) return false;
+    return !transaction.transactionIdOrUtr && !transaction.referenceNumber;
+  });
   const [followUpOpen, setFollowUpOpen] = useState(false);
   const [followUpValue, setFollowUpValue] = useState("");
   const [followUpSaved, setFollowUpSaved] = useState(false);
-  const [notificationChannel, setNotificationChannel] =
-    useState<NotificationChannel>("EMAIL");
-  const [remindersEnabled, setRemindersEnabled] = useState(false);
   const nudges = deriveCitizenNudges(draft, locale, notificationChannel);
   const stateExplanation = getCaseStateExplanation(
     missingReferenceIndex >= 0 ? "ADDITIONAL_INFO_REQUESTED" : "SUBMITTED",
@@ -442,7 +484,7 @@ export function PostSubmissionCaseHome({
                             {citizenVisibleValue(transaction.institution) ? <div><dt>{hi ? "बैंक या भुगतान ऐप" : "Bank or payment app"}</dt><dd>{citizenVisibleValue(transaction.institution)}</dd></div> : null}
                             {transaction.transactionDate ? <div><dt>{hi ? "तारीख" : "Date"}</dt><dd>{formatIndiaShortDateWithYear(transaction.transactionDate, locale)}</dd></div> : null}
                             {citizenVisibleValue(transaction.approximateTime) ? <div><dt>{hi ? "समय" : "Time"}</dt><dd>{citizenVisibleValue(transaction.approximateTime)}</dd></div> : null}
-                            {citizenVisibleValue(transaction.transactionIdOrUtr) ? <div><dt>{hi ? "लेन-देन संदर्भ / UTR" : "Transaction reference / UTR"}</dt><dd>{citizenVisibleValue(transaction.transactionIdOrUtr)}</dd></div> : null}
+                            {citizenVisibleValue(transaction.transactionIdOrUtr ?? transaction.referenceNumber) ? <div><dt>{hi ? "लेन-देन संदर्भ / UTR" : "Transaction reference / UTR"}</dt><dd>{citizenVisibleValue(transaction.transactionIdOrUtr ?? transaction.referenceNumber)}</dd></div> : null}
                           </dl>
                         </article>
                       ))}
@@ -523,7 +565,7 @@ export function PostSubmissionCaseHome({
                   <h3>{hi ? "रिमाइंडर चालू हैं" : "Reminders on"}</h3>
                   <strong>{notificationChannel === "EMAIL" ? (hi ? "ईमेल" : "Email") : "WhatsApp"}</strong>
                   <p>{hi ? "इस शिकायत के लिए उपयोगी सुरक्षा रिमाइंडर मिलेंगे।" : "You'll receive follow-up safety reminders for this complaint."}</p>
-                  <button className="text-button" type="button" onClick={() => setRemindersEnabled(false)}>{hi ? "पसंद बदलें" : "Change preference"}</button>
+                  <button className="text-button" type="button" onClick={() => onRemindersEnabledChange(false)}>{hi ? "पसंद बदलें" : "Change preference"}</button>
                 </div>
               </div>
             ) : (
@@ -531,15 +573,15 @@ export function PostSubmissionCaseHome({
                 <fieldset>
                   <legend>{hi ? "रिमाइंडर का माध्यम" : "Reminder channel"}</legend>
                   <label>
-                    <input type="radio" name="notification-channel" value="EMAIL" checked={notificationChannel === "EMAIL"} onChange={() => setNotificationChannel("EMAIL")} />
+                    <input type="radio" name="notification-channel" value="EMAIL" checked={notificationChannel === "EMAIL"} onChange={() => onNotificationChannelChange("EMAIL")} />
                     <span>{hi ? "ईमेल" : "Email"}</span>
                   </label>
                   <label>
-                    <input type="radio" name="notification-channel" value="WHATSAPP" checked={notificationChannel === "WHATSAPP"} onChange={() => setNotificationChannel("WHATSAPP")} />
+                    <input type="radio" name="notification-channel" value="WHATSAPP" checked={notificationChannel === "WHATSAPP"} onChange={() => onNotificationChannelChange("WHATSAPP")} />
                     <span>WhatsApp</span>
                   </label>
                 </fieldset>
-                <button className="secondary-button" type="button" onClick={() => setRemindersEnabled(true)}>
+                <button className="secondary-button" type="button" onClick={() => onRemindersEnabledChange(true)}>
                   {hi ? "रिमाइंडर चालू करें" : "Turn on reminders"}
                 </button>
                 <p className="source-note">
