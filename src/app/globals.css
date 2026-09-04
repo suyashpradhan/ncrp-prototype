@@ -1877,7 +1877,7 @@ html[data-ui-locale="hi"] .landing-case-check h2 {
 
 .suggested-reporting-path,
 .classification-guidance {
-  margin-bottom: 22px;
+  margin: 22px 0;
   padding: 16px;
   background: #f7f6f3;
   border: 1px solid var(--border);
@@ -2427,9 +2427,11 @@ html[data-ui-locale="hi"] .landing-case-check h2 {
 }
 
 .transaction-card {
-  padding: 18px;
   background: #f7f6f3;
   border-radius: 12px;
+  padding: 18px;
+  margin: 20px 0;
+  border: 1px solid #efefef;
 }
 
 .transaction-label,
@@ -2995,7 +2997,7 @@ dd {
 .case-integrity-summary,
 .case-knowledge-summary,
 .financial-triage {
-  margin-bottom: 22px;
+  margin: 22px 0;
   padding: 20px;
   background: #f7f7f4;
   border: 1px solid var(--border);
