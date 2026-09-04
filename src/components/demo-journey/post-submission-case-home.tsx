@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   CITIZEN_DOES_NOT_HAVE,
   type IncidentDraft,
+  type TranscriptionResult,
 } from "../../incident/schema";
 import { useI18n } from "../../i18n/i18n-provider";
 import { deriveEvidenceContributions } from "../../presentation/evidence-contributions";
@@ -22,6 +23,7 @@ import {
 } from "../../presentation/post-report-case";
 import { IncidentTimeline } from "./incident-timeline";
 import { JourneyProgress } from "./journey-progress";
+import { formatIndiaShortDateWithYear } from "../../presentation/format";
 
 type PostSubmissionCaseHomeProps = {
   draft: IncidentDraft;
@@ -29,6 +31,7 @@ type PostSubmissionCaseHomeProps = {
   screenshots: File[];
   isDemoIncident: boolean;
   milestones: PostReportMilestones;
+  transcription: TranscriptionResult | null;
   onDraftChange: (draft: IncidentDraft) => void;
   onStartNewReport: () => void;
 };
@@ -42,7 +45,8 @@ function PrintableCaseReport({
   draft,
   prototypeReference,
   milestones,
-}: Pick<PostSubmissionCaseHomeProps, "draft" | "prototypeReference" | "milestones">) {
+  transcription,
+}: Pick<PostSubmissionCaseHomeProps, "draft" | "prototypeReference" | "milestones" | "transcription">) {
   const { locale } = useI18n();
   const hi = locale === "hi";
   const summary = getCaseSummary(draft, locale);
@@ -51,6 +55,13 @@ function PrintableCaseReport({
     timeStyle: "short",
     timeZone: "Asia/Kolkata",
   }).format(new Date(milestones.submittedAt));
+  const displayedStatement = transcription
+    ? hi && transcription.languageCode.startsWith("hi")
+      ? transcription.originalTranscript
+      : !hi && transcription.englishTranscript
+        ? transcription.englishTranscript
+        : transcription.originalTranscript
+    : draft.incident.narrative;
   return (
     <article className="complaint-packet" aria-label={hi ? "प्रिंट करने योग्य रिपोर्ट" : "Printable report"}>
       <header>
@@ -59,10 +70,10 @@ function PrintableCaseReport({
         <p>{draft.officialMapping.subCategoryLabel ?? draft.officialMapping.categoryLabel ?? draft.citizenSummary.incidentLabel}</p>
       </header>
       <section><h2>{hi ? "संदर्भ" : "Reference"}</h2><p>{prototypeReference}</p><p>{hi ? "जमा किया गया" : "Submitted"}: {submitted}</p></section>
-      <section><h2>{hi ? "मामले का सार" : "Case summary"}</h2><dl>{summary.map((item) => <div key={item.id}><dt>{item.label}</dt><dd>{item.value}</dd></div>)}</dl></section>
-      {draft.incident.narrative ? <section><h2>{hi ? "घटना का विवरण" : "Incident summary"}</h2><p>{draft.incident.narrative}</p></section> : null}
-      {draft.transactions.length > 0 ? <section><h2>{hi ? "लेन-देन" : "Transactions"}</h2>{draft.transactions.map((transaction, index) => <dl key={transaction.id}><div><dt>{hi ? "लेन-देन" : "Transaction"}</dt><dd>{index + 1}</dd></div>{transaction.amount ? <div><dt>{hi ? "राशि" : "Amount"}</dt><dd>₹{transaction.amount.toLocaleString("en-IN")}</dd></div> : null}{transaction.institution ? <div><dt>{hi ? "बैंक या भुगतान ऐप" : "Bank / payment institution"}</dt><dd>{transaction.institution}</dd></div> : null}{transaction.transactionIdOrUtr && transaction.transactionIdOrUtr !== "__CITIZEN_DOES_NOT_HAVE__" ? <div><dt>{hi ? "लेन-देन संदर्भ" : "Transaction reference"}</dt><dd>{transaction.transactionIdOrUtr}</dd></div> : null}</dl>)}</section> : null}
-      {draft.adaptiveFacts.accountCompromise || draft.adaptiveFacts.affectedAccount ? <section><h2>{hi ? "प्रभावित खाता" : "Affected account"}</h2><dl>{draft.adaptiveFacts.platform ? <div><dt>{hi ? "प्लेटफ़ॉर्म" : "Platform"}</dt><dd>{draft.adaptiveFacts.platform}</dd></div> : null}{draft.adaptiveFacts.affectedAccount ? <div><dt>{hi ? "खाता या प्रोफ़ाइल" : "Account or profile"}</dt><dd>{draft.adaptiveFacts.affectedAccount}</dd></div> : null}{draft.adaptiveFacts.profileUrl ? <div><dt>{hi ? "प्रोफ़ाइल URL" : "Profile URL"}</dt><dd>{draft.adaptiveFacts.profileUrl}</dd></div> : null}{draft.adaptiveFacts.accountAccessStatus ? <div><dt>{hi ? "पहुँच की स्थिति" : "Access status"}</dt><dd>{draft.adaptiveFacts.accountAccessStatus}</dd></div> : null}</dl></section> : null}
+      <section><h2>{hi ? "शिकायत की जानकारी" : "Complaint details"}</h2><dl>{summary.map((item) => <div key={item.id}><dt>{item.label}</dt><dd>{item.value}</dd></div>)}</dl></section>
+      {displayedStatement ? <section><h2>{hi ? "घटना का विवरण" : "Incident summary"}</h2><p>{displayedStatement}</p></section> : null}
+      {draft.transactions.length > 0 ? <section><h2>{hi ? "लेन-देन" : "Transactions"}</h2>{draft.transactions.map((transaction, index) => <dl key={transaction.id}><div><dt>{hi ? "लेन-देन" : "Transaction"}</dt><dd>{index + 1}</dd></div>{transaction.amount ? <div><dt>{hi ? "राशि" : "Amount"}</dt><dd>₹{transaction.amount.toLocaleString("en-IN")}</dd></div> : null}{transaction.institution ? <div><dt>{hi ? "बैंक या भुगतान ऐप" : "Bank or payment app"}</dt><dd>{transaction.institution}</dd></div> : null}{transaction.transactionDate ? <div><dt>{hi ? "तारीख" : "Date"}</dt><dd>{formatIndiaShortDateWithYear(transaction.transactionDate, locale)}</dd></div> : null}{transaction.approximateTime ? <div><dt>{hi ? "समय" : "Time"}</dt><dd>{transaction.approximateTime}</dd></div> : null}{transaction.transactionIdOrUtr && transaction.transactionIdOrUtr !== "__CITIZEN_DOES_NOT_HAVE__" ? <div><dt>{hi ? "लेन-देन संदर्भ / UTR" : "Transaction reference / UTR"}</dt><dd>{transaction.transactionIdOrUtr}</dd></div> : null}</dl>)}</section> : null}
+      {draft.adaptiveFacts.accountCompromise || draft.adaptiveFacts.affectedAccount || draft.adaptiveFacts.affectedPlatforms.length > 0 ? <section><h2>{hi ? "प्रभावित खाता" : "Affected account"}</h2><dl>{draft.adaptiveFacts.affectedPlatforms.length > 0 ? <div><dt>{hi ? "प्रभावित खाते या सेवाएँ" : "Affected accounts or services"}</dt><dd>{draft.adaptiveFacts.affectedPlatforms.join(", ")}</dd></div> : draft.adaptiveFacts.platform ? <div><dt>{hi ? "प्लेटफ़ॉर्म" : "Platform"}</dt><dd>{draft.adaptiveFacts.platform}</dd></div> : null}{draft.adaptiveFacts.messageSourcePlatforms.length > 0 ? <div><dt>{hi ? "संदेश में बताई गई सेवा" : "Message source platform"}</dt><dd>{draft.adaptiveFacts.messageSourcePlatforms.join(", ")}</dd></div> : null}{draft.adaptiveFacts.affectedAccount ? <div><dt>{hi ? "खाता या प्रोफ़ाइल" : "Account or profile"}</dt><dd>{draft.adaptiveFacts.affectedAccount}</dd></div> : null}{draft.adaptiveFacts.profileUrl ? <div><dt>{hi ? "प्रोफ़ाइल URL" : "Profile URL"}</dt><dd>{draft.adaptiveFacts.profileUrl}</dd></div> : null}{draft.adaptiveFacts.accountAccessStatus ? <div><dt>{hi ? "पहुँच की स्थिति" : "Access status"}</dt><dd>{draft.adaptiveFacts.accountAccessStatus}</dd></div> : null}{draft.adaptiveFacts.multipleIncidentThreads ? <div><dt>{hi ? "घटना के हिस्से" : "Incident threads"}</dt><dd>{hi ? "दो अलग घटना-क्रम दर्ज हैं" : "Two separate incident threads are recorded"}</dd></div> : null}</dl></section> : null}
       {draft.adaptiveFacts.threatOrExtortion || draft.adaptiveFacts.impersonation ? <section><h2>{hi ? "धमकी या प्रतिरूपण" : "Threat or impersonation"}</h2><dl>{draft.adaptiveFacts.demandedAmount ? <div><dt>{hi ? "मांगी गई राशि" : "Amount demanded"}</dt><dd>₹{draft.adaptiveFacts.demandedAmount.toLocaleString("en-IN")}</dd></div> : null}{draft.adaptiveFacts.threatChannel ? <div><dt>{hi ? "माध्यम" : "Channel"}</dt><dd>{draft.adaptiveFacts.threatChannel}</dd></div> : null}{draft.adaptiveFacts.impersonatedEntity ? <div><dt>{hi ? "दावा की गई पहचान" : "Claimed identity"}</dt><dd>{draft.adaptiveFacts.impersonatedEntity}</dd></div> : null}</dl></section> : null}
       {draft.adaptiveFacts.requestedSensitiveInfo.length > 0 || draft.adaptiveFacts.sharedSensitiveInfo.length > 0 ? <section><h2>{hi ? "मांगी या साझा की गई जानकारी" : "Information requested or shared"}</h2>{draft.adaptiveFacts.requestedSensitiveInfo.length > 0 ? <p><strong>{hi ? "मांगी गई:" : "Requested:"}</strong> {draft.adaptiveFacts.requestedSensitiveInfo.join(", ")}</p> : null}{draft.adaptiveFacts.sharedSensitiveInfo.length > 0 ? <p><strong>{hi ? "साझा की गई:" : "Shared:"}</strong> {draft.adaptiveFacts.sharedSensitiveInfo.join(", ")}</p> : null}</section> : null}
       {draft.evidence.length > 0 ? <section><h2>{hi ? "सबूत" : "Evidence"}</h2><p>{draft.evidence.length} {hi ? "सबूत आइटम रिपोर्ट में शामिल" : "evidence items included with the report"}</p></section> : null}
@@ -214,6 +225,7 @@ export function PostSubmissionCaseHome({
   screenshots,
   isDemoIncident,
   milestones,
+  transcription,
   onDraftChange,
   onStartNewReport,
 }: PostSubmissionCaseHomeProps) {
@@ -291,14 +303,14 @@ export function PostSubmissionCaseHome({
         <div className="reading-shell post-submission-content">
           <header className="post-submission-header">
             <span className="success-mark" aria-hidden="true">✓</span>
-            <h1 tabIndex={-1}>{hi ? "रिपोर्ट जमा हो गई" : "Report submitted"}</h1>
+            <h1 tabIndex={-1}>{hi ? "शिकायत जमा हो गई" : "Complaint submitted"}</h1>
             <p>
               {hi
                 ? "आपकी रिपोर्ट इस प्रोटोटाइप में दर्ज की गई है।"
-                : "Your report has been recorded in this prototype."}
+                : "Your complaint has been recorded in this prototype."}
             </p>
             <div className="prototype-reference-block">
-              <span>{hi ? "प्रोटोटाइप संदर्भ" : "Prototype reference"}</span>
+              <span>{hi ? "शिकायत संदर्भ" : "Complaint reference"}</span>
               <strong>{prototypeReference}</strong>
               <button className="text-button" type="button" onClick={() => void copyText(prototypeReference, "REFERENCE")}>
                 {copiedValue === "REFERENCE" ? (hi ? "कॉपी हो गया" : "Copied") : (hi ? "कॉपी करें" : "Copy")}
@@ -315,7 +327,7 @@ export function PostSubmissionCaseHome({
           </header>
 
           <section className="companion-section" aria-labelledby="post-report-actions-heading">
-            <h2 id="post-report-actions-heading">{hi ? "अभी क्या करें" : "What to do now"}</h2>
+            <h2 id="post-report-actions-heading">{hi ? "तुरंत कार्रवाई" : "Immediate action"}</h2>
             {primaryAction ? (
               <article className="post-report-primary-action">
                 <p className="companion-eyebrow">{hi ? "सबसे पहले" : "First"}</p>
@@ -348,7 +360,7 @@ export function PostSubmissionCaseHome({
           </section>
 
           <section className="companion-section" aria-labelledby="case-summary-heading">
-            <h2 id="case-summary-heading">{hi ? "मामले का सार" : "Case summary"}</h2>
+            <h2 id="case-summary-heading">{hi ? "शिकायत की जानकारी" : "Complaint details"}</h2>
             <dl className="companion-summary-list">
               {summary.map((item) => (
                 <div key={item.id}>
@@ -361,8 +373,7 @@ export function PostSubmissionCaseHome({
 
           {keepReady.length > 0 ? (
             <section className="companion-section case-keep-ready" aria-labelledby="keep-ready-heading">
-              <h2 id="keep-ready-heading">{hi ? "तैयार रखें" : "Keep ready"}</h2>
-              <p>{hi ? "ये जानकारी इसी मामले से ली गई है।" : "These items come from this case."}</p>
+              <h2 id="keep-ready-heading">{hi ? "ये जानकारी तैयार रखें" : "Keep these details ready"}</h2>
               <ul>{keepReady.map((item) => <li key={item}>{item}</li>)}</ul>
             </section>
           ) : null}
@@ -463,9 +474,9 @@ export function PostSubmissionCaseHome({
           </section>
 
           <button className="secondary-button" type="button" onClick={onStartNewReport}>
-            {hi ? "नई रिपोर्ट शुरू करें" : "Start new report"}
+            {hi ? "नई शिकायत शुरू करें" : "Start new complaint"}
           </button>
-          <PrintableCaseReport draft={draft} prototypeReference={prototypeReference} milestones={milestones} />
+          <PrintableCaseReport draft={draft} prototypeReference={prototypeReference} milestones={milestones} transcription={transcription} />
         </div>
       </div>
     </section>

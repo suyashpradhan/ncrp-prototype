@@ -66,6 +66,13 @@ export type IncidentNormalizationOptions = {
   reportingDate?: string;
 };
 
+const MONTHS: Record<string, number> = {
+  january: 1, jan: 1, february: 2, feb: 2, march: 3, mar: 3,
+  april: 4, apr: 4, may: 5, june: 6, jun: 6, july: 7, jul: 7,
+  august: 8, aug: 8, september: 9, sept: 9, sep: 9, october: 10,
+  oct: 10, november: 11, nov: 11, december: 12, dec: 12,
+};
+
 function validDateOnly(value: string | undefined): value is string {
   return Boolean(value && /^\d{4}-\d{2}-\d{2}$/.test(value));
 }
@@ -84,9 +91,11 @@ export function resolveRelativeIncidentContext(
     return { incidentDate: null, approximateTime: null };
   }
   const normalized = text.toLowerCase();
+  const twoDaysAgo = /\btwo days ago\b/.test(normalized);
   const isYesterday = /\byesterday\b|\blast night\b/.test(normalized);
   const isToday = /\btoday\b|\btonight\b/.test(normalized);
-  if (!isYesterday && !isToday) {
+  const lastWeekday = normalized.match(/\blast\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/);
+  if (!twoDaysAgo && !isYesterday && !isToday && !lastWeekday) {
     return { incidentDate: null, approximateTime: null };
   }
   const approximateTime = /\bmorning\b/.test(normalized)
@@ -96,10 +105,67 @@ export function resolveRelativeIncidentContext(
       : /\bnight\b|\btonight\b/.test(normalized)
         ? "Night"
         : null;
+  let incidentDate = reportingDate;
+  if (twoDaysAgo) incidentDate = shiftDateOnly(reportingDate, -2);
+  else if (isYesterday) incidentDate = shiftDateOnly(reportingDate, -1);
+  else if (lastWeekday) {
+    const weekday = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"].indexOf(lastWeekday[1]);
+    const current = new Date(`${reportingDate}T12:00:00Z`).getUTCDay();
+    const daysBack = ((current - weekday + 7) % 7) || 7;
+    incidentDate = shiftDateOnly(reportingDate, -daysBack);
+  }
   return {
-    incidentDate: isYesterday ? shiftDateOnly(reportingDate, -1) : reportingDate,
+    incidentDate,
     approximateTime,
   };
+}
+
+function firstMonthDay(text: string): { month: number; day: number; index: number } | null {
+  const matches: Array<{ month: number; day: number; index: number }> = [];
+  const monthFirst = /\b(january|jan|february|feb|march|mar|april|apr|may|june|jun|july|jul|august|aug|september|sept|sep|october|oct|november|nov|december|dec)\s+(\d{1,2})(?:st|nd|rd|th)?\b/gi;
+  const dayFirst = /\b(\d{1,2})(?:st|nd|rd|th)?\s+(january|jan|february|feb|march|mar|april|apr|may|june|jun|july|jul|august|aug|september|sept|sep|october|oct|november|nov|december|dec)\b/gi;
+  for (const match of text.matchAll(monthFirst)) {
+    const month = MONTHS[match[1].toLowerCase()];
+    const day = Number(match[2]);
+    if (month && day >= 1 && day <= 31 && match.index !== undefined) matches.push({ month, day, index: match.index });
+  }
+  for (const match of text.matchAll(dayFirst)) {
+    const month = MONTHS[match[2].toLowerCase()];
+    const day = Number(match[1]);
+    if (month && day >= 1 && day <= 31 && match.index !== undefined) matches.push({ month, day, index: match.index });
+  }
+  return matches.sort((left, right) => left.index - right.index)[0] ?? null;
+}
+
+function pastEventContext(text: string): boolean {
+  return /\b(?:happened|occurred|received|clicked|paid|transferred|sent|debited|lost|was|were|could not|couldn't|did not|didn't)\b/i.test(text);
+}
+
+export function resolveOmittedYearDate(
+  text: string,
+  reportingDate?: string,
+): { incidentDate: string | null; incidentDateWithoutYear: string | null } {
+  if (!validDateOnly(reportingDate)) return { incidentDate: null, incidentDateWithoutYear: null };
+  const relative = resolveRelativeIncidentContext(text, reportingDate).incidentDate;
+  if (relative) return { incidentDate: relative, incidentDateWithoutYear: null };
+  const mention = firstMonthDay(text);
+  if (!mention) return { incidentDate: null, incidentDateWithoutYear: null };
+  const [reportYear] = reportingDate.split("-").map(Number);
+  const partial = `${String(mention.month).padStart(2, "0")}-${String(mention.day).padStart(2, "0")}`;
+  const explicitYear = text
+    .slice(Math.max(0, mention.index - 8), mention.index + 35)
+    .match(/\b(20\d{2})\b/)?.[1];
+  if (explicitYear) {
+    return { incidentDate: `${explicitYear}-${partial}`, incidentDateWithoutYear: null };
+  }
+  const currentYearCandidate = `${reportYear}-${partial}`;
+  if (currentYearCandidate <= reportingDate) {
+    return { incidentDate: currentYearCandidate, incidentDateWithoutYear: null };
+  }
+  const context = text.slice(Math.max(0, mention.index - 120), mention.index + 140);
+  return pastEventContext(context)
+    ? { incidentDate: `${reportYear - 1}-${partial}`, incidentDateWithoutYear: null }
+    : { incidentDate: null, incidentDateWithoutYear: partial };
 }
 
 function parseAmount(raw: string, unit: string | undefined): number | null {
@@ -307,10 +373,8 @@ export function deriveFinancialFactsFromText(text: string): DeterministicFinanci
 }
 
 const CHANNEL_PATTERNS: ReadonlyArray<[RegExp, string]> = [
-  [/\binstagram\b/i, "Instagram"],
-  [/\bfacebook\b/i, "Facebook"],
-  [/\bwhats?app\b/i, "WhatsApp"],
-  [/\btelegram\b/i, "Telegram"],
+  [/\b(?:via|through|on|over)\s+whats?app\b|\bwhats?app\s+(?:message|call|chat)\b/i, "WhatsApp"],
+  [/\b(?:via|through|on|over)\s+telegram\b|\btelegram\s+(?:message|call|chat)\b/i, "Telegram"],
   [/\b(?:sms|text message)\b/i, "SMS / text message"],
   [/\b(?:e-?mail|email)\b/i, "Email"],
   [/\b(?:phone call|called me|caller|telephone call)\b/i, "Phone call"],
@@ -320,20 +384,27 @@ const CHANNEL_PATTERNS: ReadonlyArray<[RegExp, string]> = [
 ];
 
 function communicationChannelsFromText(text: string): string[] {
-  return Array.from(new Set(
+  const channels = Array.from(new Set(
     CHANNEL_PATTERNS
       .filter(([pattern]) => pattern.test(text))
       .map(([, label]) => label)
       .filter((label) => label !== "Mobile app" || /\b(?:mobile app|banking app|application)\b/i.test(text)),
   ));
+  const hasSpecificMessageChannel = channels.some((channel) =>
+    ["WhatsApp", "Telegram", "SMS / text message", "Email"].includes(channel),
+  );
+  return hasSpecificMessageChannel
+    ? channels.filter((channel) => channel !== "Messages")
+    : channels;
 }
 
 function approximateEventTime(context: string): string | null {
+  const exact = [...context.matchAll(/\b(?:at|around|about|approximately)?\s*(\d{1,2}(?::\d{2})?\s*(?:am|pm))\b/gi)].at(-1);
+  if (exact?.[1]) return exact[1];
   if (/\bmorning\b/i.test(context)) return "Morning";
   if (/\bevening\b/i.test(context)) return "Evening";
   if (/\b(?:night|tonight)\b/i.test(context)) return "Night";
-  const match = context.match(/\b(?:at|around|about|approximately)\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm))\b/i);
-  return match?.[1] ?? null;
+  return null;
 }
 
 function incidentWideTimeIsSupported(text: string): boolean {
@@ -376,6 +447,69 @@ function platformFromIncidentText(text: string): string | null {
   const name = raw?.[1] ?? raw?.[2];
   if (!name || /^(?:the|this|an|online|social)$/i.test(name)) return null;
   return name.charAt(0).toUpperCase() + name.slice(1);
+}
+
+function platformRolesFromText(text: string): {
+  messageSourcePlatforms: string[];
+  affectedPlatforms: string[];
+  relationshipIsClear: boolean;
+} {
+  const messageSourcePlatforms = new Set<string>();
+  const affectedPlatforms = new Set<string>();
+  for (const [pattern, name] of KNOWN_PLATFORM_PATTERNS) {
+    const platformExpression = pattern.source;
+    const sourceRole = new RegExp(
+      `(?:${platformExpression})[^.!?\\n]{0,38}(?:password[ -]?reset|security|verification|login)[^.!?\\n]{0,22}(?:message|email|link)|(?:message|email|link)[^.!?\\n]{0,35}(?:from|claiming|about)[^.!?\\n]{0,25}(?:${platformExpression})`,
+      "i",
+    );
+    const harm = "(?:hacked|compromised|taken over|lost access|cannot access|can't access|could not access|couldn't access|cannot log in|can't log in|could not log in|couldn't log in|reset (?:my|the)|recovery (?:email|phone)[^.!?\\n]{0,24}changed)";
+    const affectedRole = new RegExp(
+      `(?:${platformExpression})[^.!?\\n]{0,50}${harm}|${harm}[^.!?\\n]{0,50}(?:${platformExpression})`,
+      "i",
+    );
+    if (sourceRole.test(text)) messageSourcePlatforms.add(name);
+    if (affectedRole.test(text)) affectedPlatforms.add(name);
+  }
+  const relationshipIsClear = /\b(?:through|via|using)\s+(?:my\s+)?(?:email|gmail|outlook|facebook|instagram|whats?app|telegram)\b|\b(?:hacked|compromised).{0,100}\b(?:then|afterwards?|subsequently)\b.{0,100}\b(?:reset|took over|compromised)\b/is.test(text);
+  return {
+    messageSourcePlatforms: [...messageSourcePlatforms],
+    affectedPlatforms: [...affectedPlatforms],
+    relationshipIsClear,
+  };
+}
+
+function eventDateForMention(
+  text: string,
+  mentionIndex: number,
+  previousMentionIndex: number,
+  reportingDate?: string,
+): string | null {
+  const context = text.slice(Math.max(0, previousMentionIndex), Math.min(text.length, mentionIndex + 120));
+  return resolveOmittedYearDate(context, reportingDate).incidentDate ??
+    resolveRelativeIncidentContext(context, reportingDate).incidentDate;
+}
+
+function paymentInstitutionForMention(context: string): string | null {
+  for (const [pattern, institution] of INSTITUTION_PATTERNS) {
+    if (pattern.test(context) && paymentInstitutionIsSupported(context, institution)) return institution;
+  }
+  return null;
+}
+
+function normalizedTransactionDate(
+  value: string | null,
+  eventDate: string | null,
+  eventContext: string,
+  reportingDate?: string,
+): string | null {
+  if (value && /^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+  if (value && /^\d{2}-\d{2}$/.test(value) && validDateOnly(reportingDate)) {
+    const [year] = reportingDate.split("-").map(Number);
+    const currentYearCandidate = `${year}-${value}`;
+    if (currentYearCandidate <= reportingDate) return currentYearCandidate;
+    return pastEventContext(eventContext) ? `${year - 1}-${value}` : null;
+  }
+  return eventDate;
 }
 
 function sensitiveInformationFacts(text: string): {
@@ -445,9 +579,13 @@ export function normalizeIncidentDraft(
     draft.citizenSummary.shortSummary.trim() ||
     draft.evidence.flatMap((item) => item.extractedFacts).join("\n");
   const extracted = deriveFinancialFactsFromText(financialSourceText);
-  const platform = draft.adaptiveFacts.platform ??
-    draft.classification.platform ??
-    platformFromIncidentText(financialSourceText);
+  const entityRoles = platformRolesFromText(financialSourceText);
+  const platform = draft.citizenConfirmedFields.includes("adaptive.platform")
+    ? draft.adaptiveFacts.platform
+    : entityRoles.affectedPlatforms[0] ??
+      draft.adaptiveFacts.platform ??
+      draft.classification.platform ??
+      platformFromIncidentText(financialSourceText);
   const sensitiveInformation = sensitiveInformationFacts(financialSourceText);
   const accountCompromise = /\b(?:hacked|taken over|took over|compromised|lost access)\b/i.test(financialSourceText) &&
     /\b(?:account|profile|facebook|instagram|snapchat|twitter|linkedin|gmail|outlook|discord|youtube)\b/i.test(financialSourceText);
@@ -487,6 +625,10 @@ export function normalizeIncidentDraft(
     supportedText,
     options.reportingDate,
   );
+  const partialDateContext = draft.incident.incidentDateWithoutYear
+    ? `${draft.incident.incidentDateWithoutYear.slice(3)} ${Object.entries(MONTHS).find(([, month]) => month === Number(draft.incident.incidentDateWithoutYear?.slice(0, 2)))?.[0] ?? ""} ${pastEventContext(supportedText) ? "happened" : ""}`
+    : supportedText;
+  const inferredDate = resolveOmittedYearDate(partialDateContext, options.reportingDate);
   const isFinancialIncident = classification.reportFamily === "FINANCIAL_FRAUD";
   const financialLossState = isFinancialIncident
     ? extracted.lossStateExplicit
@@ -551,7 +693,7 @@ export function normalizeIncidentDraft(
       : extracted.monetaryMentions.length > 0 && !hasTransactionEvidence
         ? []
         : existingTransactions;
-  const normalizedIncidentDate = draft.incident.incidentDate ?? relativeContext.incidentDate;
+  const normalizedIncidentDate = draft.incident.incidentDate ?? inferredDate.incidentDate ?? relativeContext.incidentDate;
   const evidenceHasSeparateTransactionDate = draft.evidence.some(
     (item) => item.type === "TRANSACTION_SCREENSHOT" &&
       item.extractedFacts.some((fact) => /\bdate(?:d)?\b|\btransaction date\b|तारीख/i.test(fact)),
@@ -564,6 +706,14 @@ export function normalizeIncidentDraft(
   const seenTransactionIds = new Set<string>();
   const transactions = transactionSource.map((transaction, index) => {
       const mention = canonicalMentions[index];
+      const previousMentionIndex = index > 0 ? (canonicalMentions[index - 1]?.index ?? 0) + 1 : 0;
+      const eventDate = mention
+        ? eventDateForMention(financialSourceText, mention.index, previousMentionIndex, options.reportingDate)
+        : null;
+      const eventInstitution = mention ? paymentInstitutionForMention(mention.context) : null;
+      const eventContext = mention
+        ? financialSourceText.slice(Math.max(0, previousMentionIndex), Math.min(financialSourceText.length, mention.index + 120))
+        : "";
       const preferredId = transaction.id || `transaction-${index + 1}`;
       const id = seenTransactionIds.has(preferredId)
         ? `${preferredId}-${index + 1}`
@@ -574,15 +724,20 @@ export function normalizeIncidentDraft(
       return {
         ...transaction,
         id,
-        institution:
+        institution: eventInstitution ?? (
           !hasCitizenConfirmedTransaction &&
           transaction.institution &&
           mention &&
           institutionIsOnlyImpersonated(mention.context, transaction.institution)
             ? null
-            : transaction.institution,
+            : transaction.institution),
         currency: transaction.currency ?? "INR",
-        transactionDate: transaction.transactionDate ??
+        transactionDate: normalizedTransactionDate(
+          transaction.transactionDate,
+          eventDate,
+          eventContext,
+          options.reportingDate,
+        ) ??
           (transactionDateFromIncident ? normalizedIncidentDate : null),
         referenceNumber: normalizedUtr && normalizedUtr === normalizedReference
           ? null
@@ -595,10 +750,31 @@ export function normalizeIncidentDraft(
       };
     });
   const derivedChannels = communicationChannelsFromText(financialSourceText);
+  const knownPlatformNames = new Set(KNOWN_PLATFORM_PATTERNS.map(([, name]) => name));
   const communicationChannels = Array.from(new Set([
-    ...draft.adaptiveFacts.communicationChannels.filter((channel) => channel !== "Other"),
+    ...draft.adaptiveFacts.communicationChannels.filter(
+      (channel) => channel !== "Other" && (!knownPlatformNames.has(channel) || derivedChannels.includes(channel)),
+    ),
     ...derivedChannels,
   ]));
+  const messageSourcePlatforms = draft.citizenConfirmedFields.includes("adaptive.entityRelationship")
+    ? draft.adaptiveFacts.messageSourcePlatforms
+    : entityRoles.messageSourcePlatforms.length > 0
+      ? entityRoles.messageSourcePlatforms
+      : draft.adaptiveFacts.messageSourcePlatforms;
+  const baseAffectedPlatforms = draft.citizenConfirmedFields.includes("adaptive.affectedPlatforms")
+    ? draft.adaptiveFacts.affectedPlatforms
+    : entityRoles.affectedPlatforms.length > 0
+      ? entityRoles.affectedPlatforms
+      : draft.adaptiveFacts.affectedPlatforms;
+  const affectedPlatforms = Array.from(new Set([
+    ...baseAffectedPlatforms,
+    ...(entityRoles.relationshipIsClear ? entityRoles.messageSourcePlatforms : []),
+  ]));
+  const entityRelationship = draft.adaptiveFacts.entityRelationship ??
+    (entityRoles.relationshipIsClear && affectedPlatforms.length > 1
+      ? "RELATED_BOTH_AFFECTED" as const
+      : null);
   const incidentTime = transactions.length > 1 &&
     !draft.citizenConfirmedFields.includes("incident.incidentTime") &&
     !incidentWideTimeIsSupported(financialSourceText)
@@ -623,6 +799,12 @@ export function normalizeIncidentDraft(
     adaptiveFacts: {
       ...draft.adaptiveFacts,
       platform,
+      messageSourcePlatforms,
+      affectedPlatforms,
+      entityRelationship,
+      multipleIncidentThreads: entityRelationship === "SEPARATE_INCIDENT_THREADS"
+        ? true
+        : draft.adaptiveFacts.multipleIncidentThreads,
       accountCompromise: draft.adaptiveFacts.accountCompromise ?? accountCompromise,
       recoveryEmailChanged: draft.adaptiveFacts.recoveryEmailChanged ??
         (/recovery email[^.!?\n]{0,30}(?:changed|removed)/i.test(financialSourceText) ? true : null),
@@ -684,6 +866,9 @@ export function normalizeIncidentDraft(
         : draft.incident.intermediateBalances,
       closingBalance: extracted.closingBalance ?? draft.incident.closingBalance,
       incidentDate: normalizedIncidentDate,
+      incidentDateWithoutYear: normalizedIncidentDate
+        ? null
+        : inferredDate.incidentDateWithoutYear ?? draft.incident.incidentDateWithoutYear,
       approximateTime: incidentTime,
       occurredOn: communicationChannels.length > 1
         ? "Multiple channels"

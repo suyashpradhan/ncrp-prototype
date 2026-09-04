@@ -37,7 +37,19 @@ export function getSafeCaseSummary(
   return [
     hi ? "साइबर अपराध रिपोर्ट सार" : "Cybercrime report summary",
     line(hi ? "प्रकार" : "Type", safeType),
-    line(hi ? "प्रभावित प्लेटफ़ॉर्म" : "Affected platform", draft.adaptiveFacts.platform),
+    line(
+      hi ? "प्रभावित प्लेटफ़ॉर्म" : "Affected platforms",
+      draft.adaptiveFacts.affectedPlatforms.length > 0
+        ? draft.adaptiveFacts.affectedPlatforms.join(", ")
+        : draft.adaptiveFacts.platform,
+    ),
+    line(
+      hi ? "संदेश में बताई गई सेवा" : "Message source platform",
+      draft.adaptiveFacts.messageSourcePlatforms.join(", "),
+    ),
+    draft.adaptiveFacts.multipleIncidentThreads
+      ? (hi ? "घटना के हिस्से: दो अलग घटना-क्रम दर्ज हैं" : "Incident threads: Two separate incident threads are recorded")
+      : null,
     line(hi ? "वित्तीय नुकसान" : "Financial loss", draft.incident.financialLossState === "YES" ? "Yes" : draft.incident.financialLossState === "NO" ? "No" : "Not confirmed"),
     total ? line(hi ? "रिपोर्ट की गई हानि" : "Reported loss", formatCurrency(total)) : null,
     draft.transactions.length > 0

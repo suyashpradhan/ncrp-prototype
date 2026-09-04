@@ -46,7 +46,8 @@ export function getCaseIntegritySummary(
   } else {
     stillUnknown.push(hi ? "घटना की तारीख" : "Incident date");
   }
-  const affected = draft.adaptiveFacts.affectedAccount ?? draft.adaptiveFacts.platform ?? draft.classification.platform;
+  const affected = draft.adaptiveFacts.affectedPlatforms.join(", ") ||
+    (draft.adaptiveFacts.affectedAccount ?? draft.adaptiveFacts.platform ?? draft.classification.platform);
   if (affected) knownFacts.push(hi ? `प्रभावित खाता या प्लेटफ़ॉर्म: ${affected}` : `Affected account or platform: ${affected}`);
 
   draft.transactions.forEach((transaction, index) => {

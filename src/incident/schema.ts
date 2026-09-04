@@ -42,6 +42,16 @@ export type IncidentClassification = z.infer<typeof IncidentClassificationSchema
 
 export const AdaptiveIncidentFactsSchema = z.object({
   platform: z.string().nullable(),
+  messageSourcePlatforms: z.array(z.string()),
+  affectedPlatforms: z.array(z.string()),
+  entityRelationship: z.enum([
+    "RELATED_BOTH_AFFECTED",
+    "ONLY_SOURCE_AFFECTED",
+    "ONLY_TARGET_AFFECTED",
+    "SEPARATE_INCIDENT_THREADS",
+    "UNSURE",
+  ]).nullable(),
+  multipleIncidentThreads: z.boolean().nullable(),
   platformType: z.string().nullable(),
   affectedAccount: z.string().nullable(),
   profileUrl: z.string().nullable(),
@@ -147,6 +157,10 @@ export type IncidentDraft = z.infer<typeof IncidentDraftSchema>;
 const LEGACY_ADAPTIVE_FACT_DEFAULTS: Pick<
   AdaptiveIncidentFacts,
   | "platformType"
+  | "messageSourcePlatforms"
+  | "affectedPlatforms"
+  | "entityRelationship"
+  | "multipleIncidentThreads"
   | "profileUrl"
   | "accountCompromise"
   | "recoveryEmailChanged"
@@ -166,6 +180,10 @@ const LEGACY_ADAPTIVE_FACT_DEFAULTS: Pick<
   | "sharedSensitiveInfo"
 > = {
   platformType: null,
+  messageSourcePlatforms: [],
+  affectedPlatforms: [],
+  entityRelationship: null,
+  multipleIncidentThreads: null,
   profileUrl: null,
   accountCompromise: null,
   recoveryEmailChanged: null,

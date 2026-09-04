@@ -91,6 +91,15 @@ export function generateNcrpFields(draft: IncidentDraft): GeneratedNcrpField[] {
     ...(draft.adaptiveFacts.communicationChannels.length > 0
       ? [{ label: "Communication channels", value: draft.adaptiveFacts.communicationChannels.join("; ") }]
       : []),
+    ...(draft.adaptiveFacts.messageSourcePlatforms.length > 0
+      ? [{ label: "Message source platform", value: draft.adaptiveFacts.messageSourcePlatforms.join("; ") }]
+      : []),
+    ...(draft.adaptiveFacts.affectedPlatforms.length > 0
+      ? [{ label: "Affected platforms", value: draft.adaptiveFacts.affectedPlatforms.join("; ") }]
+      : []),
+    ...(draft.adaptiveFacts.multipleIncidentThreads
+      ? [{ label: "Incident threads", value: "More than one incident thread recorded" }]
+      : []),
     ...(capabilities.threatOrExtortion || capabilities.impersonation ? [
       { label: "Threat or extortion", value: display(draft.adaptiveFacts.threatOrExtortion) },
       { label: "Demanded amount", value: display(draft.adaptiveFacts.demandedAmount) },

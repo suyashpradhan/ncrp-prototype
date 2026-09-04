@@ -239,7 +239,11 @@ export function deriveReportReadiness(input: {
     items.unshift({
       id: `consistency.${issue.id}`,
       fieldId: issue.affectedFieldIds[0] ?? "report-details-heading",
-      sectionId: issue.type === "POSSIBLE_DUPLICATE" ? "TRANSACTIONS" : "INCIDENT",
+      sectionId: issue.type === "POSSIBLE_DUPLICATE"
+        ? "TRANSACTIONS"
+        : issue.type === "ENTITY_RELATIONSHIP"
+          ? "ACCOUNT_SYSTEM"
+          : "INCIDENT",
       label: issue.title,
       level: "BLOCKING",
       blocking: true,

@@ -209,6 +209,7 @@ export function deriveReportGroups(
     locale?: UiLocale;
     profile?: ReporterProfile;
     identityDocumentProvided?: boolean;
+    displayStatement?: string | null;
   } = {},
 ): ReportGroupView[] {
   const locale = options.locale ?? "en";
@@ -378,7 +379,7 @@ export function deriveReportGroups(
       copy("field.description"),
       draft.citizenSummary.incidentLabel === "KYC-related banking fraud"
         ? copy("field.demoNarrative")
-        : draft.incident.narrative,
+        : options.displayStatement ?? draft.incident.narrative,
       {
       source: copy("field.fromShared"),
       kind: "NARRATIVE",
@@ -518,6 +519,30 @@ export function deriveReportGroups(
       ]
     : capabilities.accountCompromise
       ? [
+        ...(draft.adaptiveFacts.messageSourcePlatforms.length > 0
+          ? [makeField(
+              "message-source-platforms",
+              locale === "hi" ? "संदेश में बताई गई सेवा" : "Message source platform",
+              draft.adaptiveFacts.messageSourcePlatforms.join(", "),
+              { source: copy("field.fromShared") },
+            )]
+          : []),
+        ...(draft.adaptiveFacts.affectedPlatforms.length > 0
+          ? [makeField(
+              "affected-platforms",
+              locale === "hi" ? "प्रभावित खाते या सेवाएँ" : "Affected accounts or services",
+              draft.adaptiveFacts.affectedPlatforms.join(", "),
+              { source: draft.citizenConfirmedFields.includes("adaptive.affectedPlatforms") ? (locale === "hi" ? "आपने पुष्टि की" : "Confirmed by you") : copy("field.fromShared") },
+            )]
+          : []),
+        ...(draft.adaptiveFacts.multipleIncidentThreads
+          ? [makeField(
+              "incident-threads",
+              locale === "hi" ? "घटना के हिस्से" : "Incident threads",
+              locale === "hi" ? "इस शिकायत में दो अलग घटना-क्रम दर्ज हैं" : "Two separate incident threads are recorded in this complaint",
+              { source: locale === "hi" ? "आपने पुष्टि की" : "Confirmed by you" },
+            )]
+          : []),
         makeField(
           "platform",
           locale === "hi" ? "प्लेटफ़ॉर्म या सेवा" : "Platform or service",
@@ -590,7 +615,9 @@ export function deriveReportGroups(
         );
   const accountSystemGroup: ReportGroupView = {
     id: "ACCOUNT_SYSTEM",
-    label: locale === "hi" ? "प्रभावित खाता या सिस्टम" : "Affected account or system",
+    label: capabilities.ransomware
+      ? (locale === "hi" ? "प्रभावित खाता या उपकरण" : "Affected account or device")
+      : (locale === "hi" ? "प्रभावित खाता" : "Affected account"),
     missingCount: missingCount("ACCOUNT_SYSTEM"),
     sections: [{ id: "account-system", fields: accountSystemFields }],
   };

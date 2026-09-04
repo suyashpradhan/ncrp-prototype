@@ -58,6 +58,7 @@ export function getIncidentCapabilities(draft: IncidentDraft): IncidentCapabilit
   const facts = draft.adaptiveFacts;
   const story = `${draft.incident.narrative ?? ""} ${draft.citizenSummary.shortSummary}`;
   const accountCompromise = facts.accountCompromise === true ||
+    facts.affectedPlatforms.length > 0 ||
     Boolean(facts.affectedAccount || facts.accountAccessStatus || facts.accountCompromiseBasis) ||
     /\b(?:account|profile)\b[^.!?\n]{0,45}\b(?:hacked|taken over|compromised|lost access)\b|\b(?:hacked|took over|compromised)\b[^.!?\n]{0,45}\b(?:account|profile)\b/i.test(story);
   return {

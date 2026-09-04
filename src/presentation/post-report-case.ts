@@ -232,8 +232,15 @@ export function getCaseSummary(
     });
   }
   const affectedAccount = draft.adaptiveFacts.affectedAccount;
+  const affectedPlatforms = draft.adaptiveFacts.affectedPlatforms;
   const affectedPlatform = draft.adaptiveFacts.platform ?? draft.classification.platform;
-  if (affectedAccount) {
+  if (affectedPlatforms.length > 0) {
+    items.push({
+      id: "affected-platforms",
+      label: hi ? "प्रभावित खाते या सेवाएँ" : "Affected accounts or services",
+      value: affectedPlatforms.join(", "),
+    });
+  } else if (affectedAccount) {
     items.push({
       id: "affected-account",
       label: hi ? "प्रभावित खाता" : "Affected account",
@@ -244,6 +251,13 @@ export function getCaseSummary(
       id: "affected-platform",
       label: hi ? "प्रभावित प्लेटफ़ॉर्म" : "Affected platform",
       value: affectedPlatform,
+    });
+  }
+  if (draft.adaptiveFacts.multipleIncidentThreads) {
+    items.push({
+      id: "incident-threads",
+      label: hi ? "घटना के हिस्से" : "Incident threads",
+      value: hi ? "दो अलग घटना-क्रम दर्ज हैं" : "Two separate incident threads are recorded",
     });
   }
   if (
@@ -524,7 +538,8 @@ export function getPostReportActions(
   }
 
   if (isAccountCompromise) {
-    const platform = draft.adaptiveFacts.platform ?? draft.classification.platform;
+    const platform = draft.adaptiveFacts.affectedPlatforms.join(" and ") ||
+      (draft.adaptiveFacts.platform ?? draft.classification.platform);
     return [
       {
         id: "account-recovery",
@@ -614,9 +629,10 @@ export function getKeepReadyPacket(
   }
 
   const affectedAccount =
-    draft.adaptiveFacts.affectedAccount ??
-    draft.adaptiveFacts.platform ??
-    draft.classification.platform;
+    draft.adaptiveFacts.affectedPlatforms.join(", ") ||
+    (draft.adaptiveFacts.affectedAccount ??
+      draft.adaptiveFacts.platform ??
+      draft.classification.platform);
   if (affectedAccount) {
     items.push(
       hi
@@ -1175,7 +1191,7 @@ export function getPostSubmissionTimeline(
     {
       id: "report-submitted",
       timeLabel: formatApplicationTime(milestones.submittedAt, locale),
-      title: hi ? "रिपोर्ट जमा हुई" : "Report submitted",
+      title: hi ? "शिकायत जमा हुई" : "Complaint submitted",
       sourceRefs: [{ type: "PROTOTYPE", label: hi ? "स्रोत: प्रोटोटाइप सबमिशन" : "Source: Prototype submission" }],
     },
   ];

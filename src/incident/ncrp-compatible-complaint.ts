@@ -124,6 +124,10 @@ export const NcrpCompatibleComplaintSchema = z.object({
     transactions: z.array(TransactionSchema),
     adaptive: z.object({
       platform: ComplaintFieldSchema,
+      messageSourcePlatforms: z.array(ComplaintFieldSchema),
+      affectedPlatforms: z.array(ComplaintFieldSchema),
+      entityRelationship: ComplaintFieldSchema,
+      multipleIncidentThreads: ComplaintFieldSchema,
       platformType: ComplaintFieldSchema,
       affectedAccount: ComplaintFieldSchema,
       profileUrl: ComplaintFieldSchema,
@@ -397,7 +401,15 @@ export function buildNcrpCompatibleComplaint({
           sources: [sourceFor("incident.incidentDate", narrativeSource)],
         }
       : valueField(draft.incident.incidentDate, [sourceFor("incident.incidentDate", narrativeSource)], true),
-    incidentTime: valueField(draft.incident.approximateTime, [sourceFor("incident.incidentTime", narrativeSource)], true),
+    incidentTime: valueField(
+      draft.incident.approximateTime ?? (
+        draft.transactions.length > 0 && draft.transactions.every((transaction) => Boolean(transaction.approximateTime))
+          ? "See recorded transaction times"
+          : null
+      ),
+      [sourceFor("incident.incidentTime", narrativeSource)],
+      true,
+    ),
     delayInReporting: valueField(draft.incident.delayInReporting, ["SYSTEM_DERIVED"], true),
     reasonForDelay: valueField(draft.incident.delayReason, [narrativeSource], draft.incident.delayInReporting === true),
     communicationChannel: valueField(draft.incident.occurredOn, [sourceFor("incident.communicationChannel", structuredSource)], true),
@@ -426,6 +438,10 @@ export function buildNcrpCompatibleComplaint({
       })),
       adaptive: {
         platform: valueField(draft.adaptiveFacts.platform ?? draft.classification.platform, [sourceFor("adaptive.platform", structuredSource)]),
+        messageSourcePlatforms: draft.adaptiveFacts.messageSourcePlatforms.map((value) => valueField(value, [structuredSource])),
+        affectedPlatforms: draft.adaptiveFacts.affectedPlatforms.map((value) => valueField(value, [sourceFor("adaptive.affectedPlatforms", structuredSource)])),
+        entityRelationship: valueField(draft.adaptiveFacts.entityRelationship, [sourceFor("adaptive.entityRelationship", structuredSource)]),
+        multipleIncidentThreads: valueField(draft.adaptiveFacts.multipleIncidentThreads, [sourceFor("adaptive.entityRelationship", structuredSource)]),
         platformType: valueField(draft.adaptiveFacts.platformType, [structuredSource]),
         affectedAccount: valueField(draft.adaptiveFacts.affectedAccount, [sourceFor("adaptive.affectedAccount", structuredSource)]),
         profileUrl: valueField(draft.adaptiveFacts.profileUrl, [sourceFor("adaptive.profileUrl", structuredSource)]),

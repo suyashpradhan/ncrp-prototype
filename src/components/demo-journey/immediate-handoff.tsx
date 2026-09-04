@@ -68,15 +68,15 @@ export function ImmediateHandoff({
       {callBrief ? (
         <section className="call-brief" aria-labelledby="call-brief-heading">
           <p className="call-brief-eyebrow">
-            {locale === "hi" ? "अभी कार्रवाई करें" : "Act now"}
+            {locale === "hi" ? "तुरंत कार्रवाई" : "Immediate action"}
           </p>
           <h2 id="call-brief-heading">
-            {locale === "hi" ? "आपकी कॉल के लिए तैयार" : "Ready for your call"}
+            {locale === "hi" ? "1930 पर कॉल के लिए सार" : "Summary for your 1930 call"}
           </h2>
           <p className="call-brief-intro">
             {locale === "hi"
-              ? "पैसे से जुड़ी वित्तीय साइबर धोखाधड़ी की तुरंत 1930 पर रिपोर्ट करें। यह संक्षिप्त विवरण कॉल के दौरान पढ़ा जा सकता है।"
-              : "For financial cyber fraud involving money, report it promptly through 1930. You can read this short brief during the call."}
+              ? "यदि आपने अभी तक वित्तीय साइबर धोखाधड़ी की सूचना नहीं दी है, तो 1930 पर कॉल करें। कॉल के दौरान इस सार का उपयोग कर सकते हैं।"
+              : "Call 1930 if you have not already reported the financial fraud. You may use this summary during the call."}
           </p>
           <blockquote>{callBrief}</blockquote>
           <div className="call-brief-actions">

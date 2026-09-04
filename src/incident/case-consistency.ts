@@ -3,13 +3,61 @@ import { resolveFinancialLoss } from "./financial-summary";
 
 export type CaseConsistencyIssue = {
   id: string;
-  type: "TOTAL_MISMATCH" | "FINANCIAL_LOSS_CONTRADICTION" | "POSSIBLE_DUPLICATE";
+  type: "TOTAL_MISMATCH" | "FINANCIAL_LOSS_CONTRADICTION" | "POSSIBLE_DUPLICATE" | "ENTITY_RELATIONSHIP";
   severity: "BLOCKING" | "WARNING";
   affectedFieldIds: string[];
   sourceValues: Array<{ label: string; value: string | number }>;
   title: string;
   explanation: string;
 };
+
+export type EntityRelationshipResolution =
+  | "BOTH_AFFECTED"
+  | "SOURCE_ONLY"
+  | "TARGET_ONLY"
+  | "SEPARATE_THREADS"
+  | "UNSURE";
+
+export function resolveEntityRelationship(
+  draft: IncidentDraft,
+  resolution: EntityRelationshipResolution,
+): IncidentDraft {
+  const source = draft.adaptiveFacts.messageSourcePlatforms;
+  const target = draft.adaptiveFacts.affectedPlatforms;
+  const affectedPlatforms = resolution === "SOURCE_ONLY"
+    ? source
+    : resolution === "TARGET_ONLY"
+      ? target
+      : Array.from(new Set([...source, ...target]));
+  const relationship = resolution === "BOTH_AFFECTED"
+    ? "RELATED_BOTH_AFFECTED" as const
+    : resolution === "SOURCE_ONLY"
+      ? "ONLY_SOURCE_AFFECTED" as const
+      : resolution === "TARGET_ONLY"
+        ? "ONLY_TARGET_AFFECTED" as const
+        : resolution === "SEPARATE_THREADS"
+          ? "SEPARATE_INCIDENT_THREADS" as const
+          : "UNSURE" as const;
+  return {
+    ...draft,
+    classification: {
+      ...draft.classification,
+      platform: affectedPlatforms[0] ?? draft.classification.platform,
+    },
+    adaptiveFacts: {
+      ...draft.adaptiveFacts,
+      platform: affectedPlatforms[0] ?? draft.adaptiveFacts.platform,
+      affectedPlatforms,
+      entityRelationship: relationship,
+      multipleIncidentThreads: resolution === "SEPARATE_THREADS",
+    },
+    citizenConfirmedFields: Array.from(new Set([
+      ...draft.citizenConfirmedFields,
+      "adaptive.entityRelationship",
+      "adaptive.affectedPlatforms",
+    ])),
+  };
+}
 
 export type DuplicateTransactionCandidate = {
   id: string;
@@ -91,6 +139,29 @@ export function getCaseConsistencyIssues(draft: IncidentDraft): CaseConsistencyI
       ],
       title: "Check whether money was lost",
       explanation: "The report says no money was lost, but it also contains a payment.",
+    });
+  }
+
+  const sourcePlatforms = draft.adaptiveFacts.messageSourcePlatforms;
+  const affectedPlatforms = draft.adaptiveFacts.affectedPlatforms;
+  const hasSharedPlatform = sourcePlatforms.some((platform) => affectedPlatforms.includes(platform));
+  if (
+    sourcePlatforms.length > 0 &&
+    affectedPlatforms.length > 0 &&
+    !hasSharedPlatform &&
+    draft.adaptiveFacts.entityRelationship === null
+  ) {
+    issues.push({
+      id: "entity-relationship",
+      type: "ENTITY_RELATIONSHIP",
+      severity: "BLOCKING",
+      affectedFieldIds: ["entity-relationship"],
+      sourceValues: [
+        { label: "Message source", value: sourcePlatforms.join(", ") },
+        { label: "Account reported as affected", value: affectedPlatforms.join(", ") },
+      ],
+      title: "Confirm how these accounts are related",
+      explanation: `You mentioned ${sourcePlatforms.join(", ")} as the message source, but later described ${affectedPlatforms.join(", ")} as affected. Are these part of the same incident?`,
     });
   }
 

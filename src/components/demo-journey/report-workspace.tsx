@@ -9,7 +9,9 @@ import {
 import { containsSensitiveDetail } from "../../incident/sensitive-text";
 import {
   getCaseConsistencyIssues,
+  resolveEntityRelationship,
   type CaseConsistencyIssue,
+  type EntityRelationshipResolution,
 } from "../../incident/case-consistency";
 import type {
   IncidentDraft,
@@ -30,6 +32,14 @@ import {
   type NcrpCompatibleComplaint,
 } from "../../incident/ncrp-compatible-complaint";
 import type { ExperienceMode, ReporterProfile } from "../../experience/profile";
+
+type ConsistencyResolution =
+  | "SAME"
+  | "DIFFERENT"
+  | "YES"
+  | "NO"
+  | "UNKNOWN"
+  | EntityRelationshipResolution;
 import { getPlatformConfig } from "../../incident/capabilities";
 import { resolveFinancialLoss } from "../../incident/financial-summary";
 import { useI18n } from "../../i18n/i18n-provider";
@@ -775,9 +785,11 @@ function ReportInputPane(props: ReportWorkspaceProps) {
       aria-labelledby="journey-stage-heading"
     >
       <h1 id="journey-stage-heading" tabIndex={-1}>
-        {props.mode === "REVIEW" || props.mode === "READY"
-          ? t("workspace.yourInformation")
-          : t("workspace.tell")}
+        {props.mode === "REVIEW"
+          ? t("workspace.reviewSubmit")
+          : props.mode === "READY"
+            ? t("workspace.yourInformation")
+            : t("workspace.tell")}
       </h1>
       <p className="pane-intro">
         {props.mode === "REVIEW" || props.mode === "READY"
@@ -809,7 +821,7 @@ function ReportInputPane(props: ReportWorkspaceProps) {
             <small>{t("workspace.reporterNameHelp")}</small>
           </div>
           <fieldset className="report-method-fieldset">
-            <legend>{locale === "hi" ? "आप कैसे बताना चाहेंगे?" : "How would you like to tell us?"}</legend>
+            <legend>{locale === "hi" ? "बयान" : "Statement"}</legend>
             <div className="report-method-switch">
               <button type="button" aria-pressed={isSpeakMode} disabled={processing || props.isRecording} onClick={() => props.onReportMethodChange("SPEAK")}>{locale === "hi" ? "बोलें" : "Speak"}</button>
               <button type="button" aria-pressed={!isSpeakMode} disabled={processing || props.isRecording} onClick={() => props.onReportMethodChange("TYPE")}>{locale === "hi" ? "लिखें" : "Type"}</button>
@@ -833,7 +845,7 @@ function ReportInputPane(props: ReportWorkspaceProps) {
                 </div>
               ) : props.transcription ? (
                 <div className="voice-transcript-editor">
-                  <h2>{locale === "hi" ? "हमने यह सुना" : "What we heard"}</h2>
+                  <h2>{locale === "hi" ? "आपका बयान" : "Your statement"}</h2>
                   {editingTranscript ? (
                     <textarea value={props.transcription.originalTranscript} onChange={(event) => { updateTranscript(event.target.value); growTextarea(event.currentTarget); }} rows={6} maxLength={8000} aria-label={locale === "hi" ? "रिकॉर्डिंग का लिखित रूप संपादित करें" : "Edit recording transcript"} />
                   ) : props.draft ? (
@@ -1402,6 +1414,10 @@ function SectionEditor({
         setWorking((current) => ({ ...current, adaptiveFacts: {
           ...current.adaptiveFacts,
           platform,
+          affectedPlatforms: platform ? [platform] : [],
+          entityRelationship: current.adaptiveFacts.messageSourcePlatforms.length > 0
+            ? null
+            : current.adaptiveFacts.entityRelationship,
           platformType: platform ? getPlatformConfig(platform).platformType : null,
         } }));
       }} /></label>,
@@ -1426,7 +1442,7 @@ function SectionEditor({
   const confirmedFields = groupId === "TRANSACTIONS"
     ? working.transactions.flatMap((_, index) => ["amount", "institution", "accountOrUpiId", "transactionIdOrUtr", "transactionDate", "approximateTime"].map((field) => `transactions.${index}.${field}`))
     : groupId === "ACCOUNT_SYSTEM"
-      ? ["adaptive.platform", "adaptive.platformType", "adaptive.affectedAccount", "adaptive.profileUrl", "adaptive.accountAccessStatus"]
+      ? ["adaptive.platform", "adaptive.affectedPlatforms", "adaptive.platformType", "adaptive.affectedAccount", "adaptive.profileUrl", "adaptive.accountAccessStatus"]
       : groupId === "THREAT_IMPERSONATION"
         ? ["adaptive.demandedAmount", "adaptive.threatChannel", "adaptive.impersonatedEntity", "adaptive.threatDescription"]
         : groupId === "INFORMATION"
@@ -1872,6 +1888,13 @@ function ReportReview(props: ReportWorkspaceProps) {
     locale,
     profile: props.reporterProfile,
     identityDocumentProvided: props.identityDocumentProvided,
+    displayStatement: props.transcription
+      ? locale === "hi" && props.transcription.languageCode.startsWith("hi")
+        ? props.transcription.originalTranscript
+        : locale === "en" && props.transcription.englishTranscript
+          ? props.transcription.englishTranscript
+          : props.transcription.originalTranscript
+      : props.narrative,
   });
   const complaint = buildNcrpCompatibleComplaint({
     draft: props.draft,
@@ -1928,11 +1951,11 @@ function ReportReview(props: ReportWorkspaceProps) {
   return (
     <>
       <div className="report-pane-heading">
-        <h2>{t("workspace.reviewSubmit")}</h2>
+        <h2>{locale === "hi" ? "शिकायत की जानकारी" : "Complaint details"}</h2>
         <p>{t("workspace.reviewSupport")}</p>
       </div>
       <section className="case-integrity-summary" aria-labelledby="case-check-heading">
-        <h2 id="case-check-heading">{locale === "hi" ? "मामले की जाँच" : "Case check"}</h2>
+        <h2 id="case-check-heading">{locale === "hi" ? "जमा करने से पहले जाँच" : "Details to review"}</h2>
         <ul>
           {integrity.transactionCount > 0 ? <li><span aria-hidden="true">✓</span> {locale === "hi" ? `${integrity.transactionCount} लेन-देन व्यवस्थित किए गए` : `${integrity.transactionCount} ${integrity.transactionCount === 1 ? "transaction" : "transactions"} organised`}</li> : null}
           {integrity.importantFactsLinkedToEvidence > 0 ? <li><span aria-hidden="true">✓</span> {locale === "hi" ? `सबूत ${integrity.importantFactsLinkedToEvidence} जरूरी जानकारियों से जुड़ा है` : `Evidence linked to ${integrity.importantFactsLinkedToEvidence} important details`}</li> : null}
@@ -1945,8 +1968,8 @@ function ReportReview(props: ReportWorkspaceProps) {
         {integrity.unavailableImportantDetails.length > 0 ? <p><strong>{locale === "hi" ? "आपके पास नहीं" : "You don’t have"}</strong><br />{integrity.unavailableImportantDetails.join(", ")}</p> : null}
       </section>
       <section className="case-knowledge-summary" aria-labelledby="what-we-know-heading">
-        <div><h2 id="what-we-know-heading">{locale === "hi" ? "हमें क्या पता है" : "What we know"}</h2><ul>{integrity.knownFacts.map((fact) => <li key={fact}>{fact}</li>)}</ul></div>
-        {integrity.stillUnknown.length > 0 ? <div><h2>{locale === "hi" ? "अभी पता नहीं" : "Still unknown"}</h2><ul>{integrity.stillUnknown.map((fact) => <li key={fact}>{fact}</li>)}</ul></div> : null}
+        <div><h2 id="what-we-know-heading">{locale === "hi" ? "उपलब्ध जानकारी" : "Available information"}</h2><ul>{integrity.knownFacts.map((fact) => <li key={fact}>{fact}</li>)}</ul></div>
+        {integrity.stillUnknown.length > 0 ? <div><h2>{locale === "hi" ? "जानकारी उपलब्ध नहीं" : "Information not available"}</h2><ul>{integrity.stillUnknown.map((fact) => <li key={fact}>{fact}</li>)}</ul></div> : null}
       </section>
       <div className="report-review-groups">
         {groups.map((group) => (
@@ -2217,13 +2240,13 @@ function ReportingPathControl({
         <h3>
           {noIncidentIdentified
             ? locale === "hi" ? "अभी रिपोर्ट करने योग्य घटना नहीं मिली" : "Nothing to report yet"
-            : locale === "hi" ? "क्या हुआ, थोड़ा और बताएं" : "Tell us a little more about what happened"}
+            : locale === "hi" ? "अतिरिक्त जानकारी" : "Additional information"}
         </h3>
         <p>
           {noIncidentIdentified
             ? locale === "hi"
               ? "आपने जो बताया, उसमें अभी साइबर अपराध की घटना पहचानने के लिए पर्याप्त जानकारी नहीं मिली।"
-              : "I couldn't identify a cybercrime incident from what you shared."
+              : "The information provided does not yet identify a cybercrime incident."
             : locale === "hi"
               ? "घटना के बारे में जो जानकारी आपको याद हो, वह जोड़ें।"
               : "Add any incident details you remember."}
@@ -2421,49 +2444,49 @@ function ReportStatusCard({
     props.draft.classification.cyberElementPresent !== true,
   );
   const title = props.mode === "PROCESSING"
-    ? hi ? "आपकी रिपोर्ट तैयार हो रही है…" : "Preparing your report…"
+    ? hi ? "शिकायत तैयार हो रही है…" : "Preparing complaint…"
     : props.mode === "ERROR"
       ? props.preparationFailure === "TRANSLATION"
         ? hi ? "अनुवाद पूरा नहीं हो सका" : "Translation couldn't be completed"
         : props.isTranscriptionError
         ? hi ? "हम इस रिकॉर्डिंग को लिखित रूप में नहीं बदल पाए" : "We couldn't transcribe this recording"
-        : hi ? "हम अभी रिपोर्ट तैयार नहीं कर पाए" : "We couldn't prepare the report right now"
+        : hi ? "शिकायत अभी तैयार नहीं हो सकी" : "The complaint couldn't be prepared right now"
       : isEmpty
-        ? hi ? "आपकी रिपोर्ट यहाँ दिखाई देगी" : "Your report will appear here"
+        ? hi ? "शिकायत की जानकारी" : "Complaint details"
         : noIncidentIdentified
           ? hi ? "अभी रिपोर्ट करने योग्य घटना नहीं मिली" : "Nothing to report yet"
         : readiness?.state === "STALE"
           ? hi ? "आपकी जानकारी बदल गई है" : "Your information changed"
           : readiness?.state === "NEEDS_CLARIFICATION"
-            ? hi ? "एक और जानकारी चाहिए" : "One more detail is needed"
+            ? hi ? "जानकारी जरूरी है" : "Information required"
             : readiness?.state === "MISSING_REQUIRED"
-              ? hi ? "रिपोर्ट लगभग तैयार है" : "Report almost ready"
-              : hi ? "रिपोर्ट समीक्षा के लिए तैयार है" : "Report ready to review";
+              ? hi ? "शिकायत लगभग तैयार है" : "Complaint almost ready"
+              : hi ? "शिकायत जाँचने के लिए तैयार है" : "Complaint ready to review";
   const support = props.mode === "PROCESSING"
-    ? hi ? "हम आपकी साझा की गई जानकारी व्यवस्थित कर रहे हैं।" : "We're organising the information you shared."
+    ? hi ? "दी गई जानकारी से शिकायत का विवरण तैयार हो रहा है।" : "Preparing complaint details from the information provided."
     : props.mode === "ERROR"
       ? props.preparationFailure === "TRANSLATION"
         ? hi ? "आपका मूल बयान सुरक्षित है।" : "Your original statement is saved."
         : props.isTranscriptionError
-        ? hi ? "आपकी दूसरी रिपोर्ट जानकारी सुरक्षित है।" : "Your other report details are saved."
+        ? hi ? "शिकायत की दूसरी जानकारी सुरक्षित है।" : "Your other complaint details are saved."
         : hi ? "आपका बयान और सबूत सुरक्षित हैं।" : "Your statement and evidence are saved."
       : isEmpty
         ? hi
-          ? "हम जानकारी को आपकी समीक्षा के लिए व्यवस्थित करेंगे।"
-          : "We'll organise the details for you to review."
+          ? "घटना की जानकारी देने पर शिकायत का विवरण यहाँ दिखाई देगा।"
+          : "Provide the incident information to prepare the complaint details."
         : noIncidentIdentified
           ? hi
             ? "आपने जो बताया, उसमें अभी साइबर अपराध की घटना पहचानने के लिए पर्याप्त जानकारी नहीं मिली।"
-            : "I couldn't identify a cybercrime incident from what you shared."
+            : "The information provided does not yet identify a cybercrime incident."
         : readiness?.state === "STALE"
-          ? hi ? "आगे बढ़ने से पहले रिपोर्ट को नई जानकारी के साथ अपडेट करें।" : "Update the report with the new information before continuing."
+          ? hi ? "आगे बढ़ने से पहले शिकायत को नई जानकारी के साथ अपडेट करें।" : "Update the complaint with the new information before continuing."
           : readiness?.state === "NEEDS_CLARIFICATION"
             ? hi ? "सचेत को आगे बढ़ने से पहले एक जवाब चाहिए।" : "One answer is needed before सचेत can continue."
             : readiness?.state === "MISSING_REQUIRED"
               ? hi
                 ? `${readiness.blockingItems.length} जरूरी जानकारी पर अभी ध्यान देना बाकी है।`
                 : `${readiness.blockingItems.length} required ${readiness.blockingItems.length === 1 ? "detail still needs" : "details still need"} your attention.`
-              : hi ? "इस रिपोर्टिंग रास्ते के लिए जरूरी जानकारी उपलब्ध है।" : "The required information for this reporting path is available.";
+              : hi ? "इस शिकायत के लिए जरूरी जानकारी उपलब्ध है।" : "The required complaint information is available.";
   const actionLabel = props.mode === "PROCESSING"
     ? t("workspace.preparingReport")
     : props.mode === "ERROR"
@@ -2477,12 +2500,12 @@ function ReportStatusCard({
         : noIncidentIdentified
           ? hi ? "जानकारी जोड़ें" : "Add details"
         : readiness?.state === "STALE"
-          ? hi ? "रिपोर्ट अपडेट करें" : "Update report"
+          ? hi ? "शिकायत अपडेट करें" : "Update complaint"
           : readiness?.state === "NEEDS_CLARIFICATION"
             ? hi ? "सवाल का जवाब दें" : "Answer question"
             : readiness?.state === "MISSING_REQUIRED"
               ? hi ? "अगली जरूरी जानकारी पर जाएँ" : "Go to next missing detail"
-              : hi ? "रिपोर्ट की समीक्षा करें" : "Review report";
+              : hi ? "शिकायत जाँचें" : "Review complaint";
 
   return (
     <section className={`report-status-card${isEmpty ? " report-status-card-empty" : ""}`} aria-live="polite">
@@ -2518,7 +2541,7 @@ function ReportDetailsPane({
   groups: ReportGroupView[];
   readiness: ReportReadiness | null;
   consistencyIssues: CaseConsistencyIssue[];
-  onResolveConsistencyIssue: (issue: CaseConsistencyIssue, resolution: "SAME" | "DIFFERENT" | "YES" | "NO" | "UNKNOWN") => void;
+  onResolveConsistencyIssue: (issue: CaseConsistencyIssue, resolution: ConsistencyResolution) => void;
   sourceReady: boolean;
   onPrimaryAction: () => void;
 }) {
@@ -2804,12 +2827,26 @@ function ReportDetailsPane({
               aria-labelledby={`${issue.id}-heading`}
             >
               <p className="eyebrow">{locale === "hi" ? "पुष्टि जरूरी है" : "Needs confirmation"}</p>
-              <h3 id={`${issue.id}-heading`}>{issue.title}</h3>
-              <p>{issue.explanation}</p>
+              <h3 id={`${issue.id}-heading`}>
+                {issue.type === "ENTITY_RELATIONSHIP" && locale === "hi"
+                  ? "पुष्टि करें कि ये खाते किस तरह जुड़े हैं"
+                  : issue.title}
+              </h3>
+              <p>
+                {issue.type === "ENTITY_RELATIONSHIP" && locale === "hi"
+                  ? "संदेश में एक सेवा का नाम है और प्रभावित खाते के रूप में दूसरी सेवा बताई गई है। क्या ये एक ही घटना का हिस्सा हैं?"
+                  : issue.explanation}
+              </p>
               <dl>
                 {issue.sourceValues.map((source) => (
                   <div key={source.label}>
-                    <dt>{source.label}</dt>
+                    <dt>
+                      {issue.type === "ENTITY_RELATIONSHIP" && locale === "hi"
+                        ? source.label === "Message source"
+                          ? "संदेश का स्रोत"
+                          : "प्रभावित बताया गया खाता"
+                        : source.label}
+                    </dt>
                     <dd>{typeof source.value === "number" ? formatCurrency(source.value) : source.value}</dd>
                   </div>
                 ))}
@@ -2830,6 +2867,14 @@ function ReportDetailsPane({
                     <button className="secondary-button" type="button" onClick={() => onResolveConsistencyIssue(issue, "NO")}>{locale === "hi" ? "पैसे नहीं गए" : "No money was lost"}</button>
                     <button className="secondary-button" type="button" onClick={() => onResolveConsistencyIssue(issue, "UNKNOWN")}>{locale === "hi" ? "पक्का नहीं" : "I’m not sure"}</button>
                   </>
+                ) : issue.type === "ENTITY_RELATIONSHIP" ? (
+                  <>
+                    <button className="secondary-button" type="button" onClick={() => onResolveConsistencyIssue(issue, "BOTH_AFFECTED")}>{locale === "hi" ? "हाँ — दोनों खाते प्रभावित हुए" : "Yes — both accounts were affected"}</button>
+                    <button className="secondary-button" type="button" onClick={() => onResolveConsistencyIssue(issue, "SOURCE_ONLY")}>{locale === "hi" ? "नहीं — केवल संदेश वाला खाता" : "No — only the message-source account"}</button>
+                    <button className="secondary-button" type="button" onClick={() => onResolveConsistencyIssue(issue, "TARGET_ONLY")}>{locale === "hi" ? "नहीं — केवल बाद में बताया खाता" : "No — only the later account was affected"}</button>
+                    <button className="secondary-button" type="button" onClick={() => onResolveConsistencyIssue(issue, "SEPARATE_THREADS")}>{locale === "hi" ? "ये दो अलग घटनाएँ हैं" : "They are two separate incidents"}</button>
+                    <button className="secondary-button" type="button" onClick={() => onResolveConsistencyIssue(issue, "UNSURE")}>{locale === "hi" ? "पक्का नहीं" : "I’m not sure"}</button>
+                  </>
                 ) : null}
               </div>
             </section>
@@ -2840,7 +2885,7 @@ function ReportDetailsPane({
               <p className="eyebrow">
                 {locale === "hi"
                   ? "अगली जरूरी जानकारी"
-                  : "Next required detail"}
+                  : "Information required"}
               </p>
               <MissingFieldEditor
                 field={priorityField}
@@ -2876,7 +2921,7 @@ function ReportDetailsPane({
               <p className="eyebrow">
                 {locale === "hi"
                   ? "अगली जरूरी जानकारी"
-                  : "Next required detail"}
+                  : "Information required"}
               </p>
               <h3>{t("field.evidenceSupplied")}</h3>
               <p>
@@ -2952,6 +2997,13 @@ export function ReportWorkspace(props: ReportWorkspaceProps) {
         locale,
         profile: props.reporterProfile,
         identityDocumentProvided: props.identityDocumentProvided,
+        displayStatement: props.transcription
+          ? locale === "hi" && props.transcription.languageCode.startsWith("hi")
+            ? props.transcription.originalTranscript
+            : locale === "en" && props.transcription.englishTranscript
+              ? props.transcription.englishTranscript
+              : props.transcription.originalTranscript
+          : props.narrative,
       })
     : [];
   const complaint = props.draft
@@ -3045,7 +3097,7 @@ export function ReportWorkspace(props: ReportWorkspaceProps) {
         target.classList.remove("report-field-target-highlight");
       }, 1600);
       setNavigationMessage(
-        locale === "hi" ? "अगली जरूरी जानकारी खुल गई है।" : "Next required detail opened.",
+        locale === "hi" ? "जरूरी फ़ील्ड खुल गया है।" : "Required field opened.",
       );
       setPendingTargetId(null);
     };
@@ -3091,7 +3143,7 @@ export function ReportWorkspace(props: ReportWorkspaceProps) {
 
   function resolveConsistencyIssue(
     issue: CaseConsistencyIssue,
-    resolution: "SAME" | "DIFFERENT" | "YES" | "NO" | "UNKNOWN",
+    resolution: ConsistencyResolution,
   ) {
     if (!props.draft) return;
     if (issue.type === "POSSIBLE_DUPLICATE") {
@@ -3120,6 +3172,13 @@ export function ReportWorkspace(props: ReportWorkspaceProps) {
         },
         transactions: state === "NO" ? [] : props.draft.transactions,
       });
+      return;
+    }
+    if (issue.type === "ENTITY_RELATIONSHIP") {
+      props.onDraftChange(resolveEntityRelationship(
+        props.draft,
+        resolution as EntityRelationshipResolution,
+      ));
     }
   }
 

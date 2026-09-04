@@ -346,8 +346,8 @@ function LandingSteps() {
   const { locale } = useI18n();
   const hi = locale === "hi";
   const steps = hi
-    ? [["बताएं", "जो हुआ उसे अपने शब्दों में बताएं।"], ["मामला जाँचें", "सचेत ने जो समझा, उसकी जाँच करें।"], ["आगे बढ़ें", "रिपोर्ट जमा करें और अगला कदम देखें।"]]
-    : [["Tell us", "Describe what happened in your own words."], ["Check the case", "Review what सचेत understood."], ["Continue", "Submit the report and see what to do next."]];
+    ? [["बयान दें", "जो हुआ उसे अपने शब्दों में बताएं।"], ["शिकायत जाँचें", "तैयार जानकारी की जाँच करें।"], ["जमा करें", "शिकायत जमा करें और अगला कदम देखें।"]]
+    : [["Provide a statement", "Describe what happened in your own words."], ["Review complaint", "Check the prepared information."], ["Submit", "Submit the complaint and see what to do next."]];
   return (
     <section className="landing-steps" aria-label={hi ? "रिपोर्ट बनाने के तीन चरण" : "Three steps to prepare a report"}>
       {steps.map(([title, description], index) => <article key={title}><span>{index + 1}</span><h2>{title}</h2><p>{description}</p></article>)}
@@ -356,7 +356,7 @@ function LandingSteps() {
 }
 
 export function DemoJourney() {
-  const { locale, t } = useI18n();
+  const { locale, setLocale, t } = useI18n();
   const { registerControls } = useJourneyNavigation();
   const {
     experienceMode,
@@ -401,6 +401,8 @@ export function DemoJourney() {
   );
   const [postReportMilestones, setPostReportMilestones] =
     useState<PostReportMilestones | null>(null);
+  const [submittedDraft, setSubmittedDraft] = useState<IncidentDraft | null>(null);
+  const [submittedTranscription, setSubmittedTranscription] = useState<TranscriptionResult | null>(null);
   const [recoverableReport, setRecoverableReport] =
     useState<PersistedUnfinishedReport | null>(null);
   const [unavailableEvidenceNames, setUnavailableEvidenceNames] = useState<
@@ -428,7 +430,9 @@ export function DemoJourney() {
     draft.incident.financialLossState === "YES"
       ? resolveReportedAmount(draft, selectedReportedAmount)
       : null;
-  const baseProfile = reporterProfile ?? SYNTHETIC_NCRP_PROFILE;
+  const baseProfile = experienceMode === "LIVE_TEST"
+    ? reporterProfile ?? createEmptyTestProfile()
+    : reporterProfile ?? SYNTHETIC_NCRP_PROFILE;
   const activeProfile =
     experienceMode === "LIVE_TEST"
       ? {
@@ -592,6 +596,7 @@ export function DemoJourney() {
       setDemoNarrationLanguage(
         candidate.demoNarrationLanguage as DemoNarrationLanguage,
       );
+      setLocale(candidate.demoNarrationLanguage === "hi-IN" ? "hi" : "en");
       setRecordingSeconds(candidate.recordingSeconds);
       setSubmittedReference(candidate.submittedReference);
       const restoredMilestones = candidate.postReportMilestones;
@@ -602,9 +607,13 @@ export function DemoJourney() {
         typeof restoredMilestones.submittedAt === "string"
       ) {
         setPostReportMilestones(restoredMilestones);
+        setSubmittedDraft(structuredClone(restoredDraft.data));
+        setSubmittedTranscription(structuredClone(restoredTranscription.data));
         preparedAtRef.current = restoredMilestones.preparedAt;
       } else {
         setPostReportMilestones(DEMO_POST_REPORT_MILESTONES);
+        setSubmittedDraft(structuredClone(restoredDraft.data));
+        setSubmittedTranscription(structuredClone(restoredTranscription.data));
         preparedAtRef.current = DEMO_POST_REPORT_MILESTONES.preparedAt;
       }
       setIsDemoIncident(true);
@@ -625,7 +634,7 @@ export function DemoJourney() {
     } catch {
       clearPersistedDemoSession();
     }
-  }, [beginExperience]);
+  }, [beginExperience, setLocale]);
 
   useEffect(() => {
     if (
@@ -761,6 +770,8 @@ export function DemoJourney() {
     setIsDemoIncident(false);
     setSubmittedReference(SACHET_DEMO_REFERENCE);
     setPostReportMilestones(null);
+    setSubmittedDraft(null);
+    setSubmittedTranscription(null);
     setUnavailableEvidenceNames([]);
     setIsDraftSaved(false);
     preparedAtRef.current = null;
@@ -860,6 +871,7 @@ export function DemoJourney() {
     beginExperience("DEMO_CASE", SYNTHETIC_NCRP_PROFILE);
     setNarrative(DEMO_TYPED_DESCRIPTION);
     setDemoNarrationLanguage("hi-IN");
+    setLocale("hi");
     setTranscription(DEMO_NARRATIONS["hi-IN"]);
     setRecordingSeconds(DEMO_NARRATIONS["hi-IN"].durationSeconds);
     setIsDemoIncident(true);
@@ -931,6 +943,7 @@ export function DemoJourney() {
 
   function chooseDemoNarration(language: DemoNarrationLanguage) {
     setDemoNarrationLanguage(language);
+    setLocale(language === "hi-IN" ? "hi" : "en");
     setTranscription(DEMO_NARRATIONS[language]);
     setRecordingSeconds(DEMO_NARRATIONS[language].durationSeconds);
   }
@@ -1261,6 +1274,10 @@ export function DemoJourney() {
         setTranscription(preparedTranscription);
       }
 
+      if (preparedTranscription?.languageCode.startsWith("hi")) setLocale("hi");
+      else if (preparedTranscription?.languageCode.startsWith("en")) setLocale("en");
+      else if (!preparedTranscription && /[\u0900-\u097f]/.test(narrative)) setLocale("hi");
+
       setLoadingMessage("workspace.organisingReport");
       const data = new FormData();
       data.append("narrative", narrative);
@@ -1398,15 +1415,18 @@ export function DemoJourney() {
           : submissionTime,
         submittedAt: submissionTime,
       };
+      const submittedCaseDraft = structuredClone(draft);
+      const submittedCaseTranscription = transcription ? structuredClone(transcription) : null;
+      const reference = isDemoIncident
+        ? SACHET_DEMO_REFERENCE
+        : `SACHET-${Date.now().toString().slice(-8)}`;
       if (
         draft.classification.reportFamily !== "FINANCIAL_FRAUD" ||
         draft.incident.financialLossState !== "YES"
       ) {
-        setSubmittedReference(
-          isDemoIncident
-            ? SACHET_DEMO_REFERENCE
-            : `SACHET-DEMO-${Date.now().toString().slice(-8)}`,
-        );
+        setSubmittedReference(reference);
+        setSubmittedDraft(submittedCaseDraft);
+        setSubmittedTranscription(submittedCaseTranscription);
         setPostReportMilestones(milestones);
         setFormError(null);
         clearUnfinishedReport();
@@ -1424,11 +1444,9 @@ export function DemoJourney() {
         selectedReportedAmount,
       });
       hydrateComplaintCase(built.caseData, built.now);
-      setSubmittedReference(
-        isDemoIncident
-          ? SACHET_DEMO_REFERENCE
-          : `SACHET-DEMO-${Date.now().toString().slice(-8)}`,
-      );
+      setSubmittedReference(reference);
+      setSubmittedDraft(submittedCaseDraft);
+      setSubmittedTranscription(submittedCaseTranscription);
       setPostReportMilestones(milestones);
       setFormError(null);
       clearUnfinishedReport();
@@ -1454,7 +1472,7 @@ export function DemoJourney() {
           <p className="eyebrow">
             {locale === "hi" ? "इस डिवाइस पर सुरक्षित" : "Saved on this device"}
           </p>
-          <h1>{locale === "hi" ? "अपनी रिपोर्ट जारी रखें?" : "Continue your report?"}</h1>
+          <h1>{locale === "hi" ? "अपनी शिकायत जारी रखें?" : "Continue your complaint?"}</h1>
           <p>
             {locale === "hi"
               ? "आपकी प्रगति इस डिवाइस पर सुरक्षित है।"
@@ -1465,7 +1483,7 @@ export function DemoJourney() {
               {locale === "hi" ? "जारी रखें" : "Continue"}
             </button>
             <button className="secondary-button" type="button" onClick={startReport}>
-              {locale === "hi" ? "फिर से शुरू करें" : "Start over"}
+              {locale === "hi" ? "नई शिकायत शुरू करें" : "Start new complaint"}
             </button>
           </div>
         </div>
@@ -1477,13 +1495,13 @@ export function DemoJourney() {
             <div className="service-entry-copy">
               <h1>
                 {locale === "hi"
-                  ? "हमें बताएं कि क्या हुआ। भरोसेमंद साइबर अपराध रिपोर्ट पाएँ।"
-                  : "Tell us what happened. Get a cybercrime report you can trust."}
+                  ? "साइबर अपराध की रिपोर्ट करें"
+                  : "Report a cybercrime"}
               </h1>
               <p className="service-entry-support">
                 {locale === "hi"
-                  ? "सचेत आपकी कहानी और सबूत को ऐसी रिपोर्ट में बदलता है जिसकी आप जाँच कर सकते हैं।"
-                  : "सचेत turns your story and evidence into a report you can review."}
+                  ? "जो हुआ उसका विवरण दें और जमा करने से पहले शिकायत की जानकारी जाँचें।"
+                  : "Describe what happened and review the complaint details before submitting."}
               </p>
               <div className="service-entry-actions">
                 <button
@@ -1493,7 +1511,7 @@ export function DemoJourney() {
                 >
                   {hasSubmittedCase
                     ? locale === "hi" ? "मामला देखें" : "View case"
-                    : locale === "hi" ? "रिपोर्ट शुरू करें" : "Start a report"}
+                    : locale === "hi" ? "रिपोर्ट शुरू करें" : "Start report"}
                 </button>
                 <button
                   className="secondary-button"
@@ -1501,7 +1519,7 @@ export function DemoJourney() {
                   onClick={hasSubmittedCase ? startReport : useDemoIncident}
                 >
                   {hasSubmittedCase
-                    ? locale === "hi" ? "नई रिपोर्ट शुरू करें" : "Start new report"
+                    ? locale === "hi" ? "नई शिकायत शुरू करें" : "Start new complaint"
                     : locale === "hi" ? "डेमो देखें" : "Try demo"}
                 </button>
               </div>
@@ -1620,15 +1638,19 @@ export function DemoJourney() {
         onSubmit={submitComplaint}
       />
     );
-  } else if (view === "SUCCESS" && draft && postReportMilestones) {
+  } else if (view === "SUCCESS" && submittedDraft && postReportMilestones) {
     content = (
       <PostSubmissionCaseHome
-        draft={draft}
+        draft={submittedDraft}
         prototypeReference={submittedReference}
         screenshots={screenshots}
         isDemoIncident={isDemoIncident}
         milestones={postReportMilestones}
-        onDraftChange={setDraft}
+        transcription={submittedTranscription}
+        onDraftChange={(nextDraft) => {
+          setDraft(nextDraft);
+          setSubmittedDraft(nextDraft);
+        }}
         onStartNewReport={startReport}
       />
     );

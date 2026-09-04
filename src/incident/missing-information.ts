@@ -179,11 +179,14 @@ function transactionQuestion(
   field: ReportRequirementKey,
   transactionIndex: number,
   amount: number | null,
+  institution: string | null,
 ): MissingQuestion {
   const base = QUESTIONS[field];
   const number = transactionIndex + 1;
   const amountEn = amount ? `₹${amount.toLocaleString("en-IN")}` : `transaction ${number}`;
   const amountHi = amount ? `₹${amount.toLocaleString("en-IN")}` : `लेन-देन ${number}`;
+  const paymentEn = institution ? `${amountEn} ${institution}` : amountEn;
+  const paymentHi = institution ? `${amountHi} ${institution}` : amountHi;
   const questions: Partial<Record<ReportRequirementKey, [string, string]>> = {
     institution: [
       `For the ${amountEn} payment, which bank or payment app did you use?`,
@@ -198,8 +201,8 @@ function transactionQuestion(
       `${amountHi} का भुगतान कब हुआ?`,
     ],
     accountOrUpiId: [
-      `For the ${amountEn} payment, which account or payment ID was used?`,
-      `${amountHi} के भुगतान में कौन-सा खाता या भुगतान ID उपयोग हुआ?`,
+      `For the ${paymentEn} payment, do you know the UPI ID or account identifier?`,
+      `${paymentHi} भुगतान के लिए क्या आपको UPI ID या खाता पहचान मालूम है?`,
     ],
     transactionAmount: [
       `How much was paid in transaction ${number}?`,
@@ -220,7 +223,10 @@ function requirementMissing(draft: IncidentDraft, field: ReportRequirementKey): 
   switch (field) {
     case "moneyLost": return draft.incident.financialLossState === "UNKNOWN";
     case "incidentDate": return !draft.incident.incidentDate;
-    case "incidentApproximateTime": return !draft.incident.approximateTime;
+    case "incidentApproximateTime": return !draft.incident.approximateTime && !(
+      draft.transactions.length > 0 &&
+      draft.transactions.every((transaction) => Boolean(transaction.approximateTime))
+    );
     case "delayInReporting": return draft.incident.delayInReporting === null;
     case "delayReason": return draft.incident.delayInReporting === true && !draft.incident.delayReason;
     case "occurredOn": return !draft.incident.occurredOn;
@@ -267,7 +273,12 @@ export function deriveMissingQuestions(draft: IncidentDraft): MissingQuestion[] 
       for (const field of TRANSACTION_QUESTION_PRIORITY) {
         if (!requiredTransactionFields.has(field)) continue;
         if (transactionValueMissing(draft, index, field)) {
-          missing.push(transactionQuestion(field, index, draft.transactions[index]?.amount ?? null));
+          missing.push(transactionQuestion(
+            field,
+            index,
+            draft.transactions[index]?.amount ?? null,
+            draft.transactions[index]?.institution ?? null,
+          ));
           break outer;
         }
       }

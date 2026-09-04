@@ -51,6 +51,10 @@ export const DEMO_INCIDENT_DRAFT = {
   },
   adaptiveFacts: {
     platform: "SMS / chat message",
+    messageSourcePlatforms: [],
+    affectedPlatforms: [],
+    entityRelationship: null,
+    multipleIncidentThreads: null,
     platformType: "MESSAGING",
     affectedAccount: null,
     profileUrl: null,
@@ -175,6 +179,10 @@ export function createUnknownIncidentDraft(): IncidentDraft {
     },
     adaptiveFacts: {
       platform: null,
+      messageSourcePlatforms: [],
+      affectedPlatforms: [],
+      entityRelationship: null,
+      multipleIncidentThreads: null,
       platformType: null,
       affectedAccount: null,
       profileUrl: null,

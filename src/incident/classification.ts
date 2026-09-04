@@ -13,6 +13,10 @@ export type DeterministicIncidentInterpretation = {
 
 const EMPTY_ADAPTIVE_FACTS: AdaptiveIncidentFacts = {
   platform: null,
+  messageSourcePlatforms: [],
+  affectedPlatforms: [],
+  entityRelationship: null,
+  multipleIncidentThreads: null,
   platformType: null,
   affectedAccount: null,
   profileUrl: null,

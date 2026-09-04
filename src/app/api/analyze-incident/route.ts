@@ -23,7 +23,7 @@ Rules:
 9. List only genuinely missing required information in missingRequiredFields.
 10. Keep citizen-facing summaries plain, concise and neutral.
 11. Put the total amount the citizen says was lost in incident.reportedAmount, even when a transaction reference is unknown. Keep individual known payments in transactions.
-12. Never infer a year. If the citizen says a day and month without a year, set incidentDate to null and incidentDateWithoutYear to MM-DD. Set incidentDateWithoutYear to null when a complete YYYY-MM-DD date is supported.
+12. Preserve an omitted year as incidentDateWithoutYear in MM-DD and leave incidentDate null. Deterministic application logic will resolve an obvious recent non-future date from the reporting date. Set incidentDateWithoutYear to null when a complete YYYY-MM-DD date is explicitly supported.
 13. incident.occurredOn must be one concise supported channel: SMS / text message, WhatsApp, Telegram, Website, Mobile app, Email, Other, or null. Put contextual wording in the narrative, not this field.
 14. Keep evidence files and facts extracted from evidence distinct: evidence.type identifies the supplied item; evidence.extractedFacts contains only concise supported facts.
 15. When visibly supported, preserve safe suspect identifiers such as masked phone numbers, email addresses, URLs, UPI IDs, names or social handles in suspectIdentifiers. Do not unmask or complete partial identifiers.
@@ -76,8 +76,11 @@ Rules:
 62. Do not perform or rely on arithmetic for the final displayed loss. Preserve every actual payment in transactions; the application deterministically resolves their sum.
 63. For a multi-event story, incident.approximateTime is only the time of the whole incident. Keep a time belonging to one payment on that transaction and leave the overall time null unless the source describes the whole incident at that time.
 64. Preserve every supported communication channel in adaptiveFacts.communicationChannels. Use incident.occurredOn as a concise single-channel or multiple-channel summary, never “Other” when named channels are known.
-65. A bank or organisation being impersonated is not the transaction institution. Populate transactions[].institution only when the source supports the bank or payment service actually used for that payment.
-66. incident.citizenConfirmedLoss is application-owned correction metadata. Always return null during initial extraction.`;
+65. Keep entity roles separate: messageSourcePlatforms are platforms named as the source or claimed sender of a message; affectedPlatforms are services/accounts described as inaccessible, hacked, reset or otherwise harmed. Do not put platform names into communicationChannels unless the text explicitly says communication happened through that service.
+66. Leave entityRelationship null when different source and affected platforms are mentioned without a clear causal relationship. Set RELATED_BOTH_AFFECTED only when the narrative clearly establishes a linked multi-account chain.
+67. Propagate an event's supported date, approximate time and payment service into the matching transaction. Do not leave a transaction field empty when the same payment event states it.
+68. A bank or organisation being impersonated is not the transaction institution. Populate transactions[].institution only when the source supports the bank or payment service actually used for that payment.
+69. incident.citizenConfirmedLoss is application-owned correction metadata. Always return null during initial extraction.`;
 
 type InputContent =
   | { type: "input_text"; text: string }
