@@ -1,4 +1,6 @@
 :root {
+  --font-english: "SF Pro Display", "SF Pro Text", -apple-system,
+    BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
   --page: #fafaf8;
   --surface: #ffffff;
   --text: #181817;
@@ -34,16 +36,10 @@ body {
   margin: 0;
   color: var(--text);
   background: var(--page);
-  font-family:
-    var(--font-inter),
-    var(--font-devanagari),
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    sans-serif;
+  font-family: var(--font-english);
   font-size: 16px;
-  font-weight: 450;
+  font-weight: 400;
+  font-synthesis: none;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
 }
@@ -164,7 +160,7 @@ h3 {
   align-items: center;
   gap: 10px;
   font-size: 20px;
-  font-weight: 750;
+  font-weight: 700;
   letter-spacing: -0.02em;
   text-decoration: none;
 }
@@ -219,7 +215,7 @@ h3 {
   background: transparent;
   border: 0;
   font-size: 14px;
-  font-weight: 650;
+  font-weight: 700;
   text-decoration: none;
   cursor: pointer;
 }
@@ -401,8 +397,8 @@ textarea {
   margin-bottom: 18px;
   font-size: clamp(50px, 5vw, 64px);
   line-height: 1.08;
-  font-family: var(--font-inter), sans-serif;
-  font-weight: 800;
+  font-family: var(--font-english);
+  font-weight: 700;
 }
 
 .service-entry-support {
@@ -415,7 +411,7 @@ textarea {
 .landing-category-reassurance {
   max-width: 620px;
   margin: 0 0 26px;
-  font-weight: 650;
+  font-weight: 700;
 }
 
 .service-entry-actions,
@@ -453,7 +449,7 @@ textarea {
   margin: 20px 0 0;
   color: var(--muted);
   font-size: 14px;
-  font-weight: 550;
+  font-weight: 400;
 }
 
 .landing-text-action,
@@ -546,8 +542,8 @@ textarea {
 .landing-case-check h2 {
   max-width: 560px;
   font-size: clamp(30px, 3vw, 38px);
-  font-family: var(--font-inter), sans-serif;
-  font-weight: 800;
+  font-family: var(--font-english);
+  font-weight: 700;
 }
 
 html[data-ui-locale="hi"] .service-entry h1,
@@ -659,7 +655,7 @@ html[data-ui-locale="hi"] .landing-case-check h2 {
   margin: 0 0 9px;
   color: var(--muted);
   font-size: 11px;
-  font-weight: 750;
+  font-weight: 700;
   letter-spacing: 0.09em;
   text-transform: uppercase;
 }
@@ -736,7 +732,7 @@ html[data-ui-locale="hi"] .landing-case-check h2 {
 .sachet-preview-connector b {
   margin-top: -9px;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 400;
 }
 
 .sachet-preview-report {
@@ -788,7 +784,7 @@ html[data-ui-locale="hi"] .landing-case-check h2 {
 
 .sachet-preview-report dd {
   overflow-wrap: anywhere;
-  font-weight: 650;
+  font-weight: 700;
 }
 
 /* Journey and workspace */
@@ -810,7 +806,7 @@ html[data-ui-locale="hi"] .landing-case-check h2 {
   gap: 7px;
   color: var(--muted);
   font-size: 13px;
-  font-weight: 650;
+  font-weight: 700;
 }
 
 .journey-progress-current {
@@ -828,7 +824,7 @@ html[data-ui-locale="hi"] .landing-case-check h2 {
   border-radius: 50%;
   color: var(--secondary);
   font-size: 12px;
-  font-weight: 750;
+  font-weight: 700;
 }
 
 .journey-progress-current .journey-progress-number {
@@ -970,7 +966,7 @@ html[data-ui-locale="hi"] .landing-case-check h2 {
 .voice-status {
   margin-bottom: 14px;
   color: var(--urgent);
-  font-weight: 750;
+  font-weight: 700;
 }
 
 .recording-waveform {
@@ -1238,7 +1234,7 @@ html[data-ui-locale="hi"] .landing-case-check h2 {
 
 .audio-progress {
   font-size: 11px;
-  font-weight: 550;
+  font-weight: 400;
 }
 
 .demo-narration-languages {
@@ -1377,7 +1373,7 @@ html[data-ui-locale="hi"] .landing-case-check h2 {
   margin: 2px 0 0;
   overflow-wrap: anywhere;
   font-size: 1.08rem;
-  font-weight: 750;
+  font-weight: 700;
 }
 
 .review-reporter-details {
@@ -1425,7 +1421,7 @@ html[data-ui-locale="hi"] .landing-case-check h2 {
 .stay-informed legend {
   width: 100%;
   margin-bottom: 6px;
-  font-weight: 750;
+  font-weight: 700;
 }
 
 .stay-informed fieldset label {
@@ -1648,7 +1644,7 @@ html[data-ui-locale="hi"] .landing-case-check h2 {
   margin: 0 0 12px;
   color: var(--secondary);
   font-size: 13px;
-  font-weight: 750;
+  font-weight: 700;
   letter-spacing: 0.02em;
   text-transform: uppercase;
 }
@@ -1721,9 +1717,13 @@ html[data-ui-locale="hi"] .landing-case-check h2 {
 
 .utr-example text {
   fill: #181817;
-  font:
-    14px system-ui,
-    sans-serif;
+  font-family: var(--font-english);
+  font-size: 14px;
+  font-weight: 400;
+}
+
+html[data-ui-locale="hi"] .utr-example text {
+  font-family: var(--font-devanagari), system-ui, sans-serif;
 }
 
 .utr-example-highlight {
@@ -2022,7 +2022,7 @@ html[data-ui-locale="hi"] .landing-case-check h2 {
   margin-bottom: 6px;
   color: var(--secondary);
   font-size: 12px;
-  font-weight: 750;
+  font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
@@ -2080,7 +2080,7 @@ html[data-ui-locale="hi"] .landing-case-check h2 {
 .incident-timeline time {
   color: var(--secondary);
   font-size: 12px;
-  font-weight: 650;
+  font-weight: 700;
   line-height: 1.45;
 }
 
@@ -2090,7 +2090,7 @@ html[data-ui-locale="hi"] .landing-case-check h2 {
 
 .incident-timeline p {
   margin: 0 0 5px;
-  font-weight: 650;
+  font-weight: 700;
 }
 
 .timeline-sources {
@@ -2134,7 +2134,7 @@ html[data-ui-locale="hi"] .landing-case-check h2 {
 .prepared-section-heading span {
   color: var(--secondary);
   font-size: 12px;
-  font-weight: 650;
+  font-weight: 700;
 }
 
 .incident-overview {
@@ -2304,7 +2304,7 @@ html[data-ui-locale="hi"] .landing-case-check h2 {
 .next-actions li > span {
   color: var(--secondary);
   font-size: 12px;
-  font-weight: 750;
+  font-weight: 700;
 }
 
 .next-actions strong {
@@ -2331,7 +2331,7 @@ html[data-ui-locale="hi"] .landing-case-check h2 {
   margin-bottom: 5px;
   color: var(--urgent);
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
@@ -2390,7 +2390,7 @@ html[data-ui-locale="hi"] .landing-case-check h2 {
   margin-left: auto;
   color: var(--secondary);
   font-size: 12px;
-  font-weight: 650;
+  font-weight: 700;
 }
 
 .section-inline-edit {
@@ -2407,7 +2407,7 @@ html[data-ui-locale="hi"] .landing-case-check h2 {
 .section-edit-fieldset {
   display: grid;
   gap: 7px;
-  font-weight: 650;
+  font-weight: 700;
 }
 
 .section-edit-fieldset {
@@ -2419,7 +2419,7 @@ html[data-ui-locale="hi"] .landing-case-check h2 {
 
 .section-edit-fieldset legend {
   padding-inline: 6px;
-  font-weight: 750;
+  font-weight: 700;
 }
 
 .review-section-edit {
@@ -2471,13 +2471,13 @@ html[data-ui-locale="hi"] .landing-case-check h2 {
   margin-bottom: 3px;
   color: var(--secondary);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .report-field-value {
   margin-bottom: 0;
   overflow-wrap: anywhere;
-  font-weight: 650;
+  font-weight: 700;
 }
 
 .report-field-help,
@@ -2544,7 +2544,7 @@ dt {
 
 dd {
   margin: 0;
-  font-weight: 650;
+  font-weight: 700;
 }
 
 .report-missing-editor,
@@ -2681,7 +2681,7 @@ dd {
 
 .field-coverage-disclosure summary small {
   color: var(--secondary);
-  font-weight: 500;
+  font-weight: 400;
 }
 
 .coverage-action {
@@ -2875,7 +2875,7 @@ dd {
 .post-report-stage-list > li > span {
   color: var(--secondary);
   font-size: 13px;
-  font-weight: 750;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 
@@ -2911,7 +2911,7 @@ dd {
 .post-report-action-list > li > span {
   color: var(--secondary);
   font-size: 13px;
-  font-weight: 750;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 
@@ -3081,7 +3081,7 @@ dd {
   color: var(--success);
   background: var(--success-bg);
   border-radius: 50%;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .journey-identifier {
@@ -3119,7 +3119,7 @@ dd {
   margin-bottom: 7px;
   color: var(--secondary);
   font-size: 13px;
-  font-weight: 750;
+  font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -3169,7 +3169,7 @@ html[data-ui-locale="hi"] .companion-eyebrow {
 
 .companion-error {
   color: var(--urgent);
-  font-weight: 650;
+  font-weight: 700;
 }
 
 .acknowledgement-form > .entry-actions {
@@ -3222,7 +3222,7 @@ html[data-ui-locale="hi"] .companion-eyebrow {
 .companion-summary-list dd {
   min-width: 0;
   margin: 0;
-  font-weight: 680;
+  font-weight: 700;
   overflow-wrap: anywhere;
 }
 
@@ -3301,7 +3301,7 @@ html[data-ui-locale="hi"] .companion-eyebrow {
   border: 1px solid var(--border-strong);
   border-radius: 50%;
   font-size: 13px;
-  font-weight: 750;
+  font-weight: 700;
 }
 
 .possible-stages-list h3,
@@ -3831,7 +3831,7 @@ html[data-ui-locale="hi"] .companion-eyebrow {
   }
 
   .complaint-packet dd {
-    font-weight: 600;
+    font-weight: 700;
     overflow-wrap: anywhere;
   }
 

@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Noto_Sans_Devanagari } from "next/font/google";
+import { Noto_Sans_Devanagari } from "next/font/google";
 import type { ReactNode } from "react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/next";
@@ -15,12 +15,6 @@ const notoDevanagari = Noto_Sans_Devanagari({
   subsets: ["devanagari"],
   display: "swap",
   variable: "--font-devanagari",
-});
-
-const inter = Inter({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-inter",
 });
 
 export const metadata: Metadata = {
@@ -58,7 +52,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${notoDevanagari.variable} ${inter.variable}`}
+      className={notoDevanagari.variable}
       data-scroll-behavior="smooth"
     >
       <body>
