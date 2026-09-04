@@ -416,17 +416,19 @@ function EvidenceRows({
 
   if (compact) {
     return (
-      <details className="report-source-block compact-source-disclosure">
-        <summary>
-          <span>{t("workspace.evidence")}</span>
-          <strong>
-            {evidenceCount} {t("workspace.screenshots")}
-          </strong>
-        </summary>
-        {rows}
+      <>
+        <details className="report-source-block compact-source-disclosure">
+          <summary>
+            <span>{t("workspace.evidence")}</span>
+            <strong>
+              {evidenceCount} {t("workspace.screenshots")}
+            </strong>
+          </summary>
+          {rows}
+        </details>
         {preview}
         {removalDialog}
-      </details>
+      </>
     );
   }
 

@@ -1,4 +1,4 @@
-import type { IncidentDraft } from "./schema";
+import { CITIZEN_DOES_NOT_HAVE, type IncidentDraft } from "./schema";
 import { resolveFinancialLoss } from "./financial-summary";
 
 export type CaseConsistencyIssue = {
@@ -67,6 +67,7 @@ export type DuplicateTransactionCandidate = {
 };
 
 function normalizedReference(value: string | null): string | null {
+  if (value === CITIZEN_DOES_NOT_HAVE) return null;
   const normalized = value?.replace(/[^a-z0-9]/gi, "").toLowerCase();
   return normalized || null;
 }
@@ -177,7 +178,14 @@ export function getCaseConsistencyIssues(draft: IncidentDraft): CaseConsistencyI
       ],
       sourceValues: [
         { label: "Amount", value: transaction.amount ?? "Not provided" },
-        { label: "Reference", value: transaction.transactionIdOrUtr ?? "Not provided" },
+        {
+          label: "Reference",
+          value:
+            !transaction.transactionIdOrUtr ||
+            transaction.transactionIdOrUtr === CITIZEN_DOES_NOT_HAVE
+              ? "Not provided"
+              : transaction.transactionIdOrUtr,
+        },
       ],
       title: "This may be the same transaction",
       explanation: "We found what looks like the same payment in two places.",
