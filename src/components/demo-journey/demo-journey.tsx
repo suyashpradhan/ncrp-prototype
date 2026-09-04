@@ -238,7 +238,6 @@ function reportSourceSignature(input: {
 }): string {
   return JSON.stringify({
     narrative: input.narrative.trim(),
-    reporterName: input.reporterName.trim(),
     transcript: input.transcription?.englishTranscript ?? "",
     screenshots: input.screenshots.map((file) => [
       file.name,
@@ -363,6 +362,7 @@ export function DemoJourney() {
     experienceMode,
     reporterProfile,
     beginExperience,
+    setReporterProfile,
     hydrateComplaintCase,
     resetDemo,
   } = useDemoCase();
@@ -875,6 +875,8 @@ export function DemoJourney() {
 
   function useDemoIncident(caseId: DemoCaseId = DEFAULT_DEMO_CASE_ID) {
     const demoCase = getDemoCase(caseId);
+    const selectedNarrationLanguage: DemoNarrationLanguage =
+      locale === "hi" ? "hi-IN" : "en-IN";
     clearPersistedDemoSession();
     clearUnfinishedReport();
     setRecoverableReport(null);
@@ -884,8 +886,11 @@ export function DemoJourney() {
     setDemoCaseRevision((current) => current + 1);
     beginExperience("DEMO_CASE", demoCase.citizen);
     setNarrative(demoCase.statement);
-    setTranscription(demoCase.narrations[demoNarrationLanguage]);
-    setRecordingSeconds(demoCase.narrations[demoNarrationLanguage].durationSeconds);
+    setDemoNarrationLanguage(selectedNarrationLanguage);
+    setTranscription(demoCase.narrations[selectedNarrationLanguage]);
+    setRecordingSeconds(
+      demoCase.narrations[selectedNarrationLanguage].durationSeconds,
+    );
     setIsDemoIncident(true);
     setDraft(structuredClone(demoCase.draft));
     setSubmittedReference(demoCase.reference);
@@ -894,7 +899,7 @@ export function DemoJourney() {
       reportSourceSignature({
         narrative: demoCase.statement,
         reporterName: demoCase.citizen.displayName,
-        transcription: demoCase.narrations[demoNarrationLanguage],
+        transcription: demoCase.narrations[selectedNarrationLanguage],
         screenshots: [],
         audio: null,
       }),
@@ -1237,15 +1242,6 @@ export function DemoJourney() {
   }
 
   async function buildComplaint() {
-    if (experienceMode === "LIVE_TEST" && !reporterName.trim()) {
-      setFormError(
-        locale === "hi"
-          ? "आगे बढ़ने से पहले अपना टेस्ट नाम लिखें।"
-          : "Enter your test name before continuing.",
-      );
-      document.querySelector<HTMLInputElement>("#reporter-name")?.focus();
-      return;
-    }
     if (
       !narrative.trim() &&
       screenshots.length === 0 &&
@@ -1503,7 +1499,7 @@ export function DemoJourney() {
     ) : (
       <section className="service-entry section-pad">
         <div className="shell service-entry-inner">
-          <div className="service-entry-layout landing-hero-layout">
+          <div className="service-entry-layout landing-hero-layout landing-hero-simple">
             <div className="service-entry-copy">
               <h1>
                 {locale === "hi"
@@ -1512,8 +1508,8 @@ export function DemoJourney() {
               </h1>
               <p className="service-entry-support">
                 {locale === "hi"
-                  ? "जो हुआ उसका विवरण दें और जमा करने से पहले शिकायत की जानकारी जाँचें।"
-                  : "Describe what happened and review the complaint details before submitting."}
+                  ? "जो हुआ उसे अपने शब्दों में बताएं। शिकायत की श्रेणी जानना जरूरी नहीं है।"
+                  : "Describe what happened in your own words. You do not need to know the complaint category."}
               </p>
               <div className="service-entry-actions">
                 <button
@@ -1537,14 +1533,11 @@ export function DemoJourney() {
               </div>
               <p className="landing-capability-line">{locale === "hi" ? "स्वतंत्र हैकाथॉन प्रोटोटाइप · NCRP से जुड़ा नहीं" : "Independent hackathon prototype · Not connected to NCRP"}</p>
             </div>
-            <SachetPreview />
           </div>
-          <LandingCaseCheck />
-          <LandingSteps />
           <section className="landing-urgent-strip" aria-labelledby="landing-urgent-heading">
             <div>
-              <h2 id="landing-urgent-heading">{locale === "hi" ? "क्या पैसे जा चुके हैं?" : "Already lost money?"}</h2>
-              <p>{locale === "hi" ? "यदि अभी तक नहीं किया है, तो तुरंत 1930 पर कॉल करें। सचेत में रिपोर्ट भी तैयार कर सकते हैं।" : "Call 1930 promptly if you have not already. You can still prepare your report with सचेत."}</p>
+              <h2 id="landing-urgent-heading">{locale === "hi" ? "क्या हाल ही में पैसे गए हैं?" : "Lost money recently?"}</h2>
+              <p>{locale === "hi" ? "वित्तीय साइबर धोखाधड़ी के लिए तुरंत 1930 पर कॉल करें। इसके बाद शिकायत तैयार करना जारी रख सकते हैं।" : "Call 1930 immediately for financial cyber fraud. You can continue preparing the complaint afterwards."}</p>
             </div>
             <a className="primary-button" href="tel:1930">{locale === "hi" ? "1930 पर कॉल करें" : "Call 1930"}</a>
           </section>
@@ -1602,6 +1595,10 @@ export function DemoJourney() {
         onReportMethodChange={setReportMethod}
         onNarrativeChange={setNarrative}
         onReporterNameChange={setReporterName}
+        onReporterProfileChange={(profile) => {
+          setReporterProfile(profile);
+          setReporterName(profile.displayName);
+        }}
         onStartRecording={() => void startRecording()}
         onStopRecording={stopRecording}
         onRecordAgain={recordAgain}

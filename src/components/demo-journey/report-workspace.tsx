@@ -134,6 +134,7 @@ type ReportWorkspaceProps = {
   onReportMethodChange: (method: ReportMethod) => void;
   onNarrativeChange: (value: string) => void;
   onReporterNameChange: (value: string) => void;
+  onReporterProfileChange: (profile: ReporterProfile) => void;
   onStartRecording: () => void;
   onStopRecording: () => void;
   onRecordAgain: () => void;
@@ -898,25 +899,17 @@ function ReportInputPane(props: ReportWorkspaceProps) {
 
       {props.mode !== "REVIEW" && props.experienceMode !== "DEMO_CASE" ? (
         <div className="incident-composer">
-          <div className="reporter-name-field">
-            <label htmlFor="reporter-name">
-              {t("workspace.reporterNameQuestion")}
-            </label>
-            <input
-              id="reporter-name"
-              data-report-field-id="reporter-name"
-              type="text"
-              autoComplete="name"
-              value={props.reporterName}
-              disabled={processing}
-              onChange={(event) =>
-                props.onReporterNameChange(event.target.value)
-              }
-              placeholder={t("workspace.reporterNamePlaceholder")}
-              maxLength={120}
-            />
-            <small>{t("workspace.reporterNameHelp")}</small>
-          </div>
+          {!props.draft ? (
+            <aside className="before-you-begin" aria-labelledby="before-you-begin-heading">
+              <h2 id="before-you-begin-heading">{locale === "hi" ? "शुरू करने से पहले" : "Before you begin"}</h2>
+              <ul>
+                <li>{locale === "hi" ? "जमा करने से पहले आप शिकायत की जानकारी जाँचेंगे।" : "You will review the complaint details before submitting."}</li>
+                <li>{locale === "hi" ? "जरूरी जानकारी साफ़ न हो तो सचेत अनुमान लगाने के बजाय पूछता है।" : "If an important detail is unclear, सचेत asks instead of guessing."}</li>
+                <li>{locale === "hi" ? "पासवर्ड, OTP, PIN या CVV न लिखें।" : "Do not enter passwords, OTPs, PINs or CVVs."}</li>
+              </ul>
+              <p>{locale === "hi" ? "यह प्रोटोटाइप NCRP को जानकारी जमा नहीं करता।" : "This prototype does not submit information to NCRP."}</p>
+            </aside>
+          ) : null}
           <fieldset className="report-method-fieldset">
             <legend>{locale === "hi" ? "बयान" : "Statement"}</legend>
             <div className="report-method-switch">
@@ -1111,8 +1104,8 @@ function ReportInputPane(props: ReportWorkspaceProps) {
             </div>
             <p>
               {locale === "hi"
-                ? "घटना से जुड़े स्क्रीनशॉट जोड़ें।"
-                : "Add screenshots connected to the incident."}
+                ? "संदेशों, भुगतान रसीदों या अकाउंट सूचनाओं के स्क्रीनशॉट जोड़ें।"
+                : "Add screenshots of messages, payment receipts or account notifications."}
             </p>
             <label
               className="evidence-add-button"
@@ -1157,7 +1150,6 @@ function ReportInputPane(props: ReportWorkspaceProps) {
                 processing ||
                 props.isRecording ||
                 props.isTranscribing ||
-                !props.reporterName.trim() ||
                 !(
                   props.narrative.trim() ||
                   props.hasAudio ||
@@ -1245,6 +1237,29 @@ function MissingFieldEditor({
   const [showOtherCompromiseBasis, setShowOtherCompromiseBasis] =
     useState(false);
   if (!question) return null;
+
+  const whyNeeded = (() => {
+    switch (question.field) {
+      case "transactionIdOrUtr":
+        return locale === "hi"
+          ? "इससे शिकायत में सही भुगतान की पहचान करने में मदद मिलती है।"
+          : "This helps identify the exact payment in the complaint.";
+      case "accountOrUpiId":
+        return locale === "hi"
+          ? "इससे यह स्पष्ट होता है कि भुगतान के लिए कौन-सा खाता या UPI आईडी इस्तेमाल हुआ।"
+          : "This identifies the account or UPI ID used for the payment.";
+      case "transactionDate":
+        return locale === "hi"
+          ? "तारीख से भुगतान रिकॉर्ड को बैंक या UPI विवरण से मिलाने में मदद मिलती है।"
+          : "The date helps match this payment with the bank or UPI record.";
+      case "affectedAccount":
+        return locale === "hi"
+          ? "इससे शिकायत में प्रभावित अकाउंट या प्रोफ़ाइल की सही पहचान होती है।"
+          : "This identifies the account or profile affected by the incident.";
+      default:
+        return null;
+    }
+  })();
 
   if (question.field === "incidentDateYear") {
     const suggestedYear = new Date().getFullYear();
@@ -1430,6 +1445,14 @@ function MissingFieldEditor({
       </label>
       {field.helpText ? (
         <p className="report-field-help">{field.helpText}</p>
+      ) : null}
+      {whyNeeded ? (
+        <details className="field-help-disclosure field-why-needed">
+          <summary>
+            {locale === "hi" ? "यह क्यों जरूरी है?" : "Why is this needed?"}
+          </summary>
+          <p>{whyNeeded}</p>
+        </details>
       ) : null}
       {question.field === "transactionIdOrUtr" ? (
         <details className="field-help-disclosure">
@@ -2672,6 +2695,22 @@ function ReportReview(props: ReportWorkspaceProps) {
     return t("field.fromShared");
   };
   const reviewTotal = resolveFinancialLoss(props.draft).resolvedLoss;
+  const reporterDetailsReady = Boolean(
+    props.reporterProfile.displayName.trim() &&
+      props.reporterProfile.registeredMobile.trim() &&
+      props.reporterProfile.state.trim() &&
+      props.reporterProfile.district.trim(),
+  );
+  const updateProfileField = (
+    field: "displayName" | "registeredMobile" | "email" | "state" | "district",
+    value: string,
+  ) => {
+    props.onReporterProfileChange({
+      ...props.reporterProfile,
+      [field]: value,
+      source: props.isDemoIncident ? "SIMULATED_NCRP_PROFILE" : "TEST_INPUT",
+    });
+  };
   const integrity = getCaseIntegritySummary(props.draft, {
     locale,
     isDemoIncident: props.isDemoIncident,
@@ -2711,7 +2750,7 @@ function ReportReview(props: ReportWorkspaceProps) {
   return (
     <>
       <div className="report-pane-heading">
-        <h2>{locale === "hi" ? "शिकायत की जानकारी" : "Complaint details"}</h2>
+        <h2>{locale === "hi" ? "शिकायत जाँचें" : "Review complaint"}</h2>
         <p>{t("workspace.reviewSupport")}</p>
       </div>
       <section
@@ -2793,7 +2832,7 @@ function ReportReview(props: ReportWorkspaceProps) {
         ) : null}
       </section>
       <div className="report-review-groups">
-        {groups.map((group) => (
+        {groups.filter((group) => group.id !== "REPORTER").map((group) => (
           <details
             key={group.id}
             className="report-review-group"
@@ -2839,6 +2878,42 @@ function ReportReview(props: ReportWorkspaceProps) {
           </details>
         ))}
       </div>
+      <section className="review-reporter-details" aria-labelledby="review-reporter-heading">
+        <div>
+          <h2 id="review-reporter-heading">{locale === "hi" ? "आपकी जानकारी" : "Your details"}</h2>
+          <p>{locale === "hi" ? "जमा करने से पहले अपनी संपर्क जानकारी जाँचें।" : "Check your contact details before submitting."}</p>
+        </div>
+        <div className="review-reporter-fields">
+          <label>
+            <span>{locale === "hi" ? "नाम" : "Name"}</span>
+            <input id="reporter-name" data-report-field-id="reporter-name" autoComplete="name" value={props.reporterProfile.displayName} readOnly={props.isDemoIncident} onChange={(event) => {
+              updateProfileField("displayName", event.target.value);
+              props.onReporterNameChange(event.target.value);
+            }} />
+          </label>
+          <label>
+            <span>{locale === "hi" ? "मोबाइल नंबर" : "Mobile number"}</span>
+            <input inputMode="tel" autoComplete="tel" value={props.reporterProfile.registeredMobile} readOnly={props.isDemoIncident} onChange={(event) => updateProfileField("registeredMobile", event.target.value)} />
+          </label>
+          <label>
+            <span>{locale === "hi" ? "ईमेल" : "Email"}</span>
+            <input type="email" autoComplete="email" value={props.reporterProfile.email} readOnly={props.isDemoIncident} onChange={(event) => updateProfileField("email", event.target.value)} />
+          </label>
+          <label>
+            <span>{locale === "hi" ? "राज्य" : "State"}</span>
+            <input autoComplete="address-level1" value={props.reporterProfile.state} readOnly={props.isDemoIncident} onChange={(event) => updateProfileField("state", event.target.value)} />
+          </label>
+          <label>
+            <span>{locale === "hi" ? "जिला" : "District"}</span>
+            <input autoComplete="address-level2" value={props.reporterProfile.district} readOnly={props.isDemoIncident} onChange={(event) => updateProfileField("district", event.target.value)} />
+          </label>
+        </div>
+        {!reporterDetailsReady ? (
+          <p className="form-error" role="status">{locale === "hi" ? "नाम, मोबाइल नंबर, राज्य और जिला भरें।" : "Enter your name, mobile number, state and district."}</p>
+        ) : props.isDemoIncident ? (
+          <p className="source-note">{locale === "hi" ? "सिंथेटिक डेमो जानकारी" : "Synthetic demo information"}</p>
+        ) : null}
+      </section>
       <details className="field-coverage-disclosure">
         <summary>
           <span>
@@ -2989,7 +3064,7 @@ function ReportReview(props: ReportWorkspaceProps) {
         <button
           className="primary-button"
           type="button"
-          disabled={!declarationAccepted}
+          disabled={!declarationAccepted || !reporterDetailsReady}
           onClick={() => props.onSubmit(complaint)}
         >
           {t("workspace.submitSynthetic")}
@@ -3440,6 +3515,75 @@ function ReportStatusCard({
   );
 }
 
+function PreparedComplaintSummary({ draft }: { draft: IncidentDraft }) {
+  const { locale } = useI18n();
+  const hi = locale === "hi";
+  const financial = resolveFinancialLoss(draft);
+  const displayedLoss = financial.resolvedLoss ?? financial.computedTransactionLoss;
+  const summaryItems = [
+    displayedLoss
+      ? {
+          label: financial.hasExplicitTotalConflict
+            ? hi ? "लेन-देन का कुल" : "Payments add up to"
+            : hi ? "रिपोर्ट की गई हानि" : "Reported loss",
+          value: formatCurrency(displayedLoss),
+        }
+      : draft.incident.financialLossState === "NO"
+        ? { label: hi ? "पैसे गए" : "Money lost", value: hi ? "नहीं" : "No" }
+        : null,
+    draft.transactions.length > 0
+      ? {
+          label: hi ? "लेन-देन" : "Transactions",
+          value: String(draft.transactions.length),
+        }
+      : null,
+    draft.incident.incidentDate
+      ? {
+          label: hi ? "घटना की तारीख" : "Incident date",
+          value: new Intl.DateTimeFormat(hi ? "hi-IN" : "en-IN", {
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+            timeZone: "Asia/Kolkata",
+          }).format(new Date(`${draft.incident.incidentDate}T12:00:00+05:30`)),
+        }
+      : null,
+    draft.adaptiveFacts.impersonatedEntity
+      ? {
+          label: hi ? "दावा की गई पहचान" : "Claimed identity",
+          value: draft.adaptiveFacts.impersonatedEntity,
+        }
+      : draft.adaptiveFacts.affectedPlatforms.length > 0
+        ? {
+            label: hi ? "प्रभावित सेवा" : "Affected service",
+            value: draft.adaptiveFacts.affectedPlatforms.join(", "),
+          }
+        : draft.adaptiveFacts.threatOrExtortion
+          ? {
+              label: hi ? "घटना" : "Incident",
+              value: hi ? "ऑनलाइन धमकी या वसूली" : "Online threat or extortion",
+            }
+          : null,
+  ].filter((item): item is { label: string; value: string } => Boolean(item));
+
+  return (
+    <section id="prepared-complaint-summary" className="prepared-complaint-summary" aria-labelledby="prepared-summary-heading">
+      <div>
+        <p className="eyebrow">{hi ? "तैयार सार" : "Prepared summary"}</p>
+        <h2 id="prepared-summary-heading">{hi ? "इन जानकारियों को जाँचें" : "Check these details"}</h2>
+      </div>
+      <dl>
+        {summaryItems.map((item) => (
+          <div key={item.label}>
+            <dt>{item.label}</dt>
+            <dd>{item.value}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  );
+}
+
 function ReportDetailsPane({
   groups,
   readiness,
@@ -3485,7 +3629,9 @@ function ReportDetailsPane({
         )
     : null;
   const incidentGroup = groups.find((group) => group.id === "INCIDENT");
-  const remainingGroups = groups.filter((group) => group.id !== "INCIDENT");
+  const remainingGroups = groups.filter(
+    (group) => group.id !== "INCIDENT" && group.id !== "REPORTER",
+  );
   const timeline =
     props.draft && !amountConflictMissing
       ? deriveIncidentTimeline(props.draft, {
@@ -3528,6 +3674,10 @@ function ReportDetailsPane({
         onPrimaryAction={onPrimaryAction}
       />
 
+      {props.mode === "READY" && props.draft ? (
+        <PreparedComplaintSummary draft={props.draft} />
+      ) : null}
+
       {props.draft?.incident.financialLossState === "YES" &&
       props.draft.transactions.length > 0 ? (
         <aside
@@ -3553,6 +3703,9 @@ function ReportDetailsPane({
           </div>
           <a className="primary-button" href="tel:1930">
             {locale === "hi" ? "1930 पर कॉल करें" : "Call 1930"}
+          </a>
+          <a className="text-button" href="#prepared-complaint-summary">
+            {locale === "hi" ? "शिकायत जारी रखें" : "Continue complaint"}
           </a>
         </aside>
       ) : null}
@@ -3680,9 +3833,14 @@ function ReportDetailsPane({
             >
               <h3 id="amount-conflict-heading">
                 {locale === "hi"
-                  ? "दो अलग राशियाँ मिलीं"
-                  : "We found two different amounts"}
+                  ? "यह जानकारी जाँचें"
+                  : "Check this detail"}
               </h3>
+              <p>
+                {locale === "hi"
+                  ? `आपने ${formatCurrency(amountConflictResolution.statementAmount ?? 0)} की हानि बताई। ${props.draft.transactions.length} भुगतानों का कुल ${formatCurrency(amountConflictResolution.transactionAmount ?? 0)} है।`
+                  : `You said ${formatCurrency(amountConflictResolution.statementAmount ?? 0)} was lost. ${props.draft.transactions.length === 2 ? "The two payments" : `The ${props.draft.transactions.length} payments`} add up to ${formatCurrency(amountConflictResolution.transactionAmount ?? 0)}.`}
+              </p>
               <dl>
                 <div>
                   <dt>
@@ -4115,8 +4273,7 @@ export function ReportWorkspace(props: ReportWorkspaceProps) {
     : [];
   const sourceReady = Boolean(
     !props.isTranscribing &&
-    props.reporterName.trim() &&
-    (props.narrative.trim() || props.hasAudio || props.screenshots.length > 0),
+      (props.narrative.trim() || props.hasAudio || props.screenshots.length > 0),
   );
 
   useEffect(() => {

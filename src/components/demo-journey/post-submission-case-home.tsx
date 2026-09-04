@@ -25,6 +25,10 @@ import { IncidentTimeline } from "./incident-timeline";
 import { JourneyProgress } from "./journey-progress";
 import { formatIndiaShortDateWithYear } from "../../presentation/format";
 import type { DemoCaseDefinition } from "../../incident/demo-incident";
+import {
+  deriveCitizenNudges,
+  type NotificationChannel,
+} from "../../notifications/citizen-nudges";
 import { citizenVisibleValue } from "../../presentation/citizen-visible-value";
 import {
   OPEN_EVIDENCE_PREVIEW_EVENT,
@@ -278,6 +282,10 @@ export function PostSubmissionCaseHome({
   const [followUpOpen, setFollowUpOpen] = useState(false);
   const [followUpValue, setFollowUpValue] = useState("");
   const [followUpSaved, setFollowUpSaved] = useState(false);
+  const [notificationChannel, setNotificationChannel] =
+    useState<NotificationChannel>("EMAIL");
+  const [remindersEnabled, setRemindersEnabled] = useState(false);
+  const nudges = deriveCitizenNudges(draft, locale, notificationChannel);
   const stateExplanation = getCaseStateExplanation(
     missingReferenceIndex >= 0 ? "ADDITIONAL_INFO_REQUESTED" : "SUBMITTED",
     locale,
@@ -475,6 +483,54 @@ export function PostSubmissionCaseHome({
                 ))}
               </ul>
             </div>
+          </section>
+
+          <section className="companion-section stay-informed" aria-labelledby="stay-informed-heading">
+            <div>
+              <h2 id="stay-informed-heading">{hi ? "जानकारी पाते रहें" : "Stay informed"}</h2>
+              <p>{hi ? "अगले उपयोगी कदमों और साइबर सुरक्षा सावधानियों के बारे में रिमाइंडर पाएँ।" : "Get reminders about useful next steps and cyber-safety precautions."}</p>
+            </div>
+            <fieldset>
+              <legend>{hi ? "रिमाइंडर का माध्यम" : "Reminder channel"}</legend>
+              <label>
+                <input type="radio" name="notification-channel" value="EMAIL" checked={notificationChannel === "EMAIL"} onChange={() => setNotificationChannel("EMAIL")} />
+                <span>{hi ? "ईमेल" : "Email"}</span>
+              </label>
+              <label>
+                <input type="radio" name="notification-channel" value="WHATSAPP" checked={notificationChannel === "WHATSAPP"} onChange={() => setNotificationChannel("WHATSAPP")} />
+                <span>WhatsApp</span>
+              </label>
+            </fieldset>
+            <button className="secondary-button" type="button" onClick={() => setRemindersEnabled(true)}>
+              {remindersEnabled
+                ? hi ? "रिमाइंडर चालू हैं" : "Reminders turned on"
+                : hi ? "रिमाइंडर चालू करें" : "Turn on reminders"}
+            </button>
+            <p className="source-note" role="status">
+              {remindersEnabled
+                ? hi
+                  ? "प्रोटोटाइप रिमाइंडर चालू हुआ। कोई असली संदेश नहीं भेजा गया।"
+                  : "Prototype reminders are on. No real message was sent."
+                : isDemoIncident
+                  ? hi
+                    ? "सिंथेटिक संपर्क · केवल डेमो पूर्वावलोकन"
+                    : "Synthetic contact · Demo preview only"
+                  : hi
+                    ? "केवल प्रोटोटाइप व्यवहार · कोई असली संदेश नहीं भेजा जाएगा"
+                    : "Prototype behavior only · No real message will be sent"}
+            </p>
+            {isDemoIncident ? (
+              <div className="reminder-preview" aria-label={hi ? "रिमाइंडर पूर्वावलोकन" : "Reminder preview"}>
+                <h3>{hi ? "रिमाइंडर पूर्वावलोकन" : "Reminder preview"}</h3>
+                {nudges.map((nudge) => (
+                  <article key={nudge.id}>
+                    <span>{nudge.schedule === "TODAY" ? (hi ? "आज" : "Today") : (hi ? "कल" : "Tomorrow")}</span>
+                    <strong>{nudge.title}</strong>
+                    <p>{nudge.body}</p>
+                  </article>
+                ))}
+              </div>
+            ) : null}
           </section>
 
           <section className="companion-section post-report-timeline-section">

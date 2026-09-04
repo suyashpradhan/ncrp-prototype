@@ -143,7 +143,9 @@ function contractLevel(definition: NcrpFieldDefinition): MissingRequirementLevel
     definition.group === "ADDRESS" ||
     definition.group === "IDENTITY_DOCUMENT"
   ) {
-    return definition.id === "complainant.name" ? "BLOCKING" : "RECOMMENDED";
+    // Reporter details are collected together in the Review step. They should
+    // not block incident reconstruction or hide the prepared complaint.
+    return "RECOMMENDED";
   }
   return "BLOCKING";
 }
