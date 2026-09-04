@@ -19,7 +19,9 @@ import type {
   TranscriptionResult,
 } from "../../incident/schema";
 import {
-  DEMO_NARRATIONS,
+  DEMO_CASES,
+  type DemoCaseDefinition,
+  type DemoCaseId,
   type DemoNarrationLanguage,
 } from "../../incident/demo-incident";
 import type { ReportedAmountResolution } from "../../incident/complaint-case";
@@ -75,23 +77,6 @@ export type PreparationFailure =
   | "REPORT"
   | null;
 
-const DEMO_EVIDENCE = [
-  {
-    id: "demo-message",
-    src: "/demo/evidence/kyc-message-demo.png",
-    altKey: "workspace.demoMessage",
-    labelKey: "workspace.demoMessage",
-    typeKey: "workspace.evidenceMessageType",
-  },
-  {
-    id: "demo-transaction",
-    src: "/demo/evidence/bank-transaction-demo.png",
-    altKey: "workspace.demoBank",
-    labelKey: "workspace.demoBank",
-    typeKey: "workspace.evidenceTransactionType",
-  },
-] as const;
-
 const SOURCE_VISIBLE_FIELD_IDS = new Set([
   "category",
   "transaction-0-utr",
@@ -120,6 +105,7 @@ type ReportWorkspaceProps = {
   recordingLevels: number[];
   recordingSeconds: number;
   isDemoIncident: boolean;
+  demoCase: DemoCaseDefinition | null;
   experienceMode: ExperienceMode | null;
   reporterProfile: ReporterProfile;
   identityDocumentProvided: boolean;
@@ -145,6 +131,8 @@ type ReportWorkspaceProps = {
   onRemoveScreenshot: (index: number) => void;
   onOrganizeReport: () => void;
   onUseDemoIncident: () => void;
+  onDemoCaseChange: (caseId: DemoCaseId) => void;
+  onResetDemoCase: () => void;
   onMissingAnswerChange: (
     field: MissingQuestion["field"],
     value: string,
@@ -177,18 +165,20 @@ function EvidenceRows({
   screenshots,
   draft,
   isDemoIncident,
+  demoCase,
   onRemoveScreenshot,
   compact = false,
 }: {
   screenshots: File[];
   draft: IncidentDraft | null;
   isDemoIncident: boolean;
+  demoCase: DemoCaseDefinition | null;
   onRemoveScreenshot: (index: number) => void;
   compact?: boolean;
 }) {
   const { locale, t } = useI18n();
   const [activeDemoEvidence, setActiveDemoEvidence] = useState<
-    (typeof DEMO_EVIDENCE)[number] | null
+    DemoCaseDefinition["evidence"][number] | null
   >(null);
   const [activeUploadedEvidence, setActiveUploadedEvidence] =
     useState<File | null>(null);
@@ -242,19 +232,19 @@ function EvidenceRows({
   if (!isDemoIncident && screenshots.length === 0) return null;
 
   const evidenceCount = isDemoIncident
-    ? DEMO_EVIDENCE.length
+    ? demoCase?.evidence.length ?? 0
     : screenshots.length;
   const rows = (
     <ul className="report-source-files">
       {isDemoIncident
-        ? DEMO_EVIDENCE.map((item) => (
+        ? (demoCase?.evidence ?? []).map((item) => (
             <li className="report-source-file-preview" key={item.src}>
               <button
                 className="evidence-preview-trigger"
                 type="button"
                 data-evidence-id={item.id}
                 aria-haspopup="dialog"
-                aria-label={`${t("workspace.openEvidence")}: ${t(item.labelKey)}`}
+                aria-label={`${t("workspace.openEvidence")}: ${locale === "hi" ? item.labelHi : item.label}`}
                 onClick={() => setActiveDemoEvidence(item)}
               >
                 <Image
@@ -265,8 +255,8 @@ function EvidenceRows({
                   sizes="72px"
                 />
                 <span className="evidence-row-copy">
-                  <strong>{t(item.labelKey)}</strong>
-                  <small>{t(item.typeKey)}</small>
+                  <strong>{locale === "hi" ? item.labelHi : item.label}</strong>
+                  <small>{locale === "hi" ? item.typeLabelHi : item.typeLabel}</small>
                 </span>
                 <span className="evidence-row-action">
                   {t("workspace.view")}
@@ -319,7 +309,7 @@ function EvidenceRows({
         className="evidence-preview-dialog"
         aria-label={
           activeDemoEvidence
-            ? t(activeDemoEvidence.labelKey)
+            ? locale === "hi" ? activeDemoEvidence.labelHi : activeDemoEvidence.label
             : activeUploadedEvidence?.name
         }
         onCancel={(event) => {
@@ -339,7 +329,7 @@ function EvidenceRows({
             </small>
             <strong>
               {activeDemoEvidence
-                ? t(activeDemoEvidence.labelKey)
+                ? locale === "hi" ? activeDemoEvidence.labelHi : activeDemoEvidence.label
                 : activeUploadedEvidence?.name}
             </strong>
           </div>
@@ -356,7 +346,7 @@ function EvidenceRows({
           <Image
             className="ph-no-capture"
             src={activeDemoEvidence.src}
-            alt={t(activeDemoEvidence.altKey)}
+            alt={locale === "hi" ? activeDemoEvidence.labelHi : activeDemoEvidence.label}
             width={520}
             height={620}
             sizes="(max-width: 600px) calc(100vw - 40px), 520px"
@@ -432,16 +422,21 @@ function EvidenceContributions({
   draft,
   screenshots,
   isDemoIncident,
+  demoCase,
 }: {
   draft: IncidentDraft;
   screenshots: File[];
   isDemoIncident: boolean;
+  demoCase: DemoCaseDefinition | null;
 }) {
   const { locale } = useI18n();
   const items = deriveEvidenceContributions(draft, {
     locale,
     isDemoIncident,
-    screenshotNames: screenshots.map((file) => file.name),
+    screenshotNames: isDemoIncident
+      ? (demoCase?.evidence.map((item) => item.label) ?? [])
+      : screenshots.map((file) => file.name),
+    demoEvidence: demoCase?.evidence,
   });
   if (items.length === 0) return null;
 
@@ -530,6 +525,7 @@ function SourceSummary({
   screenshots,
   draft,
   isDemoIncident,
+  demoCase,
   recordingSeconds,
   demoNarrationLanguage,
   onDemoNarrationLanguageChange,
@@ -542,6 +538,7 @@ function SourceSummary({
   | "screenshots"
   | "draft"
   | "isDemoIncident"
+  | "demoCase"
   | "recordingSeconds"
   | "demoNarrationLanguage"
   | "onDemoNarrationLanguageChange"
@@ -554,11 +551,9 @@ function SourceSummary({
   const showWrittenStatement =
     narrative.trim() && (isDemoIncident || !transcription);
   const displayedNarrative = isDemoIncident
-    ? locale === "hi"
-      ? "मुझे एसबीआई केवाईसी अपडेट करने का संदेश मिला। मैंने निर्देश माने और बाद में मेरे खाते से ₹40,000 ट्रांसफर हो गए।"
-      : narrative
+    ? demoCase?.statement ?? narrative
     : narrative;
-  const demoNarration = DEMO_NARRATIONS[demoNarrationLanguage];
+  const demoNarration = demoCase?.narrations[demoNarrationLanguage] ?? null;
 
   useEffect(() => {
     setIsPlaying(false);
@@ -574,55 +569,59 @@ function SourceSummary({
       className="report-sources"
       aria-label={t("workspace.informationShared")}
     >
-      {isDemoIncident ? (
+      {isDemoIncident && demoNarration ? (
         <div className="report-source-block demo-narration-block">
           <div className="demo-narration-heading">
             <div>
               <h3>{t("workspace.sampleNarration")}</h3>
               <p className="source-meta">
-                {demoNarration.nativeLabel} ·{" "}
+                {demoCase?.sourceLanguage ?? demoNarration.nativeLabel} ·{" "}
                 {t("workspace.approxSeconds", {
                   seconds: demoNarration.durationSeconds,
                 })}
               </p>
             </div>
-            <button
-              className="secondary-button compact-audio-button"
-              type="button"
-              onClick={() => {
-                const player = audioRef.current;
-                if (!player) return;
-                if (player.paused) void player.play();
-                else player.pause();
-              }}
-            >
-              {isPlaying
-                ? t("workspace.pauseSample")
-                : t("workspace.playSample")}
-              <span className="audio-progress" aria-hidden="true">
-                {formatPlayback(playbackSeconds)} /{" "}
-                {formatPlayback(demoNarration.durationSeconds)}
-              </span>
-            </button>
+            {demoNarration.audioPath ? (
+              <button
+                className="secondary-button compact-audio-button"
+                type="button"
+                onClick={() => {
+                  const player = audioRef.current;
+                  if (!player) return;
+                  if (player.paused) void player.play();
+                  else player.pause();
+                }}
+              >
+                {isPlaying
+                  ? t("workspace.pauseSample")
+                  : t("workspace.playSample")}
+                <span className="audio-progress" aria-hidden="true">
+                  {formatPlayback(playbackSeconds)} /{" "}
+                  {formatPlayback(demoNarration.durationSeconds)}
+                </span>
+              </button>
+            ) : null}
           </div>
-          <audio
-            ref={audioRef}
-            src={demoNarration.audioPath}
-            preload="metadata"
-            onPlay={() => setIsPlaying(true)}
-            onPause={() => setIsPlaying(false)}
-            onEnded={() => setIsPlaying(false)}
-            onTimeUpdate={(event) =>
-              setPlaybackSeconds(event.currentTarget.currentTime)
-            }
-          />
+          {demoNarration.audioPath ? (
+            <audio
+              ref={audioRef}
+              src={demoNarration.audioPath}
+              preload="metadata"
+              onPlay={() => setIsPlaying(true)}
+              onPause={() => setIsPlaying(false)}
+              onEnded={() => setIsPlaying(false)}
+              onTimeUpdate={(event) =>
+                setPlaybackSeconds(event.currentTarget.currentTime)
+              }
+            />
+          ) : null}
           <p className="demo-language-label">{t("workspace.sampleLanguage")}</p>
           <div
             className="demo-narration-languages"
             role="group"
             aria-label={t("workspace.changeLanguage")}
           >
-            {(Object.keys(DEMO_NARRATIONS) as DemoNarrationLanguage[]).map(
+            {(Object.keys(demoCase?.narrations ?? {}) as DemoNarrationLanguage[]).map(
               (language) => (
                 <button
                   key={language}
@@ -630,7 +629,7 @@ function SourceSummary({
                   aria-pressed={demoNarrationLanguage === language}
                   onClick={() => onDemoNarrationLanguageChange(language)}
                 >
-                  {DEMO_NARRATIONS[language].nativeLabel}
+                  {demoCase?.narrations[language].nativeLabel}
                 </button>
               ),
             )}
@@ -676,7 +675,7 @@ function SourceSummary({
             </p>
             <p className="source-meta">
               {isDemoIncident
-                ? `${DEMO_NARRATIONS[demoNarrationLanguage].nativeLabel} · ${t("workspace.approxSeconds", { seconds: recordingSeconds || 1 })}`
+                ? `${demoCase?.sourceLanguage ?? demoNarration?.nativeLabel ?? languageLabel(transcription.languageCode)} · ${t("workspace.approxSeconds", { seconds: recordingSeconds || 1 })}`
                 : `${languageLabel(transcription.languageCode)} · ${recordingSeconds || 1} ${locale === "hi" ? "सेकंड" : "seconds"}`}
             </p>
             {transcription.englishTranscript.trim() &&
@@ -728,6 +727,7 @@ function SourceSummary({
         screenshots={screenshots}
         draft={draft}
         isDemoIncident={isDemoIncident}
+        demoCase={demoCase}
         onRemoveScreenshot={onRemoveScreenshot}
         compact={compact}
       />
@@ -903,7 +903,7 @@ function ReportInputPane(props: ReportWorkspaceProps) {
               <span aria-hidden="true">＋</span> {t("workspace.addEvidence")}
             </label>
             <input id="incident-screenshots" className="visually-hidden" type="file" accept="image/png,image/jpeg,image/webp" multiple disabled={processing} onChange={props.onScreenshotsChange} />
-            <EvidenceRows screenshots={props.screenshots} draft={props.draft} isDemoIncident={false} onRemoveScreenshot={props.onRemoveScreenshot} />
+            <EvidenceRows screenshots={props.screenshots} draft={props.draft} isDemoIncident={false} demoCase={null} onRemoveScreenshot={props.onRemoveScreenshot} />
           </section>
           <p className="composer-safety">{t("workspace.safety")}</p>
           {!props.draft ? (
@@ -937,6 +937,7 @@ function ReportInputPane(props: ReportWorkspaceProps) {
         screenshots={props.screenshots}
         draft={props.draft}
         isDemoIncident={props.isDemoIncident}
+        demoCase={props.demoCase}
         recordingSeconds={props.recordingSeconds}
         demoNarrationLanguage={props.demoNarrationLanguage}
         onDemoNarrationLanguageChange={props.onDemoNarrationLanguageChange}
@@ -1243,7 +1244,11 @@ function ReportFieldRow({
 }) {
   const { locale, t } = useI18n();
   const [copied, setCopied] = useState(false);
-  const showSource = SOURCE_VISIBLE_FIELD_IDS.has(field.id) || field.source === t("field.fromConfirmation");
+  const showSource = SOURCE_VISIBLE_FIELD_IDS.has(field.id) ||
+    /^transaction-(?:total|\d+-amount)$/.test(field.id) ||
+    field.source === t("field.fromConfirmation") ||
+    field.source === "Confirmed by you" ||
+    field.source === "आपने पुष्टि की";
   const copyable = /^transaction-\d+-(utr|reference)$/.test(field.id) ||
     /^(suspect-\d+)$/.test(field.id);
   if (field.missingQuestion) {
@@ -1462,6 +1467,7 @@ function ReportGroup({
   showMissingEditors = true,
   screenshots,
   isDemoIncident,
+  demoCase,
 }: {
   group: ReportGroupView;
   draft: IncidentDraft;
@@ -1472,6 +1478,7 @@ function ReportGroup({
   showMissingEditors?: boolean;
   screenshots: File[];
   isDemoIncident: boolean;
+  demoCase: DemoCaseDefinition | null;
 }) {
   const { locale, t } = useI18n();
   const [narrativeEditing, setNarrativeEditing] = useState(false);
@@ -1732,7 +1739,7 @@ function ReportGroup({
       /KYC|केवाईसी/i.test(field.value),
     );
     const transactionFound = evidenceFacts.find((field) =>
-      field.value.includes("₹40,000"),
+      field.value.includes("₹"),
     );
     return (
       <div
@@ -1750,6 +1757,7 @@ function ReportGroup({
           draft={draft}
           screenshots={screenshots}
           isDemoIncident={isDemoIncident}
+          demoCase={demoCase}
         />
         {suspectFields.length > 0 ? (
           <section className="information-found">
@@ -1903,11 +1911,9 @@ function ReportReview(props: ReportWorkspaceProps) {
     typedNarrative: props.narrative,
     isDemoIncident: props.isDemoIncident,
     screenshotNames: props.isDemoIncident
-      ? [
-          "Synthetic KYC message screenshot",
-          "Synthetic bank transaction screenshot",
-        ]
+      ? (props.demoCase?.evidence.map((item) => item.label) ?? [])
       : props.screenshots.map((file) => file.name),
+    demoEvidencePaths: props.demoCase?.evidence.map((item) => item.src),
     identityDocumentProvided: props.identityDocumentProvided,
     declarationAccepted,
   });
@@ -1925,7 +1931,10 @@ function ReportReview(props: ReportWorkspaceProps) {
   const integrity = getCaseIntegritySummary(props.draft, {
     locale,
     isDemoIncident: props.isDemoIncident,
-    screenshotNames: props.screenshots.map((file) => file.name),
+    screenshotNames: props.isDemoIncident
+      ? (props.demoCase?.evidence.map((item) => item.label) ?? [])
+      : props.screenshots.map((file) => file.name),
+    demoEvidence: props.demoCase?.evidence,
   });
   const editGroup = (groupId: string) => {
     props.onBackToEdit();
@@ -2718,6 +2727,7 @@ function ReportDetailsPane({
                 showMissingEditors={false}
                 screenshots={props.screenshots}
                 isDemoIncident={props.isDemoIncident}
+                demoCase={props.demoCase}
               />
             </section>
           ) : null}
@@ -2970,6 +2980,7 @@ function ReportDetailsPane({
                   showMissingEditors={false}
                   screenshots={props.screenshots}
                   isDemoIncident={props.isDemoIncident}
+                  demoCase={props.demoCase}
                 />
               </section>
             ))}
@@ -2982,6 +2993,46 @@ function ReportDetailsPane({
 
         </>
       ) : null}
+    </section>
+  );
+}
+
+function DemoCaseSelector({
+  activeCase,
+  onChange,
+  onReset,
+}: {
+  activeCase: DemoCaseDefinition;
+  onChange: (caseId: DemoCaseId) => void;
+  onReset: () => void;
+}) {
+  const { locale } = useI18n();
+  const hi = locale === "hi";
+  return (
+    <section className="demo-case-selector" aria-labelledby="demo-case-selector-heading">
+      <div className="demo-case-selector-heading">
+        <div>
+          <p className="eyebrow">{hi ? "डेमो मोड · सिंथेटिक मामला" : "Demo Mode · Synthetic case"}</p>
+          <h2 id="demo-case-selector-heading">{hi ? "डेमो मामले" : "Demo cases"}</h2>
+        </div>
+        <button className="text-button" type="button" onClick={onReset}>
+          {hi ? "डेमो मामला रीसेट करें" : "Reset demo case"}
+        </button>
+      </div>
+      <div className="demo-case-options" role="radiogroup" aria-label={hi ? "डेमो मामला चुनें" : "Choose a demo case"}>
+        {DEMO_CASES.map((demoCase) => (
+          <button
+            key={demoCase.id}
+            type="button"
+            role="radio"
+            aria-checked={activeCase.id === demoCase.id}
+            className={activeCase.id === demoCase.id ? "is-selected" : undefined}
+            onClick={() => onChange(demoCase.id)}
+          >
+            {hi ? demoCase.selectorLabelHi : demoCase.selectorLabel}
+          </button>
+        ))}
+      </div>
     </section>
   );
 }
@@ -3014,11 +3065,9 @@ export function ReportWorkspace(props: ReportWorkspaceProps) {
         typedNarrative: props.narrative,
         isDemoIncident: props.isDemoIncident,
         screenshotNames: props.isDemoIncident
-          ? [
-              "Synthetic KYC message screenshot",
-              "Synthetic bank transaction screenshot",
-            ]
+          ? (props.demoCase?.evidence.map((item) => item.label) ?? [])
           : props.screenshots.map((file) => file.name),
+        demoEvidencePaths: props.demoCase?.evidence.map((item) => item.src),
         identityDocumentProvided: props.identityDocumentProvided,
       })
     : null;
@@ -3110,6 +3159,10 @@ export function ReportWorkspace(props: ReportWorkspaceProps) {
     if (highlightTimerRef.current) window.clearTimeout(highlightTimerRef.current);
   }, []);
 
+  useEffect(() => {
+    setIgnoredConsistencyIssueIds(new Set());
+  }, [props.demoCase?.id]);
+
   function runPrimaryAction() {
     if (props.mode === "PROCESSING") return;
     if (!props.draft || props.mode === "ERROR" || readiness?.state === "STALE") {
@@ -3190,6 +3243,13 @@ export function ReportWorkspace(props: ReportWorkspaceProps) {
       tabIndex={-1}
     >
       <div className="report-workspace-shell">
+        {props.isDemoIncident && props.demoCase ? (
+          <DemoCaseSelector
+            activeCase={props.demoCase}
+            onChange={props.onDemoCaseChange}
+            onReset={props.onResetDemoCase}
+          />
+        ) : null}
         <JourneyProgress
           current={props.mode === "REVIEW" ? "RESTORE" : "REPORT"}
         />

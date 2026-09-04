@@ -9,9 +9,9 @@ import {
   type ReactNode,
 } from "react";
 import {
-  DEMO_INCIDENT_DRAFT,
-  DEMO_NARRATIONS,
-  DEMO_TYPED_DESCRIPTION,
+  DEFAULT_DEMO_CASE_ID,
+  getDemoCase,
+  type DemoCaseId,
   type DemoNarrationLanguage,
 } from "../../incident/demo-incident";
 import {
@@ -63,13 +63,13 @@ type JourneyView =
   | "SUCCESS"
   | "ANALYSIS_ERROR";
 
-const SACHET_DEMO_REFERENCE = "सचेत-DEMO-REPORT-00124";
-const DEMO_SESSION_KEY = "sachet-deterministic-demo-v1";
+const SACHET_DEMO_REFERENCE = getDemoCase(DEFAULT_DEMO_CASE_ID).reference;
+const DEMO_SESSION_KEY = "sachet-deterministic-demo-v2";
 const UNFINISHED_REPORT_KEY = "sachet-unfinished-report-v1";
 const DEMO_POST_REPORT_MILESTONES: PostReportMilestones = {
-  preparedAt: "2026-08-22T02:24:00.000Z",
-  reviewedAt: "2026-08-22T02:27:00.000Z",
-  submittedAt: "2026-08-22T02:30:00.000Z",
+  preparedAt: "2026-09-04T04:30:00.000Z",
+  reviewedAt: "2026-09-04T04:33:00.000Z",
+  submittedAt: "2026-09-04T04:35:00.000Z",
 };
 const DEMO_RESTORABLE_VIEWS = new Set<JourneyView>([
   "ANALYSIS_RESULT",
@@ -78,7 +78,7 @@ const DEMO_RESTORABLE_VIEWS = new Set<JourneyView>([
 ]);
 
 type PersistedDemoSession = {
-  version: 1;
+  version: 2;
   view: JourneyView;
   draft: IncidentDraft;
   narrative: string;
@@ -87,6 +87,7 @@ type PersistedDemoSession = {
   recordingSeconds: number;
   submittedReference: string;
   postReportMilestones?: PostReportMilestones | null;
+  demoCaseId?: DemoCaseId;
 };
 
 type PersistedEvidenceMetadata = {
@@ -390,6 +391,9 @@ export function DemoJourney() {
   const [isDemoIncident, setIsDemoIncident] = useState(false);
   const [demoNarrationLanguage, setDemoNarrationLanguage] =
     useState<DemoNarrationLanguage>("hi-IN");
+  const [selectedDemoCaseId, setSelectedDemoCaseId] =
+    useState<DemoCaseId>(DEFAULT_DEMO_CASE_ID);
+  const activeDemoCase = getDemoCase(selectedDemoCaseId);
   const [selectedReportedAmount, setSelectedReportedAmount] = useState<
     number | null
   >(null);
@@ -568,7 +572,7 @@ export function DemoJourney() {
       if (!parsed || typeof parsed !== "object") return;
       const candidate = parsed as Partial<PersistedDemoSession>;
       if (
-        candidate.version !== 1 ||
+        candidate.version !== 2 ||
         typeof candidate.view !== "string" ||
         !DEMO_RESTORABLE_VIEWS.has(candidate.view as JourneyView) ||
         typeof candidate.narrative !== "string" ||
@@ -589,7 +593,11 @@ export function DemoJourney() {
         return;
       }
 
-      beginExperience("DEMO_CASE", SYNTHETIC_NCRP_PROFILE);
+      const restoredDemoCase = getDemoCase(
+        candidate.demoCaseId ?? DEFAULT_DEMO_CASE_ID,
+      );
+      setSelectedDemoCaseId(restoredDemoCase.id);
+      beginExperience("DEMO_CASE", restoredDemoCase.citizen);
       setDraft(restoredDraft.data);
       setNarrative(candidate.narrative);
       setTranscription(restoredTranscription.data);
@@ -620,7 +628,7 @@ export function DemoJourney() {
       setPreparedSourceSignature(
         reportSourceSignature({
           narrative: candidate.narrative,
-          reporterName: SYNTHETIC_NCRP_PROFILE.displayName,
+          reporterName: restoredDemoCase.citizen.displayName,
           transcription: restoredTranscription.data,
           screenshots: [],
           audio: null,
@@ -649,7 +657,7 @@ export function DemoJourney() {
     }
 
     const session: PersistedDemoSession = {
-      version: 1,
+      version: 2,
       view,
       draft,
       narrative,
@@ -658,6 +666,7 @@ export function DemoJourney() {
       recordingSeconds,
       submittedReference,
       postReportMilestones,
+      demoCaseId: selectedDemoCaseId,
     };
     try {
       window.sessionStorage.setItem(DEMO_SESSION_KEY, JSON.stringify(session));
@@ -672,6 +681,7 @@ export function DemoJourney() {
     narrative,
     postReportMilestones,
     recordingSeconds,
+    selectedDemoCaseId,
     submittedReference,
     transcription,
     view,
@@ -857,31 +867,35 @@ export function DemoJourney() {
     setRecoverableReport(null);
     resetDemo();
     resetInputs();
+    setSelectedDemoCaseId(DEFAULT_DEMO_CASE_ID);
     beginExperience("LIVE_TEST", createEmptyTestProfile());
     journeyHistoryRef.current = ["ENTRY"];
     setCurrentView("REPORT_INPUT");
   }
 
-  function useDemoIncident() {
+  function useDemoIncident(caseId: DemoCaseId = DEFAULT_DEMO_CASE_ID) {
+    const demoCase = getDemoCase(caseId);
     clearPersistedDemoSession();
     clearUnfinishedReport();
     setRecoverableReport(null);
     resetDemo();
     resetInputs();
-    beginExperience("DEMO_CASE", SYNTHETIC_NCRP_PROFILE);
-    setNarrative(DEMO_TYPED_DESCRIPTION);
-    setDemoNarrationLanguage("hi-IN");
-    setLocale("hi");
-    setTranscription(DEMO_NARRATIONS["hi-IN"]);
-    setRecordingSeconds(DEMO_NARRATIONS["hi-IN"].durationSeconds);
+    setSelectedDemoCaseId(demoCase.id);
+    beginExperience("DEMO_CASE", demoCase.citizen);
+    setNarrative(demoCase.statement);
+    setDemoNarrationLanguage(demoCase.displayLanguage);
+    setLocale(demoCase.displayLanguage === "hi-IN" ? "hi" : "en");
+    setTranscription(demoCase.narrations[demoCase.displayLanguage]);
+    setRecordingSeconds(demoCase.narrations[demoCase.displayLanguage].durationSeconds);
     setIsDemoIncident(true);
-    setDraft(structuredClone(DEMO_INCIDENT_DRAFT));
+    setDraft(structuredClone(demoCase.draft));
+    setSubmittedReference(demoCase.reference);
     preparedAtRef.current = DEMO_POST_REPORT_MILESTONES.preparedAt;
     setPreparedSourceSignature(
       reportSourceSignature({
-        narrative: DEMO_TYPED_DESCRIPTION,
-        reporterName: SYNTHETIC_NCRP_PROFILE.displayName,
-        transcription: DEMO_NARRATIONS["hi-IN"],
+        narrative: demoCase.statement,
+        reporterName: demoCase.citizen.displayName,
+        transcription: demoCase.narrations[demoCase.displayLanguage],
         screenshots: [],
         audio: null,
       }),
@@ -944,8 +958,8 @@ export function DemoJourney() {
   function chooseDemoNarration(language: DemoNarrationLanguage) {
     setDemoNarrationLanguage(language);
     setLocale(language === "hi-IN" ? "hi" : "en");
-    setTranscription(DEMO_NARRATIONS[language]);
-    setRecordingSeconds(DEMO_NARRATIONS[language].durationSeconds);
+    setTranscription(activeDemoCase.narrations[language]);
+    setRecordingSeconds(activeDemoCase.narrations[language].durationSeconds);
   }
 
   async function startRecording() {
@@ -1359,11 +1373,11 @@ export function DemoJourney() {
           typedNarrative: narrative,
           isDemoIncident,
           screenshotNames: isDemoIncident
-            ? [
-                "Synthetic KYC message screenshot",
-                "Synthetic bank transaction screenshot",
-              ]
+            ? activeDemoCase.evidence.map((item) => item.label)
             : screenshots.map((file) => file.name),
+          demoEvidencePaths: isDemoIncident
+            ? activeDemoCase.evidence.map((item) => item.src)
+            : undefined,
           identityDocumentProvided: isDemoIncident,
         })
       : null;
@@ -1418,7 +1432,7 @@ export function DemoJourney() {
       const submittedCaseDraft = structuredClone(draft);
       const submittedCaseTranscription = transcription ? structuredClone(transcription) : null;
       const reference = isDemoIncident
-        ? SACHET_DEMO_REFERENCE
+        ? activeDemoCase.reference
         : `SACHET-${Date.now().toString().slice(-8)}`;
       if (
         draft.classification.reportFamily !== "FINANCIAL_FRAUD" ||
@@ -1516,7 +1530,7 @@ export function DemoJourney() {
                 <button
                   className="secondary-button"
                   type="button"
-                  onClick={hasSubmittedCase ? startReport : useDemoIncident}
+                  onClick={hasSubmittedCase ? startReport : () => useDemoIncident()}
                 >
                   {hasSubmittedCase
                     ? locale === "hi" ? "नई शिकायत शुरू करें" : "Start new complaint"
@@ -1571,6 +1585,7 @@ export function DemoJourney() {
         recordingLevels={recordingLevels}
         recordingSeconds={recordingSeconds}
         isDemoIncident={isDemoIncident}
+        demoCase={isDemoIncident ? activeDemoCase : null}
         experienceMode={experienceMode}
         reporterProfile={activeProfile}
         identityDocumentProvided={isDemoIncident}
@@ -1611,7 +1626,9 @@ export function DemoJourney() {
           });
         }}
         onOrganizeReport={() => void buildComplaint()}
-        onUseDemoIncident={useDemoIncident}
+        onUseDemoIncident={() => useDemoIncident()}
+        onDemoCaseChange={useDemoIncident}
+        onResetDemoCase={() => useDemoIncident(selectedDemoCaseId)}
         onMissingAnswerChange={(field, value) =>
           setMissingAnswers((current) => ({ ...current, [field]: value }))
         }
@@ -1645,6 +1662,7 @@ export function DemoJourney() {
         prototypeReference={submittedReference}
         screenshots={screenshots}
         isDemoIncident={isDemoIncident}
+        demoCase={isDemoIncident ? activeDemoCase : null}
         milestones={postReportMilestones}
         transcription={submittedTranscription}
         onDraftChange={(nextDraft) => {

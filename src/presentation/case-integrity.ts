@@ -21,9 +21,14 @@ function totalLoss(draft: IncidentDraft) {
 
 export function getCaseIntegritySummary(
   draft: IncidentDraft,
-  options: { locale: UiLocale; isDemoIncident: boolean; screenshotNames: string[] },
+  options: {
+    locale: UiLocale;
+    isDemoIncident: boolean;
+    screenshotNames: string[];
+    demoEvidence?: readonly { id: string; label: string; labelHi: string }[];
+  },
 ): CaseIntegritySummary {
-  const { locale, isDemoIncident, screenshotNames } = options;
+  const { locale, isDemoIncident, screenshotNames, demoEvidence } = options;
   const hi = locale === "hi";
   const knownFacts: string[] = [];
   const stillUnknown: string[] = [];
@@ -68,6 +73,7 @@ export function getCaseIntegritySummary(
     locale,
     isDemoIncident,
     screenshotNames,
+    demoEvidence,
   }).reduce((sum, item) => sum + item.contributions.length, 0);
   const unresolvedConflictCount = getCaseConsistencyIssues(draft)
     .filter((issue) => issue.severity === "BLOCKING").length;

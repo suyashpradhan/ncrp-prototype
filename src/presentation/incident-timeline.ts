@@ -47,11 +47,17 @@ function statementSupportsInstructionStep(draft: IncidentDraft) {
   );
 }
 
-function uploadedScreenshotId(draft: IncidentDraft, evidenceIndex: number) {
+function uploadedScreenshotId(
+  draft: IncidentDraft,
+  evidenceIndex: number,
+  isDemoIncident: boolean,
+) {
   const screenshotIndex = draft.evidence
     .slice(0, evidenceIndex)
     .filter((item) => item.type !== "VOICE_STATEMENT").length;
-  return `uploaded-${screenshotIndex}`;
+  return isDemoIncident
+    ? `demo-evidence-${screenshotIndex}`
+    : `uploaded-${screenshotIndex}`;
 }
 
 export function deriveIncidentTimeline(
@@ -59,55 +65,6 @@ export function deriveIncidentTimeline(
   { locale, isDemoIncident }: TimelineOptions,
 ): IncidentTimelineEvent[] {
   if (draft.classification.ambiguity !== "NONE") return [];
-
-  if (isDemoIncident) {
-    return [
-      {
-        id: "message-received",
-        timeLabel: locale === "hi" ? "पहले" : "Earlier",
-        title:
-          locale === "hi"
-            ? "एसबीआई केवाईसी अपडेट संदेश मिला"
-            : "Received an SBI KYC update message",
-        sourceRefs: [
-          {
-            type: "EVIDENCE",
-            label: locale === "hi" ? "संदेश का स्क्रीनशॉट" : "Message screenshot",
-            evidenceId: "demo-message",
-          },
-        ],
-      },
-      {
-        id: "instructions-followed",
-        timeLabel: locale === "hi" ? "बाद में" : "Later",
-        title:
-          locale === "hi"
-            ? "केवाईसी निर्देश खोले और उनका पालन किया"
-            : "Opened and followed the KYC instructions",
-        sourceRefs: [
-          {
-            type: "STATEMENT",
-            label: locale === "hi" ? "बयान" : "Statement",
-          },
-        ],
-      },
-      {
-        id: "transaction-recorded",
-        timeLabel: locale === "hi" ? "सुबह 7:05 बजे" : "7:05 AM",
-        title:
-          locale === "hi"
-            ? "एसबीआई खाते से ₹40,000 डेबिट हुए"
-            : "₹40,000 was debited from the SBI account",
-        sourceRefs: [
-          {
-            type: "TRANSACTION",
-            label: locale === "hi" ? "बैंक लेन-देन" : "Bank transaction",
-            evidenceId: "demo-transaction",
-          },
-        ],
-      },
-    ];
-  }
 
   const events: IncidentTimelineEvent[] = [];
   const messageEvidenceIndex = draft.evidence.findIndex(
@@ -130,7 +87,7 @@ export function deriveIncidentTimeline(
         {
           type: "EVIDENCE",
           label: locale === "hi" ? "संदेश का स्क्रीनशॉट" : "Message screenshot",
-          evidenceId: uploadedScreenshotId(draft, messageEvidenceIndex),
+          evidenceId: uploadedScreenshotId(draft, messageEvidenceIndex, isDemoIncident),
         },
       ],
     });
@@ -156,9 +113,10 @@ export function deriveIncidentTimeline(
   draft.transactions.forEach((transaction, index) => {
     if (!transaction.amount) return;
     const institution = transaction.institution?.trim();
-    const transactionEvidenceIndex = draft.evidence.findIndex(
-      (item) => item.type === "TRANSACTION_SCREENSHOT",
-    );
+    const transactionEvidenceIndexes = draft.evidence
+      .map((item, evidenceIndex) => item.type === "TRANSACTION_SCREENSHOT" ? evidenceIndex : -1)
+      .filter((evidenceIndex) => evidenceIndex >= 0);
+    const transactionEvidenceIndex = transactionEvidenceIndexes[index] ?? -1;
     events.push({
       id: `transaction-${transaction.id}`,
       timeLabel: displayTime(transaction.approximateTime, locale) ??
@@ -172,7 +130,7 @@ export function deriveIncidentTimeline(
           ? {
               type: "TRANSACTION",
               label: locale === "hi" ? "बैंक लेन-देन" : "Bank transaction",
-              evidenceId: uploadedScreenshotId(draft, transactionEvidenceIndex),
+              evidenceId: uploadedScreenshotId(draft, transactionEvidenceIndex, isDemoIncident),
             }
           : {
               type: "STATEMENT",

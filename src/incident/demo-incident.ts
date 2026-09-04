@@ -1,6 +1,12 @@
-import { IncidentDraftSchema, type IncidentDraft, type TranscriptionResult } from "./schema";
+import type { ReporterProfile } from "../experience/profile";
+import { CITIZEN_DOES_NOT_HAVE, IncidentDraftSchema, type IncidentDraft, type TranscriptionResult } from "./schema";
 
 export type DemoNarrationLanguage = "hi-IN" | "en-IN";
+export type DemoCaseId =
+  | "AMOUNT_MISMATCH"
+  | "ACCOUNT_COMPROMISE"
+  | "LOTTERY_ATTEMPT"
+  | "EXTORTION";
 
 export type DemoNarration = TranscriptionResult & {
   label: string;
@@ -9,83 +15,144 @@ export type DemoNarration = TranscriptionResult & {
   durationSeconds: number;
 };
 
-export const DEMO_NARRATIONS: Record<DemoNarrationLanguage, DemoNarration> = {
-  "hi-IN": {
-    label: "Hindi",
-    nativeLabel: "हिन्दी",
-    audioPath: "/demo/audio/kyc-fraud-hi.mp3",
-    durationSeconds: 25,
-    languageCode: "hi-IN",
-    originalTranscript:
-      "मुझे एसबीआई केवाईसी अपडेट करने का एक मैसेज आया था। मैंने उसमें दिए लिंक को खोला और ऐप के निर्देश माने। इसके बाद 22 अगस्त की सुबह लगभग सात बजे मेरे खाते से चालीस हजार रुपये निकल गए। बाद में मैंने उस नंबर पर संपर्क करने की कोशिश की, लेकिन कोई जवाब नहीं मिला।",
-    englishTranscript:
-      "I received a message asking me to update my SBI KYC. I opened the link and followed the app instructions. At about 7 AM on 22 August, ₹40,000 was transferred from my account. I tried contacting the number afterward but received no response.",
-  },
-  "en-IN": {
-    label: "English",
-    nativeLabel: "English",
-    audioPath: "/demo/audio/kyc-fraud-en.mp3",
-    durationSeconds: 24,
-    languageCode: "en-IN",
-    originalTranscript:
-      "I received a message asking me to update my SBI KYC. I opened the link and followed the app instructions. At about 7 AM on 22 August, ₹40,000 was transferred from my account. I tried contacting the number afterward but received no response.",
-    englishTranscript:
-      "I received a message asking me to update my SBI KYC. I opened the link and followed the app instructions. At about 7 AM on 22 August, ₹40,000 was transferred from my account. I tried contacting the number afterward but received no response.",
-  },
+export type DemoEvidenceDefinition = {
+  id: string;
+  src: string;
+  label: string;
+  labelHi: string;
+  typeLabel: string;
+  typeLabelHi: string;
 };
 
-export const DEMO_TYPED_DESCRIPTION =
-  "I received a message claiming my SBI KYC needed to be updated. I followed the instructions and later ₹40,000 was transferred from my account.";
+export type DemoCaseDefinition = {
+  id: DemoCaseId;
+  selectorLabel: string;
+  selectorLabelHi: string;
+  citizen: ReporterProfile;
+  sourceLanguage: string;
+  displayLanguage: DemoNarrationLanguage;
+  statement: string;
+  narrations: Record<DemoNarrationLanguage, DemoNarration>;
+  evidence: readonly DemoEvidenceDefinition[];
+  draft: IncidentDraft;
+  reference: string;
+};
 
-export const DEMO_INCIDENT_DRAFT = {
+function demoProfile(
+  displayName: string,
+  gender: "Female" | "Male",
+  suffix: string,
+  emailName: string,
+): ReporterProfile {
+  return {
+    title: gender === "Female" ? "Ms" : "Mr",
+    displayName,
+    registeredMobile: `••••••${suffix}`,
+    gender,
+    dateOfBirth: "1992-04-18",
+    parentOrSpouseRelationship: "Parent",
+    parentOrSpouseName: "Synthetic Parent",
+    email: `${emailName}@example.invalid`,
+    relationshipWithVictim: "Self",
+    houseNumber: `Demo ${suffix}`,
+    street: "Synthetic Service Road",
+    colony: "Prototype Layout",
+    city: "Bengaluru",
+    tehsil: "Synthetic Tehsil",
+    country: "India",
+    state: "Karnataka",
+    district: "Bengaluru Urban",
+    policeStation: "Synthetic jurisdiction",
+    pinCode: "TEST-560000",
+    source: "SIMULATED_NCRP_PROFILE",
+  };
+}
+
+function narration(
+  languageCode: DemoNarrationLanguage,
+  originalTranscript: string,
+  englishTranscript: string,
+  durationSeconds: number,
+): DemoNarration {
+  return {
+    label: languageCode === "hi-IN" ? "Hindi" : "English",
+    nativeLabel: languageCode === "hi-IN" ? "हिन्दी" : "English",
+    audioPath: "",
+    durationSeconds,
+    languageCode,
+    originalTranscript,
+    englishTranscript,
+  };
+}
+
+const emptyAdaptiveFacts = {
+  platform: null,
+  messageSourcePlatforms: [] as string[],
+  affectedPlatforms: [] as string[],
+  entityRelationship: null,
+  multipleIncidentThreads: null,
+  platformType: null,
+  affectedAccount: null,
+  profileUrl: null,
+  accountAccessStatus: null,
+  accountCompromise: null,
+  recoveryInformationChanged: null,
+  recoveryEmailChanged: null,
+  phoneNumberChanged: null,
+  affectedSystem: null,
+  filesEncrypted: null,
+  ransomMessagePresent: null,
+  accountCompromiseBasis: null,
+  credentialExposure: null,
+  maliciousLink: null,
+  remoteAccess: null,
+  threatOrExtortion: null,
+  demandedAmount: null,
+  threatChannel: null,
+  threatDescription: null,
+  sensitiveMaterialInvolved: null,
+  impersonation: null,
+  impersonatedEntity: null,
+  communicationChannels: [] as string[],
+  requestedSensitiveInfo: [] as string[],
+  sharedSensitiveInfo: [] as string[],
+  sensitiveEvidenceRedacted: null,
+};
+
+const amountMismatchStatement =
+  "Kal mujhe WhatsApp pe SBI KYC update ka message aaya. Bola account block ho jayega agar KYC update nahi kiya. Maine link open kiya. Pehle ₹5,000 debit hua, phir thodi der baad ₹15,000 aur debit hua. Mujhe laga total ₹25,000 gaya hai. Exact UTR mere paas abhi nahi hai.";
+const accountCompromiseStatement =
+  "Yesterday morning I got an Instagram password reset message. Maine link open kiya because mujhe laga official hai. Uske baad Instagram ka password reset ho gaya, but later I also noticed ki mera WhatsApp account access nahi ho raha. I am not sure whether both things are connected. No money was lost.";
+const lotteryStatement =
+  "Mujhe WhatsApp aur ek call pe bola gaya ki mera number KBC lucky draw mein select hua hai aur maine ₹25 lakh jeeta hai. Prize lene ke liye ₹10,000 processing fee maang rahe the aur Aadhaar photo aur bank details WhatsApp pe bhejne ko bola. Maine koi paisa nahi diya aur details bhi share nahi ki.";
+const extortionStatement =
+  "Kal Telegram par kisi unknown account ne message kiya ki unke paas meri private photos hain. Unhone bola ki agar maine ₹20,000 nahi diye toh woh photos mere contacts ko bhej denge. Baad mein same threat email par bhi aaya. Maine koi payment nahi kiya. Mujhe nahi pata account real identity kiski hai.";
+
+const amountMismatchDraft: IncidentDraft = {
   classification: {
     reportFamily: "FINANCIAL_FRAUD",
     category: "Financial Fraud",
     subCategory: "Internet Banking Related Fraud",
     cyberElementPresent: true,
     moneyLost: true,
-    platform: "SMS / chat message",
+    platform: "WhatsApp",
     ambiguity: "NONE",
-    explanation: "The shared account describes an unauthorised bank transfer after a KYC message.",
+    explanation: "Two debits followed a fraudulent KYC message sent over WhatsApp.",
     requiresCitizenConfirmation: false,
   },
   adaptiveFacts: {
-    platform: "SMS / chat message",
-    messageSourcePlatforms: [],
-    affectedPlatforms: [],
-    entityRelationship: null,
-    multipleIncidentThreads: null,
+    ...emptyAdaptiveFacts,
+    platform: "WhatsApp",
+    messageSourcePlatforms: ["WhatsApp"],
     platformType: "MESSAGING",
-    affectedAccount: null,
-    profileUrl: null,
-    accountAccessStatus: null,
-    accountCompromise: false,
-    recoveryInformationChanged: null,
-    recoveryEmailChanged: null,
-    phoneNumberChanged: null,
-    affectedSystem: null,
-    filesEncrypted: null,
-    ransomMessagePresent: null,
-    accountCompromiseBasis: null,
-    credentialExposure: null,
     maliciousLink: true,
-    remoteAccess: null,
-    threatOrExtortion: false,
-    demandedAmount: null,
-    threatChannel: null,
-    threatDescription: null,
-    sensitiveMaterialInvolved: false,
     impersonation: true,
     impersonatedEntity: "SBI",
-    communicationChannels: ["SMS / chat message"],
-    requestedSensitiveInfo: [],
-    sharedSensitiveInfo: [],
-    sensitiveEvidenceRedacted: null,
+    communicationChannels: ["WhatsApp"],
   },
   citizenSummary: {
     incidentLabel: "KYC-related banking fraud",
-    shortSummary:
-      "Asha received a synthetic SBI KYC message, followed its instructions and later found that ₹40,000 had been transferred from her account.",
+    shortSummary: "Asha opened a KYC link sent over WhatsApp. Two debits total ₹20,000, while she remembers the total as ₹25,000.",
   },
   officialMapping: {
     category: "FINANCIAL_FRAUD",
@@ -96,20 +163,19 @@ export const DEMO_INCIDENT_DRAFT = {
   incident: {
     financialLossState: "YES",
     moneyLost: true,
-    statedTotalLoss: null,
+    statedTotalLoss: 25_000,
     citizenConfirmedLoss: null,
-    reportedAmount: 40_000,
+    reportedAmount: 25_000,
     openingBalance: null,
     intermediateBalances: [],
     closingBalance: null,
-    incidentDate: "2026-08-22",
+    incidentDate: "2026-09-03",
     incidentDateWithoutYear: null,
-    approximateTime: "07:00",
+    approximateTime: "Morning",
     delayInReporting: false,
     delayReason: null,
-    occurredOn: "SMS / chat message",
-    narrative:
-      "Asha received a message claiming that the KYC for her SBI account needed to be updated. She opened the supplied link and followed the app instructions. At about 7:05 AM on 22 August 2026, ₹40,000 was transferred from her account. She later tried to contact the sender but received no response.",
+    occurredOn: "WhatsApp",
+    narrative: amountMismatchStatement,
   },
   financialExposure: {
     bankDetailsRequested: null,
@@ -121,48 +187,360 @@ export const DEMO_INCIDENT_DRAFT = {
   mentionedInstitutions: ["SBI"],
   transactions: [
     {
-      id: "transaction-1",
+      id: "asha-transaction-1",
       institution: "SBI",
       currency: "INR",
-      paymentMethod: "Bank transfer",
+      paymentMethod: "Bank debit",
       accountOrUpiId: "Synthetic SBI account ending 0024",
-      transactionIdOrUtr: "DEMO-UTR-40000-220826",
-      amount: 40_000,
-      transactionDate: "2026-08-22",
-      approximateTime: "07:05",
-      referenceNumber: "DEMO-TXN-220826-0705",
+      transactionIdOrUtr: CITIZEN_DOES_NOT_HAVE,
+      amount: 5_000,
+      transactionDate: "2026-09-03",
+      approximateTime: "09:12",
+      referenceNumber: "DEMO-ASHA-5000-01",
+      status: "KNOWN",
+    },
+    {
+      id: "asha-transaction-2",
+      institution: "SBI",
+      currency: "INR",
+      paymentMethod: "Bank debit",
+      accountOrUpiId: "Synthetic SBI account ending 0024",
+      transactionIdOrUtr: CITIZEN_DOES_NOT_HAVE,
+      amount: 15_000,
+      transactionDate: "2026-09-03",
+      approximateTime: "09:34",
+      referenceNumber: "DEMO-ASHA-15000-02",
       status: "KNOWN",
     },
   ],
   suspectIdentifiers: [
-    { type: "PHONE", value: "98XX XX1234" },
-    { type: "URL", value: "https://kyc-demo.invalid/update" },
+    { type: "PHONE", value: "98XX XX4100" },
+    { type: "URL", value: "https://sbi-kyc-demo.invalid/update" },
   ],
   evidence: [
-    {
-      type: "CHAT_SCREENSHOT",
-      extractedFacts: [
-        "Synthetic KYC message",
-        "SBI KYC update was claimed",
-        "Sender shown as 98XX XX1234",
-        "Safe non-resolving link kyc-demo.invalid",
-      ],
-    },
-    {
-      type: "TRANSACTION_SCREENSHOT",
-      extractedFacts: [
-        "One synthetic transaction of ₹40,000",
-        "Transaction dated 22 August 2026 at about 7:05 AM",
-        "Synthetic transaction reference is visible",
-      ],
-    },
+    { type: "CHAT_SCREENSHOT", extractedFacts: ["WhatsApp KYC message claiming to be from SBI", "Synthetic sender 98XX XX4100", "KYC link shown"] },
+    { type: "TRANSACTION_SCREENSHOT", extractedFacts: ["₹5,000 debit", "SBI account ending 0024", "3 September 2026 at about 9:12 AM"] },
+    { type: "TRANSACTION_SCREENSHOT", extractedFacts: ["₹15,000 debit", "SBI account ending 0024", "3 September 2026 at about 9:34 AM"] },
   ],
   citizenConfirmedFields: [],
   missingRequiredFields: [],
   warnings: [],
-} as const satisfies IncidentDraft;
+};
 
-IncidentDraftSchema.parse(DEMO_INCIDENT_DRAFT);
+const accountCompromiseDraft: IncidentDraft = {
+  classification: {
+    reportFamily: "OTHER_CYBER_CRIME",
+    category: "Online and Social Media Related Crime",
+    subCategory: "Profile Hacking",
+    cyberElementPresent: true,
+    moneyLost: false,
+    platform: "WhatsApp",
+    ambiguity: "NONE",
+    explanation: "The account describes possible unauthorised access involving Instagram and WhatsApp.",
+    requiresCitizenConfirmation: false,
+  },
+  adaptiveFacts: {
+    ...emptyAdaptiveFacts,
+    platform: "WhatsApp",
+    messageSourcePlatforms: ["Instagram"],
+    affectedPlatforms: ["WhatsApp"],
+    platformType: "SOCIAL_MEDIA",
+    affectedAccount: null,
+    accountAccessStatus: "Lost",
+    accountCompromise: true,
+    accountCompromiseBasis: "Password reset and loss of account access",
+    maliciousLink: true,
+    communicationChannels: ["Instagram notification", "WhatsApp security notification"],
+  },
+  citizenSummary: {
+    incidentLabel: "Possible social-media account compromise",
+    shortSummary: "Shubham opened an Instagram password-reset link and later could not access WhatsApp. He is unsure whether the events are connected.",
+  },
+  officialMapping: {
+    category: "OTHER_CYBER_CRIME",
+    categoryLabel: "Online and Social Media Related Crime",
+    subCategoryLabel: "Profile Hacking",
+    mappingConfidence: "MEDIUM",
+  },
+  incident: {
+    financialLossState: "NO",
+    moneyLost: false,
+    statedTotalLoss: null,
+    citizenConfirmedLoss: null,
+    reportedAmount: null,
+    openingBalance: null,
+    intermediateBalances: [],
+    closingBalance: null,
+    incidentDate: "2026-09-03",
+    incidentDateWithoutYear: null,
+    approximateTime: "Morning",
+    delayInReporting: false,
+    delayReason: null,
+    occurredOn: "Instagram notification",
+    narrative: accountCompromiseStatement,
+  },
+  financialExposure: {
+    bankDetailsRequested: false,
+    identityDocumentRequested: false,
+    otpRequested: false,
+    paymentLinkReceived: false,
+    upiCollectRequestReceived: false,
+  },
+  mentionedInstitutions: [],
+  transactions: [],
+  suspectIdentifiers: [],
+  evidence: [
+    { type: "OTHER", extractedFacts: ["Instagram password-reset email", "Synthetic security notification", "Reset link was opened"] },
+    { type: "CHAT_SCREENSHOT", extractedFacts: ["WhatsApp login/security notification", "Account access unavailable"] },
+    { type: "OTHER", extractedFacts: ["Unknown device shown in synthetic login activity"] },
+  ],
+  citizenConfirmedFields: [],
+  missingRequiredFields: [],
+  warnings: [],
+};
+
+const lotteryDraft: IncidentDraft = {
+  classification: {
+    reportFamily: "FINANCIAL_FRAUD",
+    category: "Financial Fraud",
+    subCategory: "Online Lottery Scam",
+    cyberElementPresent: true,
+    moneyLost: false,
+    platform: "WhatsApp",
+    ambiguity: "NONE",
+    explanation: "A false lottery prize was used to request a processing fee and sensitive information.",
+    requiresCitizenConfirmation: false,
+  },
+  adaptiveFacts: {
+    ...emptyAdaptiveFacts,
+    platform: "WhatsApp",
+    messageSourcePlatforms: ["WhatsApp"],
+    platformType: "MESSAGING",
+    impersonation: true,
+    impersonatedEntity: "KBC lucky draw",
+    communicationChannels: ["WhatsApp", "Phone call"],
+    requestedSensitiveInfo: ["Aadhaar image", "Bank details"],
+  },
+  citizenSummary: {
+    incidentLabel: "Online lottery attempt",
+    shortSummary: "Vivek was promised a ₹25 lakh prize and asked for a ₹10,000 processing fee, Aadhaar image and bank details. He paid and shared nothing.",
+  },
+  officialMapping: {
+    category: "FINANCIAL_FRAUD",
+    categoryLabel: "Financial Fraud",
+    subCategoryLabel: "Online Lottery Scam",
+    mappingConfidence: "HIGH",
+  },
+  incident: {
+    financialLossState: "NO",
+    moneyLost: false,
+    statedTotalLoss: null,
+    citizenConfirmedLoss: null,
+    reportedAmount: null,
+    openingBalance: null,
+    intermediateBalances: [],
+    closingBalance: null,
+    incidentDate: "2026-09-03",
+    incidentDateWithoutYear: null,
+    approximateTime: null,
+    delayInReporting: false,
+    delayReason: null,
+    occurredOn: "WhatsApp and phone call",
+    narrative: lotteryStatement,
+  },
+  financialExposure: {
+    bankDetailsRequested: true,
+    identityDocumentRequested: true,
+    otpRequested: false,
+    paymentLinkReceived: false,
+    upiCollectRequestReceived: false,
+  },
+  mentionedInstitutions: [],
+  transactions: [],
+  suspectIdentifiers: [{ type: "PHONE", value: "97XX XX2500" }],
+  evidence: [
+    { type: "CHAT_SCREENSHOT", extractedFacts: ["Synthetic KBC lucky-draw claim", "Prize promised: ₹25,00,000", "Processing fee requested: ₹10,000"] },
+    { type: "OTHER", extractedFacts: ["Synthetic missed call from 97XX XX2500"] },
+    { type: "OTHER", extractedFacts: ["Synthetic prize image", "Aadhaar image and bank details requested"] },
+  ],
+  citizenConfirmedFields: [],
+  missingRequiredFields: [],
+  warnings: [],
+};
+
+const extortionDraft: IncidentDraft = {
+  classification: {
+    reportFamily: "WOMEN_CHILDREN_RELATED_CRIME",
+    category: "Women / Children Related Crime",
+    subCategory: "Online abusive-content report",
+    cyberElementPresent: true,
+    moneyLost: false,
+    platform: "Telegram",
+    ambiguity: "NONE",
+    explanation: "An unknown account threatened to distribute private photos unless money was paid.",
+    requiresCitizenConfirmation: false,
+  },
+  adaptiveFacts: {
+    ...emptyAdaptiveFacts,
+    platform: "Telegram",
+    messageSourcePlatforms: ["Telegram", "Email"],
+    platformType: "MESSAGING",
+    threatOrExtortion: true,
+    demandedAmount: 20_000,
+    threatChannel: "Telegram and Email",
+    threatDescription: "An unknown sender threatened to share private photos with the citizen's contacts unless money was paid.",
+    sensitiveMaterialInvolved: true,
+    communicationChannels: ["Telegram", "Email"],
+    sensitiveEvidenceRedacted: true,
+  },
+  citizenSummary: {
+    incidentLabel: "Online threat and extortion",
+    shortSummary: "Riya received the same threat through Telegram and email. The sender demanded ₹20,000, but she made no payment.",
+  },
+  officialMapping: {
+    category: "WOMEN_CHILDREN_RELATED_CRIME",
+    categoryLabel: "Women / Children Related Crime",
+    subCategoryLabel: "Online abusive-content report",
+    mappingConfidence: "HIGH",
+  },
+  incident: {
+    financialLossState: "NO",
+    moneyLost: false,
+    statedTotalLoss: null,
+    citizenConfirmedLoss: null,
+    reportedAmount: null,
+    openingBalance: null,
+    intermediateBalances: [],
+    closingBalance: null,
+    incidentDate: "2026-09-03",
+    incidentDateWithoutYear: null,
+    approximateTime: null,
+    delayInReporting: false,
+    delayReason: null,
+    occurredOn: "Telegram and Email",
+    narrative: extortionStatement,
+  },
+  financialExposure: {
+    bankDetailsRequested: false,
+    identityDocumentRequested: false,
+    otpRequested: false,
+    paymentLinkReceived: false,
+    upiCollectRequestReceived: false,
+  },
+  mentionedInstitutions: [],
+  transactions: [],
+  suspectIdentifiers: [
+    { type: "SOCIAL_HANDLE", value: "@unknown_demo_account" },
+    { type: "EMAIL", value: "unknown.sender@example.invalid" },
+  ],
+  evidence: [
+    { type: "CHAT_SCREENSHOT", extractedFacts: ["Synthetic Telegram threat message", "Sensitive wording redacted", "₹20,000 demanded"] },
+    { type: "OTHER", extractedFacts: ["Synthetic email repeating the threat", "Sender address preserved"] },
+    { type: "OTHER", extractedFacts: ["Synthetic Telegram profile", "Actual identity unknown"] },
+  ],
+  citizenConfirmedFields: [],
+  missingRequiredFields: [],
+  warnings: [],
+};
+
+for (const draft of [amountMismatchDraft, accountCompromiseDraft, lotteryDraft, extortionDraft]) {
+  IncidentDraftSchema.parse(draft);
+}
+
+export const DEMO_CASES: readonly DemoCaseDefinition[] = [
+  {
+    id: "AMOUNT_MISMATCH",
+    selectorLabel: "Amount mismatch",
+    selectorLabelHi: "राशि में अंतर",
+    citizen: demoProfile("Asha Verma", "Female", "0024", "asha.demo"),
+    sourceLanguage: "Hinglish",
+    displayLanguage: "en-IN",
+    statement: amountMismatchStatement,
+    narrations: {
+      "en-IN": narration("en-IN", amountMismatchStatement, "Yesterday I received an SBI KYC update message on WhatsApp. I opened the link. First ₹5,000 was debited and later another ₹15,000. I thought the total loss was ₹25,000. I do not have the exact UTRs right now.", 31),
+      "hi-IN": narration("hi-IN", amountMismatchStatement, "Yesterday I received an SBI KYC update message on WhatsApp. I opened the link. First ₹5,000 was debited and later another ₹15,000. I thought the total loss was ₹25,000. I do not have the exact UTRs right now.", 31),
+    },
+    evidence: [
+      { id: "demo-evidence-0", src: "/demo/evidence/asha-kyc-message-demo.svg", label: "WhatsApp KYC message", labelHi: "WhatsApp KYC संदेश", typeLabel: "Message screenshot", typeLabelHi: "संदेश का स्क्रीनशॉट" },
+      { id: "demo-evidence-1", src: "/demo/evidence/asha-transaction-5000-demo.svg", label: "₹5,000 transaction", labelHi: "₹5,000 लेन-देन", typeLabel: "Transaction screenshot", typeLabelHi: "लेन-देन का स्क्रीनशॉट" },
+      { id: "demo-evidence-2", src: "/demo/evidence/asha-transaction-15000-demo.svg", label: "₹15,000 transaction", labelHi: "₹15,000 लेन-देन", typeLabel: "Transaction screenshot", typeLabelHi: "लेन-देन का स्क्रीनशॉट" },
+    ],
+    draft: amountMismatchDraft,
+    reference: "सचेत-DEMO-AMOUNT-001",
+  },
+  {
+    id: "ACCOUNT_COMPROMISE",
+    selectorLabel: "Account compromise",
+    selectorLabelHi: "अकाउंट पर कब्ज़ा",
+    citizen: demoProfile("Shubham Mehta", "Male", "1187", "shubham.demo"),
+    sourceLanguage: "English + Hinglish",
+    displayLanguage: "en-IN",
+    statement: accountCompromiseStatement,
+    narrations: {
+      "en-IN": narration("en-IN", accountCompromiseStatement, accountCompromiseStatement, 29),
+      "hi-IN": narration("hi-IN", accountCompromiseStatement, accountCompromiseStatement, 29),
+    },
+    evidence: [
+      { id: "demo-evidence-0", src: "/demo/evidence/account-reset-demo.svg", label: "Instagram password-reset email", labelHi: "Instagram पासवर्ड-रीसेट ईमेल", typeLabel: "Email screenshot", typeLabelHi: "ईमेल का स्क्रीनशॉट" },
+      { id: "demo-evidence-1", src: "/demo/evidence/account-security-demo.svg", label: "WhatsApp security notification", labelHi: "WhatsApp सुरक्षा सूचना", typeLabel: "Security screenshot", typeLabelHi: "सुरक्षा स्क्रीनशॉट" },
+      { id: "demo-evidence-2", src: "/demo/evidence/unknown-device-demo.svg", label: "Unknown login device", labelHi: "अनजान लॉगिन डिवाइस", typeLabel: "Account activity", typeLabelHi: "अकाउंट गतिविधि" },
+    ],
+    draft: accountCompromiseDraft,
+    reference: "सचेत-DEMO-ACCOUNT-002",
+  },
+  {
+    id: "LOTTERY_ATTEMPT",
+    selectorLabel: "Lottery attempt",
+    selectorLabelHi: "लॉटरी की कोशिश",
+    citizen: demoProfile("Vivek Sharma", "Male", "2500", "vivek.demo"),
+    sourceLanguage: "Hindi / Hinglish",
+    displayLanguage: "hi-IN",
+    statement: lotteryStatement,
+    narrations: {
+      "en-IN": narration("en-IN", lotteryStatement, "I was told on WhatsApp and a phone call that I had won ₹25 lakh in a KBC lucky draw. They asked for a ₹10,000 processing fee, an Aadhaar photo and bank details. I did not pay or share anything.", 27),
+      "hi-IN": narration("hi-IN", lotteryStatement, "I was told on WhatsApp and a phone call that I had won ₹25 lakh in a KBC lucky draw. They asked for a ₹10,000 processing fee, an Aadhaar photo and bank details. I did not pay or share anything.", 27),
+    },
+    evidence: [
+      { id: "demo-evidence-0", src: "/demo/evidence/lottery-message-demo.svg", label: "WhatsApp lottery message", labelHi: "WhatsApp लॉटरी संदेश", typeLabel: "Message screenshot", typeLabelHi: "संदेश का स्क्रीनशॉट" },
+      { id: "demo-evidence-1", src: "/demo/evidence/call-log-demo.svg", label: "Missed-call log", labelHi: "मिस्ड-कॉल लॉग", typeLabel: "Call record", typeLabelHi: "कॉल रिकॉर्ड" },
+      { id: "demo-evidence-2", src: "/demo/evidence/prize-claim-demo.svg", label: "Prize claim image", labelHi: "इनाम के दावे की तस्वीर", typeLabel: "Claim image", typeLabelHi: "दावे की तस्वीर" },
+    ],
+    draft: lotteryDraft,
+    reference: "सचेत-DEMO-LOTTERY-003",
+  },
+  {
+    id: "EXTORTION",
+    selectorLabel: "Extortion",
+    selectorLabelHi: "धमकी और वसूली",
+    citizen: demoProfile("Riya Kapoor", "Female", "7721", "riya.demo"),
+    sourceLanguage: "Hindi + English",
+    displayLanguage: "hi-IN",
+    statement: extortionStatement,
+    narrations: {
+      "en-IN": narration("en-IN", extortionStatement, "An unknown Telegram account threatened to share my private photos with my contacts unless I paid ₹20,000. The same threat later arrived by email. I made no payment and do not know the sender's real identity.", 28),
+      "hi-IN": narration("hi-IN", extortionStatement, "An unknown Telegram account threatened to share my private photos with my contacts unless I paid ₹20,000. The same threat later arrived by email. I made no payment and do not know the sender's real identity.", 28),
+    },
+    evidence: [
+      { id: "demo-evidence-0", src: "/demo/evidence/telegram-threat-demo.svg", label: "Redacted Telegram threat", labelHi: "छिपाया गया Telegram धमकी संदेश", typeLabel: "Message screenshot", typeLabelHi: "संदेश का स्क्रीनशॉट" },
+      { id: "demo-evidence-1", src: "/demo/evidence/email-threat-demo.svg", label: "Threat email", labelHi: "धमकी वाला ईमेल", typeLabel: "Email screenshot", typeLabelHi: "ईमेल का स्क्रीनशॉट" },
+      { id: "demo-evidence-2", src: "/demo/evidence/unknown-profile-demo.svg", label: "Unknown account profile", labelHi: "अनजान अकाउंट प्रोफ़ाइल", typeLabel: "Profile screenshot", typeLabelHi: "प्रोफ़ाइल स्क्रीनशॉट" },
+    ],
+    draft: extortionDraft,
+    reference: "सचेत-DEMO-EXTORTION-004",
+  },
+];
+
+export const DEFAULT_DEMO_CASE_ID: DemoCaseId = "AMOUNT_MISMATCH";
+
+export function getDemoCase(caseId: DemoCaseId): DemoCaseDefinition {
+  return DEMO_CASES.find((item) => item.id === caseId) ?? DEMO_CASES[0];
+}
+
+// Backward-compatible aliases for existing consumers and domain regression fixtures.
+const defaultDemo = getDemoCase(DEFAULT_DEMO_CASE_ID);
+export const DEMO_NARRATIONS = defaultDemo.narrations;
+export const DEMO_TYPED_DESCRIPTION = defaultDemo.statement;
+export const DEMO_INCIDENT_DRAFT = defaultDemo.draft;
 
 export function createUnknownIncidentDraft(): IncidentDraft {
   return {
@@ -177,39 +555,7 @@ export function createUnknownIncidentDraft(): IncidentDraft {
       explanation: null,
       requiresCitizenConfirmation: false,
     },
-    adaptiveFacts: {
-      platform: null,
-      messageSourcePlatforms: [],
-      affectedPlatforms: [],
-      entityRelationship: null,
-      multipleIncidentThreads: null,
-      platformType: null,
-      affectedAccount: null,
-      profileUrl: null,
-      accountAccessStatus: null,
-      accountCompromise: null,
-      recoveryInformationChanged: null,
-      recoveryEmailChanged: null,
-      phoneNumberChanged: null,
-      affectedSystem: null,
-      filesEncrypted: null,
-      ransomMessagePresent: null,
-      accountCompromiseBasis: null,
-      credentialExposure: null,
-      maliciousLink: null,
-      remoteAccess: null,
-      threatOrExtortion: null,
-      demandedAmount: null,
-      threatChannel: null,
-      threatDescription: null,
-      sensitiveMaterialInvolved: null,
-      impersonation: null,
-      impersonatedEntity: null,
-      communicationChannels: [],
-      requestedSensitiveInfo: [],
-      sharedSensitiveInfo: [],
-      sensitiveEvidenceRedacted: null,
-    },
+    adaptiveFacts: { ...emptyAdaptiveFacts },
     citizenSummary: { incidentLabel: "Incident details not yet known", shortSummary: "" },
     officialMapping: {
       category: null,

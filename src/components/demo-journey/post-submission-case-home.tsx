@@ -24,21 +24,18 @@ import {
 import { IncidentTimeline } from "./incident-timeline";
 import { JourneyProgress } from "./journey-progress";
 import { formatIndiaShortDateWithYear } from "../../presentation/format";
+import type { DemoCaseDefinition } from "../../incident/demo-incident";
 
 type PostSubmissionCaseHomeProps = {
   draft: IncidentDraft;
   prototypeReference: string;
   screenshots: File[];
   isDemoIncident: boolean;
+  demoCase: DemoCaseDefinition | null;
   milestones: PostReportMilestones;
   transcription: TranscriptionResult | null;
   onDraftChange: (draft: IncidentDraft) => void;
   onStartNewReport: () => void;
-};
-
-const DEMO_EVIDENCE_PATHS: Record<string, string> = {
-  "demo-message": "/demo/evidence/kyc-message-demo.png",
-  "demo-transaction": "/demo/evidence/bank-transaction-demo.png",
 };
 
 function PrintableCaseReport({
@@ -86,21 +83,28 @@ function EvidenceIncluded({
   draft,
   screenshots,
   isDemoIncident,
+  demoCase,
 }: Pick<
   PostSubmissionCaseHomeProps,
-  "draft" | "screenshots" | "isDemoIncident"
+  "draft" | "screenshots" | "isDemoIncident" | "demoCase"
 >) {
   const { locale } = useI18n();
   const hi = locale === "hi";
   const items = deriveEvidenceContributions(draft, {
     locale,
     isDemoIncident,
-    screenshotNames: screenshots.map((file) => file.name),
+    screenshotNames: isDemoIncident
+      ? (demoCase?.evidence.map((item) => item.label) ?? [])
+      : screenshots.map((file) => file.name),
+    demoEvidence: demoCase?.evidence,
   });
   const [activeEvidenceId, setActiveEvidenceId] = useState<string | null>(null);
   const [uploadedPreviewUrl, setUploadedPreviewUrl] = useState<string | null>(null);
   const dialogRef = useRef<HTMLDialogElement | null>(null);
   const activeItem = items.find((item) => item.evidenceId === activeEvidenceId);
+  const demoEvidencePath = demoCase?.evidence.find(
+    (item) => item.id === activeEvidenceId,
+  )?.src;
 
   useEffect(() => {
     if (!activeEvidenceId || isDemoIncident) {
@@ -200,9 +204,9 @@ function EvidenceIncluded({
                 {hi ? "बंद करें" : "Close"}
               </button>
             </div>
-            {DEMO_EVIDENCE_PATHS[activeItem.evidenceId] || uploadedPreviewUrl ? (
+            {demoEvidencePath || uploadedPreviewUrl ? (
               <Image
-                src={DEMO_EVIDENCE_PATHS[activeItem.evidenceId] ?? uploadedPreviewUrl ?? ""}
+                src={demoEvidencePath ?? uploadedPreviewUrl ?? ""}
                 alt={activeItem.evidenceLabel}
                 width={960}
                 height={720}
@@ -224,6 +228,7 @@ export function PostSubmissionCaseHome({
   prototypeReference,
   screenshots,
   isDemoIncident,
+  demoCase,
   milestones,
   transcription,
   onDraftChange,
@@ -456,11 +461,12 @@ export function PostSubmissionCaseHome({
             />
           </section>
 
-          <EvidenceIncluded
-            draft={draft}
-            screenshots={screenshots}
-            isDemoIncident={isDemoIncident}
-          />
+        <EvidenceIncluded
+          draft={draft}
+          screenshots={screenshots}
+          isDemoIncident={isDemoIncident}
+          demoCase={demoCase}
+        />
 
           <section className="companion-section case-copy-section" aria-label={hi ? "रिपोर्ट की प्रति" : "Report copy"}>
             <div className="case-copy-actions">

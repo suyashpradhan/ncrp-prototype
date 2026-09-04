@@ -270,6 +270,17 @@ export function deriveReportGroups(
   ) => missingQuestions.find(
     (question) => question.field === field && question.transactionIndex === index,
   );
+  const evidenceSupportsTransactionAmount = (index: number) => {
+    const amount = draft.transactions[index]?.amount;
+    if (!amount) return false;
+    const formatted = amount.toLocaleString("en-IN");
+    const transactionEvidence = draft.evidence.filter(
+      (item) => item.type === "TRANSACTION_SCREENSHOT",
+    )[index];
+    return transactionEvidence?.extractedFacts.some((fact) =>
+      fact.replaceAll(",", "").includes(String(amount)) || fact.includes(formatted),
+    ) ?? false;
+  };
   const missingCount = (group: ReportGroupId) => missingQuestions
     .filter((question) => MISSING_GROUP[question.field] === group).length;
   const localizedCategory = locale === "hi"
@@ -285,6 +296,7 @@ export function deriveReportGroups(
         "Internet Banking Related Fraud": "इंटरनेट बैंकिंग से जुड़ी धोखाधड़ी",
         "Investment / Trading Fraud": "निवेश / ट्रेडिंग धोखाधड़ी",
         "Online Financial Fraud": "ऑनलाइन वित्तीय धोखाधड़ी",
+        "Online Lottery Scam": "ऑनलाइन लॉटरी धोखाधड़ी",
         "Profile Hacking": "प्रोफ़ाइल हैकिंग",
         "Ransomware": "रैनसमवेयर",
         "Online abusive-content report": "ऑनलाइन अपमानजनक सामग्री की रिपोर्ट",
@@ -404,7 +416,9 @@ export function deriveReportGroups(
         title: copy("field.transaction", { number: index + 1 }),
         fields: ([
           makeField(`transaction-${index}-amount`, copy("field.amount"), transaction.amount === null ? null : formatCurrency(transaction.amount), {
-            source: copy("field.fromShared"),
+            source: evidenceSupportsTransactionAmount(index)
+              ? locale === "hi" ? "बयान + सबूत, दोनों में मिला" : "Found in both · Statement + evidence"
+              : copy("field.fromShared"),
             missingQuestion: transactionMissingQuestion("transactionAmount", index),
           }),
           makeField(`transaction-${index}-institution`, copy("field.institution"), transaction.institution === "SBI" && locale === "hi" ? "एसबीआई" : transaction.institution, {
@@ -485,6 +499,11 @@ export function deriveReportGroups(
           "transaction-total",
           copy("field.totalLost"),
           displayedReportedAmount ? formatCurrency(displayedReportedAmount) : null,
+          {
+            source: draft.citizenConfirmedFields.includes("incident.citizenConfirmedLoss")
+              ? locale === "hi" ? "आपने पुष्टि की" : "Confirmed by you"
+              : undefined,
+          },
         )],
       },
       ...transactionSections,

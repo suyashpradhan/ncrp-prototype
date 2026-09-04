@@ -327,6 +327,7 @@ export type BuildNcrpCompatibleComplaintInput = {
   typedNarrative: string;
   isDemoIncident: boolean;
   screenshotNames: string[];
+  demoEvidencePaths?: string[];
   identityDocumentProvided: boolean;
   declarationAccepted?: boolean;
 };
@@ -338,6 +339,7 @@ export function buildNcrpCompatibleComplaint({
   typedNarrative,
   isDemoIncident,
   screenshotNames,
+  demoEvidencePaths = [],
   identityDocumentProvided,
   declarationAccepted = false,
 }: BuildNcrpCompatibleComplaintInput): NcrpCompatibleComplaint {
@@ -364,9 +366,11 @@ export function buildNcrpCompatibleComplaint({
           : "Supporting evidence"
     )).text,
     localPath: isDemoIncident
-      ? index === 0 ? "/demo/evidence/kyc-message-demo.png" : "/demo/evidence/bank-transaction-demo.png"
+      ? demoEvidencePaths[index] ?? (index === 0 ? "/demo/evidence/kyc-message-demo.png" : "/demo/evidence/bank-transaction-demo.png")
       : null,
-    mediaType: "image/png",
+    mediaType: isDemoIncident && demoEvidencePaths[index]?.endsWith(".svg")
+      ? "image/svg+xml"
+      : "image/png",
     synthetic: isDemoIncident,
     provided: true,
     sources: ["EVIDENCE" as const],
@@ -375,8 +379,8 @@ export function buildNcrpCompatibleComplaint({
     id: "identity-document-1",
     kind: "IDENTITY_DOCUMENT" as const,
     displayName: "Synthetic demo identity document",
-    localPath: "/demo/profile/synthetic-national-id.png",
-    mediaType: "image/png",
+    localPath: "/demo/profile/synthetic-national-id.svg",
+    mediaType: "image/svg+xml",
     synthetic: true,
     provided: true,
     sources: [profileSource],

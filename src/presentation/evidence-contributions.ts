@@ -20,6 +20,11 @@ type EvidenceContributionOptions = {
   locale: UiLocale;
   isDemoIncident: boolean;
   screenshotNames: string[];
+  demoEvidence?: readonly {
+    id: string;
+    label: string;
+    labelHi: string;
+  }[];
 };
 
 function formatDate(value: string | null, locale: UiLocale) {
@@ -72,49 +77,66 @@ function uniqueFacts(facts: Array<EvidenceFact | null>) {
 
 function demoContributions(
   draft: IncidentDraft,
-  evidenceType: IncidentDraft["evidence"][number]["type"],
+  evidence: IncidentDraft["evidence"][number],
+  evidenceIndex: number,
   locale: UiLocale,
 ) {
   const hi = locale === "hi";
-  if (evidenceType === "CHAT_SCREENSHOT") {
+  if (evidence.type === "CHAT_SCREENSHOT") {
     const phone = draft.suspectIdentifiers.find((item) => item.type === "PHONE")?.value;
     const url = draft.suspectIdentifiers.find((item) => item.type === "URL")?.value;
     return uniqueFacts([
-      contribution("incident.kycClaim", hi ? "दावा" : "Claim", hi ? "एसबीआई केवाईसी अपडेट" : "SBI KYC update"),
       contribution("suspect.mobileNumber", hi ? "भेजने वाले का फ़ोन" : "Sender phone", phone),
       contribution("suspect.url", hi ? "संदिग्ध वेबसाइट" : "Suspicious URL", url),
+      ...evidence.extractedFacts.map((fact, index) => contribution(
+        `evidence.${evidenceIndex}.fact.${index}`,
+        hi ? "सबूत में मिली जानकारी" : "Detail found",
+        fact,
+      )),
     ]);
   }
 
-  if (evidenceType === "TRANSACTION_SCREENSHOT") {
-    const transaction = draft.transactions[0];
+  if (evidence.type === "TRANSACTION_SCREENSHOT") {
+    const transactionIndex = draft.evidence
+      .slice(0, evidenceIndex)
+      .filter((item) => item.type === "TRANSACTION_SCREENSHOT").length;
+    const transaction = draft.transactions[transactionIndex] ?? draft.transactions[0];
     const date = formatDate(transaction?.transactionDate ?? null, locale);
     const time = formatTime(transaction?.approximateTime ?? null, locale);
     return uniqueFacts([
       contribution(
-        "transactions.0.amount",
+        `transactions.${transactionIndex}.amount`,
         hi ? "राशि" : "Amount",
         transaction?.amount ? formatCurrency(transaction.amount) : null,
       ),
       contribution(
-        "transactions.0.institution",
+        `transactions.${transactionIndex}.institution`,
         hi ? "बैंक" : "Bank",
         transaction?.institution,
       ),
       contribution(
-        "transactions.0.transactionDate",
+        `transactions.${transactionIndex}.transactionDate`,
         hi ? "लेन-देन का समय" : "Transaction time",
         [date, time].filter(Boolean).join(" · "),
       ),
       contribution(
-        "transactions.0.transactionIdOrUtr",
+        `transactions.${transactionIndex}.transactionIdOrUtr`,
         hi ? "लेन-देन संदर्भ" : "Transaction reference",
         transaction?.transactionIdOrUtr,
       ),
+      ...evidence.extractedFacts.map((fact, index) => contribution(
+        `evidence.${evidenceIndex}.fact.${index}`,
+        hi ? "सबूत में मिली जानकारी" : "Detail found",
+        fact,
+      )),
     ]);
   }
 
-  return [];
+  return uniqueFacts(evidence.extractedFacts.map((fact, index) => contribution(
+    `evidence.${evidenceIndex}.fact.${index}`,
+    hi ? "सबूत में मिली जानकारी" : "Detail found",
+    fact,
+  )));
 }
 
 function liveContributions(
@@ -212,7 +234,7 @@ function liveContributions(
 
 export function deriveEvidenceContributions(
   draft: IncidentDraft,
-  { locale, isDemoIncident, screenshotNames }: EvidenceContributionOptions,
+  { locale, isDemoIncident, screenshotNames, demoEvidence }: EvidenceContributionOptions,
 ): EvidenceContribution[] {
   let screenshotIndex = 0;
   return draft.evidence.flatMap((evidence, evidenceIndex) => {
@@ -221,23 +243,24 @@ export function deriveEvidenceContributions(
     const currentScreenshotIndex = screenshotIndex;
     screenshotIndex += 1;
     const isMessage = evidence.type === "CHAT_SCREENSHOT";
+    const demoMetadata = demoEvidence?.[currentScreenshotIndex];
     const evidenceLabel = isDemoIncident
-      ? isMessage
-        ? locale === "hi"
-          ? "केवाईसी संदेश का स्क्रीनशॉट"
-          : "KYC message screenshot"
-        : locale === "hi"
-          ? "बैंक लेन-देन का स्क्रीनशॉट"
-          : "Bank transaction screenshot"
+      ? demoMetadata
+        ? locale === "hi" ? demoMetadata.labelHi : demoMetadata.label
+        : isMessage
+          ? locale === "hi"
+            ? "केवाईसी संदेश का स्क्रीनशॉट"
+            : "KYC message screenshot"
+          : locale === "hi"
+            ? "बैंक लेन-देन का स्क्रीनशॉट"
+            : "Bank transaction screenshot"
       : screenshotNames[currentScreenshotIndex] ??
         (locale === "hi" ? "जोड़ा गया सबूत" : "Uploaded evidence");
 
     return [
       {
         evidenceId: isDemoIncident
-          ? isMessage
-            ? "demo-message"
-            : "demo-transaction"
+          ? demoMetadata?.id ?? (isMessage ? "demo-message" : "demo-transaction")
           : `uploaded-${currentScreenshotIndex}`,
         evidenceLabel,
         evidenceType:
@@ -253,7 +276,7 @@ export function deriveEvidenceContributions(
                 ? "सबूत"
                 : "Evidence",
         contributions: isDemoIncident
-          ? demoContributions(draft, evidence.type, locale)
+          ? demoContributions(draft, evidence, evidenceIndex, locale)
           : liveContributions(draft, evidence, evidenceIndex, locale),
       },
     ];
