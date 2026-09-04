@@ -297,7 +297,9 @@ function SachetPreview() {
           : "Example of shared information becoming a prepared report"
       }
     >
-      <p className="sachet-preview-label">{hi ? "क्या हुआ" : "What happened"}</p>
+      <p className="sachet-preview-label">
+        {hi ? "आप बताते हैं कि क्या हुआ" : "You describe what happened"}
+      </p>
       <blockquote className="sachet-proof-story">
         {hi ? "“कल मुझे SBI KYC का संदेश मिला। पहले ₹5,000, फिर ₹15,000 गए।”" : "“Yesterday I received an SBI KYC message. ₹5,000 went first, then ₹15,000.”"}
       </blockquote>
@@ -308,49 +310,92 @@ function SachetPreview() {
       </div>
 
       <div className="sachet-proof-result">
-        <p className="sachet-preview-label">{hi ? "सचेत ने तैयार किया" : "Prepared by सचेत"}</p>
+        <p className="sachet-preview-label">
+          {hi ? "शिकायत की जानकारी" : "Complaint details"}
+        </p>
         <strong>{hi ? "वित्तीय धोखाधड़ी" : "Financial fraud"}</strong>
         <span>{hi ? "₹20,000 रिपोर्ट किया गया नुकसान" : "₹20,000 reported loss"}</span>
         <span>{hi ? "2 लेन-देन" : "2 transactions"}</span>
         <span>{hi ? "2 सितम्बर 2026" : "2 Sep 2026"}</span>
-        <b>{hi ? "स्रोत जुड़े हुए" : "Sources linked"}</b>
+        <b>
+          {hi
+            ? "जानकारी आपके बयान और सबूत से जुड़ी है"
+            : "Details linked to your statement and evidence"}
+        </b>
       </div>
     </aside>
   );
 }
 
-function LandingCaseCheck() {
+function LandingCaseCheck({ onReviewAmount }: { onReviewAmount: () => void }) {
   const { locale } = useI18n();
   const hi = locale === "hi";
   return (
     <section className="landing-case-check" aria-labelledby="landing-case-check-heading">
       <div>
-        <p className="eyebrow">{hi ? "मामले की जाँच" : "Case check"}</p>
-        <h2 id="landing-case-check-heading">{hi ? "यह चुपचाप अनुमान नहीं लगाता।" : "It won't quietly guess."}</h2>
-        <p>{hi ? "सचेत जरूरी जानकारी का स्रोत दिखाता है और गड़बड़ी होने पर आपसे पूछता है।" : "सचेत shows where important details came from and asks when something does not add up."}</p>
+        <h2 id="landing-case-check-heading">
+          {hi ? "जमा करने से पहले जाँचें" : "Check before submitting"}
+        </h2>
+        <p>
+          {hi
+            ? "अगर कोई जानकारी मेल नहीं खाती, तो सचेत आपसे पूछता है।"
+            : "If something does not add up, सचेत asks you."}
+        </p>
       </div>
       <div className="landing-conflict-example">
         <dl>
           <div><dt>{hi ? "आपने कहा" : "You said"}</dt><dd>₹25,000 {hi ? "कुल" : "total"}</dd></div>
           <div><dt>{hi ? "लेन-देन" : "Transactions"}</dt><dd>₹5,000 + ₹15,000</dd></div>
         </dl>
-        <strong>{hi ? "एक जानकारी पर ध्यान दें" : "Something needs your attention"}</strong>
-        <p>{hi ? "लेन-देन का कुल ₹20,000 है।" : "The transactions add up to ₹20,000."}</p>
-        <span className="landing-example-action">{hi ? "राशि जाँचें →" : "Review amount →"}</span>
+        <strong>
+          {hi ? "ये राशियाँ मेल नहीं खातीं।" : "These amounts do not match."}
+        </strong>
+        <p>
+          {hi
+            ? "लेन-देन का जोड़ा ₹20,000 है।"
+            : "The transactions add up to ₹20,000."}
+        </p>
+        <button
+          className="landing-example-action"
+          type="button"
+          onClick={onReviewAmount}
+        >
+          {hi ? "राशि जाँचें" : "Review amount"} →
+        </button>
       </div>
     </section>
   );
 }
 
-function LandingSteps() {
+function LandingReassurance() {
   const { locale } = useI18n();
   const hi = locale === "hi";
-  const steps = hi
-    ? [["बयान दें", "जो हुआ उसे अपने शब्दों में बताएं।"], ["शिकायत जाँचें", "तैयार जानकारी की जाँच करें।"], ["जमा करें", "शिकायत जमा करें और अगला कदम देखें।"]]
-    : [["Provide a statement", "Describe what happened in your own words."], ["Review complaint", "Check the prepared information."], ["Submit", "Submit the complaint and see what to do next."]];
   return (
-    <section className="landing-steps" aria-label={hi ? "रिपोर्ट बनाने के तीन चरण" : "Three steps to prepare a report"}>
-      {steps.map(([title, description], index) => <article key={title}><span>{index + 1}</span><h2>{title}</h2><p>{description}</p></article>)}
+    <section className="landing-reassurance" aria-label={hi ? "शुरू करने के लिए जानकारी" : "Information for getting started"}>
+      <article>
+        <h2>
+          {hi
+            ? "हर जानकारी न होने पर भी आप शुरू कर सकते हैं।"
+            : "You can start even if you don't have every detail."}
+        </h2>
+        <p>{hi ? "उपलब्ध हो तो मददगार:" : "Helpful if available:"}</p>
+        <ul>
+          <li>{hi ? "संदिग्ध संदेशों के स्क्रीनशॉट" : "Screenshots of suspicious messages"}</li>
+          <li>{hi ? "भुगतान रसीद या लेन-देन की जानकारी" : "Payment receipts or transaction details"}</li>
+          <li>{hi ? "जुड़े हुए फ़ोन नंबर, यूज़रनेम या प्रोफ़ाइल लिंक" : "Phone numbers, usernames or profile links involved"}</li>
+        </ul>
+        <strong>{hi ? "सब कुछ नहीं है? फिर भी शुरू करें।" : "Don't have everything? You can still begin."}</strong>
+      </article>
+      <article>
+        <h2>{hi ? "आप घटना बताते हैं।" : "You explain the incident."}</h2>
+        <p>{hi ? "सचेत शिकायत की जानकारी तैयार करता है।" : "सचेत prepares the complaint details."}</p>
+        <ul>
+          <li>{hi ? "पहले शिकायत की श्रेणी चुनने की जरूरत नहीं।" : "No need to choose the complaint category first."}</li>
+          <li>{hi ? "हर तकनीकी शब्द जानना जरूरी नहीं।" : "No need to know every technical term before starting."}</li>
+          <li>{hi ? "जानकारी उपलब्ध न हो तो आप ऐसा बता सकते हैं।" : "If information is unavailable, you can say so."}</li>
+          <li>{hi ? "जमा करने से पहले आप सब कुछ जाँचते हैं।" : "You review everything before submitting."}</li>
+        </ul>
+      </article>
     </section>
   );
 }
@@ -1499,7 +1544,7 @@ export function DemoJourney() {
     ) : (
       <section className="service-entry section-pad">
         <div className="shell service-entry-inner">
-          <div className="service-entry-layout landing-hero-layout landing-hero-simple">
+          <div className="service-entry-layout landing-hero-layout">
             <div className="service-entry-copy">
               <h1>
                 {locale === "hi"
@@ -1508,8 +1553,13 @@ export function DemoJourney() {
               </h1>
               <p className="service-entry-support">
                 {locale === "hi"
-                  ? "जो हुआ उसे अपने शब्दों में बताएं। शिकायत की श्रेणी जानना जरूरी नहीं है।"
-                  : "Describe what happened in your own words. You do not need to know the complaint category."}
+                  ? "जो हुआ उसे अपने शब्दों में बताएं। सचेत शिकायत की जानकारी तैयार करता है, जिसे आप जमा करने से पहले जाँचते हैं।"
+                  : "Describe what happened in your own words. सचेत prepares the complaint details for you to review before submitting."}
+              </p>
+              <p className="landing-category-reassurance">
+                {locale === "hi"
+                  ? "आपको साइबर अपराध की श्रेणी या तकनीकी शब्द जानने की जरूरत नहीं है।"
+                  : "You do not need to know the cybercrime category or technical terms."}
               </p>
               <div className="service-entry-actions">
                 <button
@@ -1519,28 +1569,35 @@ export function DemoJourney() {
                 >
                   {hasSubmittedCase
                     ? locale === "hi" ? "मामला देखें" : "View case"
-                    : locale === "hi" ? "रिपोर्ट शुरू करें" : "Start report"}
+                    : locale === "hi" ? "शिकायत शुरू करें" : "Start complaint"}
                 </button>
                 <button
-                  className="secondary-button"
+                  className="landing-text-action"
                   type="button"
                   onClick={hasSubmittedCase ? startReport : () => useDemoIncident()}
                 >
                   {hasSubmittedCase
                     ? locale === "hi" ? "नई शिकायत शुरू करें" : "Start new complaint"
-                    : locale === "hi" ? "डेमो देखें" : "Try demo"}
+                    : locale === "hi" ? "डेमो देखें" : "View demo"}
                 </button>
               </div>
+              <div className="landing-trust-line">
+                <p>{locale === "hi" ? "जमा करने से पहले आप शिकायत जाँचते हैं।" : "You review the complaint before submitting."}</p>
+                <p>{locale === "hi" ? "जरूरी जानकारी साफ़ न हो तो सचेत अनुमान लगाने के बजाय पूछता है।" : "If an important detail is unclear, सचेत asks instead of guessing."}</p>
+              </div>
               <p className="landing-capability-line">{locale === "hi" ? "स्वतंत्र हैकाथॉन प्रोटोटाइप · NCRP से जुड़ा नहीं" : "Independent hackathon prototype · Not connected to NCRP"}</p>
+              <section className="landing-urgent-strip" aria-labelledby="landing-urgent-heading">
+                <div>
+                  <h2 id="landing-urgent-heading">{locale === "hi" ? "क्या हाल ही में पैसे गए हैं?" : "Lost money recently?"}</h2>
+                  <p>{locale === "hi" ? "वित्तीय साइबर धोखाधड़ी के लिए तुरंत 1930 पर कॉल करें। इसके बाद शिकायत तैयार करना जारी रख सकते हैं।" : "Call 1930 immediately for financial cyber fraud. You can continue preparing the complaint afterwards."}</p>
+                </div>
+                <a className="primary-button" href="tel:1930">{locale === "hi" ? "1930 पर कॉल करें" : "Call 1930"}</a>
+              </section>
             </div>
+            <SachetPreview />
           </div>
-          <section className="landing-urgent-strip" aria-labelledby="landing-urgent-heading">
-            <div>
-              <h2 id="landing-urgent-heading">{locale === "hi" ? "क्या हाल ही में पैसे गए हैं?" : "Lost money recently?"}</h2>
-              <p>{locale === "hi" ? "वित्तीय साइबर धोखाधड़ी के लिए तुरंत 1930 पर कॉल करें। इसके बाद शिकायत तैयार करना जारी रख सकते हैं।" : "Call 1930 immediately for financial cyber fraud. You can continue preparing the complaint afterwards."}</p>
-            </div>
-            <a className="primary-button" href="tel:1930">{locale === "hi" ? "1930 पर कॉल करें" : "Call 1930"}</a>
-          </section>
+          <LandingCaseCheck onReviewAmount={() => useDemoIncident()} />
+          <LandingReassurance />
         </div>
       </section>
     );
