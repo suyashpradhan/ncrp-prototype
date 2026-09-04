@@ -1,7 +1,13 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef, useState, type ChangeEvent, type ReactNode } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type ReactNode,
+} from "react";
 import {
   deriveMissingQuestions,
   type MissingQuestion,
@@ -192,14 +198,17 @@ function EvidenceRows({
   );
   const dialogRef = useRef<HTMLDialogElement | null>(null);
   const removeDialogRef = useRef<HTMLDialogElement | null>(null);
-  const [pendingRemovalIndex, setPendingRemovalIndex] = useState<number | null>(null);
-  const removalContribution = pendingRemovalIndex !== null && draft
-    ? deriveEvidenceContributions(draft, {
-        locale,
-        isDemoIncident: false,
-        screenshotNames: screenshots.map((file) => file.name),
-      }).find((item) => item.evidenceId === `uploaded-${pendingRemovalIndex}`)
-    : null;
+  const [pendingRemovalIndex, setPendingRemovalIndex] = useState<number | null>(
+    null,
+  );
+  const removalContribution =
+    pendingRemovalIndex !== null && draft
+      ? deriveEvidenceContributions(draft, {
+          locale,
+          isDemoIncident: false,
+          screenshotNames: screenshots.map((file) => file.name),
+        }).find((item) => item.evidenceId === `uploaded-${pendingRemovalIndex}`)
+      : null;
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -223,7 +232,11 @@ function EvidenceRows({
   }, [activeUploadedEvidence]);
 
   useEffect(() => {
-    if (pendingRemovalIndex !== null && removeDialogRef.current && !removeDialogRef.current.open) {
+    if (
+      pendingRemovalIndex !== null &&
+      removeDialogRef.current &&
+      !removeDialogRef.current.open
+    ) {
       removeDialogRef.current.showModal();
     }
   }, [pendingRemovalIndex]);
@@ -232,7 +245,9 @@ function EvidenceRows({
     const openRequestedEvidence = (event: Event) => {
       const evidenceId = (event as CustomEvent<string>).detail;
       if (isDemoIncident) {
-        const evidence = demoCase?.evidence.find((item) => item.id === evidenceId);
+        const evidence = demoCase?.evidence.find(
+          (item) => item.id === evidenceId,
+        );
         if (evidence) setActiveDemoEvidence(evidence);
         return;
       }
@@ -242,7 +257,10 @@ function EvidenceRows({
     };
     window.addEventListener(OPEN_EVIDENCE_PREVIEW_EVENT, openRequestedEvidence);
     return () =>
-      window.removeEventListener(OPEN_EVIDENCE_PREVIEW_EVENT, openRequestedEvidence);
+      window.removeEventListener(
+        OPEN_EVIDENCE_PREVIEW_EVENT,
+        openRequestedEvidence,
+      );
   }, [demoCase, isDemoIncident, screenshots]);
 
   function closeEvidence() {
@@ -254,7 +272,7 @@ function EvidenceRows({
   if (!isDemoIncident && screenshots.length === 0) return null;
 
   const evidenceCount = isDemoIncident
-    ? demoCase?.evidence.length ?? 0
+    ? (demoCase?.evidence.length ?? 0)
     : screenshots.length;
   const rows = (
     <ul className="report-source-files">
@@ -278,7 +296,9 @@ function EvidenceRows({
                 />
                 <span className="evidence-row-copy">
                   <strong>{locale === "hi" ? item.labelHi : item.label}</strong>
-                  <small>{locale === "hi" ? item.typeLabelHi : item.typeLabel}</small>
+                  <small>
+                    {locale === "hi" ? item.typeLabelHi : item.typeLabel}
+                  </small>
                 </span>
                 <span className="evidence-row-action">
                   {t("workspace.view")}
@@ -331,7 +351,9 @@ function EvidenceRows({
         className="evidence-preview-dialog"
         aria-label={
           activeDemoEvidence
-            ? locale === "hi" ? activeDemoEvidence.labelHi : activeDemoEvidence.label
+            ? locale === "hi"
+              ? activeDemoEvidence.labelHi
+              : activeDemoEvidence.label
             : activeUploadedEvidence?.name
         }
         onCancel={(event) => {
@@ -351,7 +373,9 @@ function EvidenceRows({
             </small>
             <strong>
               {activeDemoEvidence
-                ? locale === "hi" ? activeDemoEvidence.labelHi : activeDemoEvidence.label
+                ? locale === "hi"
+                  ? activeDemoEvidence.labelHi
+                  : activeDemoEvidence.label
                 : activeUploadedEvidence?.name}
             </strong>
           </div>
@@ -368,7 +392,11 @@ function EvidenceRows({
           <Image
             className="ph-no-capture"
             src={activeDemoEvidence.src}
-            alt={locale === "hi" ? activeDemoEvidence.labelHi : activeDemoEvidence.label}
+            alt={
+              locale === "hi"
+                ? activeDemoEvidence.labelHi
+                : activeDemoEvidence.label
+            }
             width={520}
             height={620}
             sizes="(max-width: 600px) calc(100vw - 40px), 520px"
@@ -385,34 +413,64 @@ function EvidenceRows({
       </dialog>
     ) : null;
 
-  const removalDialog = pendingRemovalIndex !== null ? (
-    <dialog
-      ref={removeDialogRef}
-      className="evidence-preview-dialog evidence-remove-dialog"
-      aria-labelledby="remove-evidence-heading"
-      onCancel={(event) => {
-        event.preventDefault();
-        setPendingRemovalIndex(null);
-      }}
-      onClose={() => setPendingRemovalIndex(null)}
-    >
-      <h2 id="remove-evidence-heading">{locale === "hi" ? "यह सबूत हटाएँ?" : "Remove this evidence?"}</h2>
-      {removalContribution?.contributions.length ? (
-        <>
-          <p>{locale === "hi" ? "यह फ़ाइल अभी इन जानकारियों का समर्थन करती है:" : "This file currently supports:"}</p>
-          <ul>{removalContribution.contributions.map((fact) => <li key={fact.fieldKey}>{fact.label}: {fact.displayValue}</li>)}</ul>
-        </>
-      ) : null}
-      <p>{locale === "hi" ? "फ़ाइल हटाने के बाद रिपोर्ट की तैयारी फिर से जाँची जाएगी।" : "After removal, सचेत will recheck which report details are supported."}</p>
-      <div className="inline-field-actions">
-        <button className="secondary-button" type="button" onClick={() => removeDialogRef.current?.close()} autoFocus>{locale === "hi" ? "सबूत रखें" : "Keep evidence"}</button>
-        <button className="primary-button" type="button" onClick={() => {
-          onRemoveScreenshot(pendingRemovalIndex);
-          removeDialogRef.current?.close();
-        }}>{locale === "hi" ? "सबूत हटाएँ" : "Remove evidence"}</button>
-      </div>
-    </dialog>
-  ) : null;
+  const removalDialog =
+    pendingRemovalIndex !== null ? (
+      <dialog
+        ref={removeDialogRef}
+        className="evidence-preview-dialog evidence-remove-dialog"
+        aria-labelledby="remove-evidence-heading"
+        onCancel={(event) => {
+          event.preventDefault();
+          setPendingRemovalIndex(null);
+        }}
+        onClose={() => setPendingRemovalIndex(null)}
+      >
+        <h2 id="remove-evidence-heading">
+          {locale === "hi" ? "यह सबूत हटाएँ?" : "Remove this evidence?"}
+        </h2>
+        {removalContribution?.contributions.length ? (
+          <>
+            <p>
+              {locale === "hi"
+                ? "यह फ़ाइल अभी इन जानकारियों का समर्थन करती है:"
+                : "This file currently supports:"}
+            </p>
+            <ul>
+              {removalContribution.contributions.map((fact) => (
+                <li key={fact.fieldKey}>
+                  {fact.label}: {fact.displayValue}
+                </li>
+              ))}
+            </ul>
+          </>
+        ) : null}
+        <p>
+          {locale === "hi"
+            ? "फ़ाइल हटाने के बाद रिपोर्ट की तैयारी फिर से जाँची जाएगी।"
+            : "After removal, सचेत will recheck which report details are supported."}
+        </p>
+        <div className="inline-field-actions">
+          <button
+            className="secondary-button"
+            type="button"
+            onClick={() => removeDialogRef.current?.close()}
+            autoFocus
+          >
+            {locale === "hi" ? "सबूत रखें" : "Keep evidence"}
+          </button>
+          <button
+            className="primary-button"
+            type="button"
+            onClick={() => {
+              onRemoveScreenshot(pendingRemovalIndex);
+              removeDialogRef.current?.close();
+            }}
+          >
+            {locale === "hi" ? "सबूत हटाएँ" : "Remove evidence"}
+          </button>
+        </div>
+      </dialog>
+    ) : null;
 
   if (compact) {
     if (isDemoIncident) {
@@ -421,7 +479,7 @@ function EvidenceRows({
           className="report-source-block demo-evidence-list"
           aria-label={t("workspace.evidence")}
         >
-          <h3>{locale === "hi" ? "सबूत देखें" : "Show Evidence"}</h3>
+          <h3>{locale === "hi" ? "सबूत" : "Evidence"}</h3>
           {rows}
           {preview}
         </section>
@@ -522,14 +580,16 @@ function EvidenceContributions({
                   {locale === "hi" ? "इसके लिए उपयोग हुआ" : "Used for"}
                 </p>
                 <ul className="evidence-used-list">
-                {item.contributions.map((fact) => (
-                  <li key={`${item.evidenceId}-${fact.fieldKey}`}>
-                    {/^(Detail found|सबूत में मिली जानकारी)$/.test(fact.label) ? null : (
-                      <span>{fact.label}: </span>
-                    )}
-                    {fact.displayValue}
-                  </li>
-                ))}
+                  {item.contributions.map((fact) => (
+                    <li key={`${item.evidenceId}-${fact.fieldKey}`}>
+                      {/^(Detail found|सबूत में मिली जानकारी)$/.test(
+                        fact.label,
+                      ) ? null : (
+                        <span>{fact.label}: </span>
+                      )}
+                      {fact.displayValue}
+                    </li>
+                  ))}
                 </ul>
               </>
             ) : (
@@ -584,7 +644,8 @@ function SourceSummary({
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackSeconds, setPlaybackSeconds] = useState(0);
-  const showWrittenStatement = !isDemoIncident && narrative.trim() && !transcription;
+  const showWrittenStatement =
+    !isDemoIncident && narrative.trim() && !transcription;
   const displayedNarrative = narrative;
   const demoNarration = demoCase?.narrations[demoNarrationLanguage] ?? null;
 
@@ -654,18 +715,18 @@ function SourceSummary({
             role="group"
             aria-label={t("workspace.changeLanguage")}
           >
-            {(Object.keys(demoCase?.narrations ?? {}) as DemoNarrationLanguage[]).map(
-              (language) => (
-                <button
-                  key={language}
-                  type="button"
-                  aria-pressed={demoNarrationLanguage === language}
-                  onClick={() => onDemoNarrationLanguageChange(language)}
-                >
-                  {demoCase?.narrations[language].nativeLabel}
-                </button>
-              ),
-            )}
+            {(
+              Object.keys(demoCase?.narrations ?? {}) as DemoNarrationLanguage[]
+            ).map((language) => (
+              <button
+                key={language}
+                type="button"
+                aria-pressed={demoNarrationLanguage === language}
+                onClick={() => onDemoNarrationLanguageChange(language)}
+              >
+                {demoCase?.narrations[language].nativeLabel}
+              </button>
+            ))}
           </div>
           <p className="source-transcript">
             {demoNarration.originalTranscript}
@@ -692,7 +753,7 @@ function SourceSummary({
             </p>
             {transcription.englishTranscript.trim() &&
             transcription.englishTranscript !==
-            transcription.originalTranscript ? (
+              transcription.originalTranscript ? (
               <details className="translation-disclosure">
                 <summary>{t("workspace.viewEnglish")}</summary>
                 <p>{transcription.englishTranscript}</p>
@@ -716,7 +777,7 @@ function SourceSummary({
             </p>
             {transcription.englishTranscript.trim() &&
             transcription.englishTranscript !==
-            transcription.originalTranscript ? (
+              transcription.originalTranscript ? (
               <details className="translation-disclosure">
                 <summary>{t("workspace.viewEnglish")}</summary>
                 <p>{transcription.englishTranscript}</p>
@@ -741,9 +802,7 @@ function SourceSummary({
           </details>
         ) : (
           <div className="report-source-block">
-            <h3>
-              {t("workspace.yourStatement")}
-            </h3>
+            <h3>{t("workspace.yourStatement")}</h3>
             <p className="source-transcript">{displayedNarrative}</p>
           </div>
         )
@@ -763,7 +822,16 @@ function SourceSummary({
 
 function MicrophoneIcon() {
   return (
-    <svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
+    <svg
+      viewBox="0 0 24 24"
+      width="25"
+      height="25"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      aria-hidden="true"
+    >
       <rect x="8" y="3" width="8" height="12" rx="4" />
       <path d="M5 11a7 7 0 0 0 14 0M12 18v3M9 21h6" />
     </svg>
@@ -774,7 +842,10 @@ function RecordingWaveform({ levels }: { levels: number[] }) {
   return (
     <div className="recording-waveform" aria-hidden="true">
       {levels.map((level, index) => (
-        <span key={index} style={{ height: `${Math.round(8 + level * 42)}px` }} />
+        <span
+          key={index}
+          style={{ height: `${Math.round(8 + level * 42)}px` }}
+        />
       ))}
     </div>
   );
@@ -849,36 +920,92 @@ function ReportInputPane(props: ReportWorkspaceProps) {
           <fieldset className="report-method-fieldset">
             <legend>{locale === "hi" ? "बयान" : "Statement"}</legend>
             <div className="report-method-switch">
-              <button type="button" aria-pressed={isSpeakMode} disabled={processing || props.isRecording} onClick={() => props.onReportMethodChange("SPEAK")}>{locale === "hi" ? "बोलें" : "Speak"}</button>
-              <button type="button" aria-pressed={!isSpeakMode} disabled={processing || props.isRecording} onClick={() => props.onReportMethodChange("TYPE")}>{locale === "hi" ? "लिखें" : "Type"}</button>
+              <button
+                type="button"
+                aria-pressed={isSpeakMode}
+                disabled={processing || props.isRecording}
+                onClick={() => props.onReportMethodChange("SPEAK")}
+              >
+                {locale === "hi" ? "बोलें" : "Speak"}
+              </button>
+              <button
+                type="button"
+                aria-pressed={!isSpeakMode}
+                disabled={processing || props.isRecording}
+                onClick={() => props.onReportMethodChange("TYPE")}
+              >
+                {locale === "hi" ? "लिखें" : "Type"}
+              </button>
             </div>
           </fieldset>
 
           {isSpeakMode ? (
-            <div className={`voice-capture-surface${props.isRecording ? " voice-capture-recording" : ""}`}>
+            <div
+              className={`voice-capture-surface${props.isRecording ? " voice-capture-recording" : ""}`}
+            >
               {props.isRecording ? (
                 <>
-                  <p className="voice-status" role="status" aria-live="polite">{locale === "hi" ? "सुन रहे हैं…" : "Listening…"}</p>
+                  <p className="voice-status" role="status" aria-live="polite">
+                    {locale === "hi" ? "सुन रहे हैं…" : "Listening…"}
+                  </p>
                   <RecordingWaveform levels={props.recordingLevels} />
                   <strong className="voice-timer">{recordingTime}</strong>
-                  <button className="primary-button" type="button" onClick={props.onStopRecording}>{t("workspace.stopRecording")}</button>
+                  <button
+                    className="primary-button"
+                    type="button"
+                    onClick={props.onStopRecording}
+                  >
+                    {t("workspace.stopRecording")}
+                  </button>
                 </>
               ) : props.isTranscribing ? (
-                <div className="voice-processing" role="status" aria-live="polite">
+                <div
+                  className="voice-processing"
+                  role="status"
+                  aria-live="polite"
+                >
                   <span className="loading-marker" aria-hidden="true" />
-                  <strong>{locale === "hi" ? "रिकॉर्डिंग को लिखा जा रहा है…" : "Turning your recording into text…"}</strong>
-                  <p>{locale === "hi" ? "लंबी रिकॉर्डिंग में थोड़ा अधिक समय लग सकता है।" : "Longer recordings may take a little more time."}</p>
+                  <strong>
+                    {locale === "hi"
+                      ? "रिकॉर्डिंग को लिखा जा रहा है…"
+                      : "Turning your recording into text…"}
+                  </strong>
+                  <p>
+                    {locale === "hi"
+                      ? "लंबी रिकॉर्डिंग में थोड़ा अधिक समय लग सकता है।"
+                      : "Longer recordings may take a little more time."}
+                  </p>
                 </div>
               ) : props.transcription ? (
                 <div className="voice-transcript-editor">
                   <h2>{locale === "hi" ? "आपका बयान" : "Your statement"}</h2>
                   {editingTranscript ? (
-                    <textarea value={props.transcription.originalTranscript} onChange={(event) => { updateTranscript(event.target.value); growTextarea(event.currentTarget); }} rows={6} maxLength={8000} aria-label={locale === "hi" ? "रिकॉर्डिंग का लिखित रूप संपादित करें" : "Edit recording transcript"} />
+                    <textarea
+                      value={props.transcription.originalTranscript}
+                      onChange={(event) => {
+                        updateTranscript(event.target.value);
+                        growTextarea(event.currentTarget);
+                      }}
+                      rows={6}
+                      maxLength={8000}
+                      aria-label={
+                        locale === "hi"
+                          ? "रिकॉर्डिंग का लिखित रूप संपादित करें"
+                          : "Edit recording transcript"
+                      }
+                    />
                   ) : props.draft ? (
                     <details className="compact-source-disclosure voice-transcript-compact">
                       <summary>
-                        <span>{languageLabel(props.transcription.languageCode)} · {recordingTime}</span>
-                        <strong>{locale === "hi" ? "लिखित रूप देखें" : "View transcript"}</strong>
+                        <span>
+                          {languageLabel(props.transcription.languageCode)} ·{" "}
+                          {recordingTime}
+                        </span>
+                        <strong>
+                          {locale === "hi"
+                            ? "लिखित रूप देखें"
+                            : "View transcript"}
+                        </strong>
                       </summary>
                       <p>{props.transcription.originalTranscript}</p>
                     </details>
@@ -886,50 +1013,140 @@ function ReportInputPane(props: ReportWorkspaceProps) {
                     <p>{props.transcription.originalTranscript}</p>
                   )}
                   <div className="voice-transcript-actions">
-                    <button className="text-button" type="button" onClick={() => setEditingTranscript((current) => !current)}>{editingTranscript ? (locale === "hi" ? "संपादन पूरा" : "Finish editing") : (locale === "hi" ? "लिखित रूप बदलें" : "Edit text")}</button>
-                    <button className="text-button" type="button" onClick={() => { setEditingTranscript(false); props.onRecordAgain(); }}>{t("workspace.recordAgain")}</button>
+                    <button
+                      className="text-button"
+                      type="button"
+                      onClick={() =>
+                        setEditingTranscript((current) => !current)
+                      }
+                    >
+                      {editingTranscript
+                        ? locale === "hi"
+                          ? "संपादन पूरा"
+                          : "Finish editing"
+                        : locale === "hi"
+                          ? "लिखित रूप बदलें"
+                          : "Edit text"}
+                    </button>
+                    <button
+                      className="text-button"
+                      type="button"
+                      onClick={() => {
+                        setEditingTranscript(false);
+                        props.onRecordAgain();
+                      }}
+                    >
+                      {t("workspace.recordAgain")}
+                    </button>
                   </div>
                 </div>
               ) : props.hasAudio ? (
                 <div className="voice-processing">
-                  <strong>{locale === "hi" ? "रिकॉर्डिंग सुरक्षित है" : "Recording saved"}</strong>
-                  <button className="secondary-button" type="button" onClick={props.onRecordAgain}>{t("workspace.recordAgain")}</button>
+                  <strong>
+                    {locale === "hi"
+                      ? "रिकॉर्डिंग सुरक्षित है"
+                      : "Recording saved"}
+                  </strong>
+                  <button
+                    className="secondary-button"
+                    type="button"
+                    onClick={props.onRecordAgain}
+                  >
+                    {t("workspace.recordAgain")}
+                  </button>
                 </div>
               ) : (
                 <>
-                  <span className="voice-microphone" aria-hidden="true"><MicrophoneIcon /></span>
+                  <span className="voice-microphone" aria-hidden="true">
+                    <MicrophoneIcon />
+                  </span>
                   <h2>{locale === "hi" ? "बोलकर बताएं" : "Speak"}</h2>
-                  <button className="primary-button" type="button" disabled={processing} onClick={props.onStartRecording}>{t("workspace.startRecording")}</button>
+                  <button
+                    className="primary-button"
+                    type="button"
+                    disabled={processing}
+                    onClick={props.onStartRecording}
+                  >
+                    {t("workspace.startRecording")}
+                  </button>
                 </>
               )}
             </div>
           ) : (
             <div className="typed-incident-input">
-              <label htmlFor="incident-narrative">{t("workspace.whatHappened")}</label>
+              <label htmlFor="incident-narrative">
+                {t("workspace.whatHappened")}
+              </label>
               <textarea
                 id="incident-narrative"
                 data-report-field-id="incident-narrative"
                 rows={7}
                 value={props.narrative}
                 disabled={processing}
-                onChange={(event) => { props.onNarrativeChange(event.target.value); growTextarea(event.currentTarget); }}
-                placeholder={locale === "hi" ? "उदाहरण: कल मुझे KYC का संदेश मिला और ₹5,000 डेबिट हो गए…" : "Example: I received a KYC message yesterday and ₹5,000 was debited…"}
+                onChange={(event) => {
+                  props.onNarrativeChange(event.target.value);
+                  growTextarea(event.currentTarget);
+                }}
+                placeholder={
+                  locale === "hi"
+                    ? "उदाहरण: कल मुझे KYC का संदेश मिला और ₹5,000 डेबिट हो गए…"
+                    : "Example: I received a KYC message yesterday and ₹5,000 was debited…"
+                }
                 maxLength={8000}
               />
             </div>
           )}
 
-          <section className="composer-evidence" aria-labelledby="composer-evidence-heading">
+          <section
+            className="composer-evidence"
+            aria-labelledby="composer-evidence-heading"
+          >
             <div>
               <h2 id="composer-evidence-heading">{t("workspace.evidence")}</h2>
-              <p>{locale === "hi" ? "उपलब्ध हो तो मददगार" : "Helpful if available"}</p>
+              <p>
+                {locale === "hi"
+                  ? "उपलब्ध हो तो मददगार"
+                  : "Helpful if available"}
+              </p>
             </div>
-            <p>{locale === "hi" ? "घटना से जुड़े स्क्रीनशॉट जोड़ें।" : "Add screenshots connected to the incident."}</p>
-            <label className="evidence-add-button" htmlFor="incident-screenshots" data-report-field-id="source-evidence" tabIndex={0} role="button" onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); document.querySelector<HTMLInputElement>("#incident-screenshots")?.click(); } }}>
+            <p>
+              {locale === "hi"
+                ? "घटना से जुड़े स्क्रीनशॉट जोड़ें।"
+                : "Add screenshots connected to the incident."}
+            </p>
+            <label
+              className="evidence-add-button"
+              htmlFor="incident-screenshots"
+              data-report-field-id="source-evidence"
+              tabIndex={0}
+              role="button"
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  document
+                    .querySelector<HTMLInputElement>("#incident-screenshots")
+                    ?.click();
+                }
+              }}
+            >
               <span aria-hidden="true">＋</span> {t("workspace.addEvidence")}
             </label>
-            <input id="incident-screenshots" className="visually-hidden" type="file" accept="image/png,image/jpeg,image/webp" multiple disabled={processing} onChange={props.onScreenshotsChange} />
-            <EvidenceRows screenshots={props.screenshots} draft={props.draft} isDemoIncident={false} demoCase={null} onRemoveScreenshot={props.onRemoveScreenshot} />
+            <input
+              id="incident-screenshots"
+              className="visually-hidden"
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              multiple
+              disabled={processing}
+              onChange={props.onScreenshotsChange}
+            />
+            <EvidenceRows
+              screenshots={props.screenshots}
+              draft={props.draft}
+              isDemoIncident={false}
+              demoCase={null}
+              onRemoveScreenshot={props.onRemoveScreenshot}
+            />
           </section>
           <p className="composer-safety">{t("workspace.safety")}</p>
           {!props.draft ? (
@@ -957,25 +1174,25 @@ function ReportInputPane(props: ReportWorkspaceProps) {
         <p className="review-source-intro">{t("workspace.reviewIntro")}</p>
       ) : null}
 
-      {props.experienceMode === "DEMO_CASE" || props.mode === "REVIEW" ? <SourceSummary
-        narrative={props.narrative}
-        transcription={props.transcription}
-        screenshots={props.screenshots}
-        draft={props.draft}
-        isDemoIncident={props.isDemoIncident}
-        demoCase={props.demoCase}
-        recordingSeconds={props.recordingSeconds}
-        demoNarrationLanguage={props.demoNarrationLanguage}
-        onDemoNarrationLanguageChange={props.onDemoNarrationLanguageChange}
-        onRemoveScreenshot={props.onRemoveScreenshot}
-        compact={props.mode === "REVIEW" || Boolean(props.draft)}
-      /> : null}
+      {props.experienceMode === "DEMO_CASE" || props.mode === "REVIEW" ? (
+        <SourceSummary
+          narrative={props.narrative}
+          transcription={props.transcription}
+          screenshots={props.screenshots}
+          draft={props.draft}
+          isDemoIncident={props.isDemoIncident}
+          demoCase={props.demoCase}
+          recordingSeconds={props.recordingSeconds}
+          demoNarrationLanguage={props.demoNarrationLanguage}
+          onDemoNarrationLanguageChange={props.onDemoNarrationLanguageChange}
+          onRemoveScreenshot={props.onRemoveScreenshot}
+          compact={props.mode === "REVIEW" || Boolean(props.draft)}
+        />
+      ) : null}
       {props.unavailableEvidenceNames.length > 0 ? (
         <aside className="evidence-reattach-note" role="status">
           <strong>
-            {locale === "hi"
-              ? "सबूत दोबारा जोड़ें"
-              : "Reattach saved evidence"}
+            {locale === "hi" ? "सबूत दोबारा जोड़ें" : "Reattach saved evidence"}
           </strong>
           <p>
             {locale === "hi"
@@ -1025,7 +1242,8 @@ function MissingFieldEditor({
   const { locale, t } = useI18n();
   const question = field.missingQuestion;
   const [chooseAnotherYear, setChooseAnotherYear] = useState(false);
-  const [showOtherCompromiseBasis, setShowOtherCompromiseBasis] = useState(false);
+  const [showOtherCompromiseBasis, setShowOtherCompromiseBasis] =
+    useState(false);
   if (!question) return null;
 
   if (question.field === "incidentDateYear") {
@@ -1108,7 +1326,9 @@ function MissingFieldEditor({
             onClick={() => onSave("yes")}
           >
             {question.field === "moneyLost"
-              ? locale === "hi" ? "हाँ, पैसे दिए या डेबिट हुए" : "Yes, money was paid or debited"
+              ? locale === "hi"
+                ? "हाँ, पैसे दिए या डेबिट हुए"
+                : "Yes, money was paid or debited"
               : t("field.yes")}
           </button>
           <button
@@ -1133,19 +1353,20 @@ function MissingFieldEditor({
   }
 
   if (question.field === "accountCompromiseBasis") {
-    const options = locale === "hi"
-      ? [
-          "रिकवरी जानकारी बदल गई",
-          "अनजान लॉगिन या सुरक्षा चेतावनी",
-          "मेरी जानकारी के बिना संदेश या सेटिंग बदली",
-          "मैं केवल पासवर्ड भूल गया/गई",
-        ]
-      : [
-          "Recovery details changed",
-          "Unfamiliar login or security alert",
-          "Messages or settings changed without me",
-          "I simply forgot the password",
-        ];
+    const options =
+      locale === "hi"
+        ? [
+            "रिकवरी जानकारी बदल गई",
+            "अनजान लॉगिन या सुरक्षा चेतावनी",
+            "मेरी जानकारी के बिना संदेश या सेटिंग बदली",
+            "मैं केवल पासवर्ड भूल गया/गई",
+          ]
+        : [
+            "Recovery details changed",
+            "Unfamiliar login or security alert",
+            "Messages or settings changed without me",
+            "I simply forgot the password",
+          ];
     return (
       <div
         className="report-missing-editor"
@@ -1157,11 +1378,20 @@ function MissingFieldEditor({
         </p>
         <div className="clarification-options">
           {options.map((option) => (
-            <button className="secondary-button" type="button" key={option} onClick={() => onSave(option)}>
+            <button
+              className="secondary-button"
+              type="button"
+              key={option}
+              onClick={() => onSave(option)}
+            >
               {option}
             </button>
           ))}
-          <button className="secondary-button" type="button" onClick={() => setShowOtherCompromiseBasis(true)}>
+          <button
+            className="secondary-button"
+            type="button"
+            onClick={() => setShowOtherCompromiseBasis(true)}
+          >
             {locale === "hi" ? "कुछ और" : "Something else"}
           </button>
         </div>
@@ -1176,7 +1406,11 @@ function MissingFieldEditor({
               value={value}
               onChange={(event) => onChange(event.target.value)}
             />
-            <button className="secondary-button" type="button" onClick={() => onSave()}>
+            <button
+              className="secondary-button"
+              type="button"
+              onClick={() => onSave()}
+            >
               {t("field.save")}
             </button>
           </div>
@@ -1199,27 +1433,71 @@ function MissingFieldEditor({
       ) : null}
       {question.field === "transactionIdOrUtr" ? (
         <details className="field-help-disclosure">
-          <summary>{locale === "hi" ? "यह कहाँ मिलेगा?" : "Where do I find this?"}</summary>
+          <summary>
+            {locale === "hi" ? "यह कहाँ मिलेगा?" : "Where do I find this?"}
+          </summary>
           <div className="field-help-content">
-            <h4>{locale === "hi" ? "लेन-देन संदर्भ कहाँ मिलेगा?" : "Where can I find the transaction reference?"}</h4>
+            <h4>
+              {locale === "hi"
+                ? "लेन-देन संदर्भ कहाँ मिलेगा?"
+                : "Where can I find the transaction reference?"}
+            </h4>
             <p>
               {locale === "hi"
                 ? "अपने बैंकिंग या UPI ऐप में भुगतान खोलें। UTR, Transaction ID या Reference number देखें। अलग-अलग ऐप में शब्द अलग हो सकते हैं।"
                 : "Open the payment in your banking or UPI app. Look for UTR, Transaction ID or Reference number. The wording can vary by bank or app."}
             </p>
-            <svg className="utr-example" viewBox="0 0 360 210" role="img" aria-label={locale === "hi" ? "उदाहरण लेन-देन में UTR की जगह" : "Example transaction showing where the UTR appears"}>
+            <svg
+              className="utr-example"
+              viewBox="0 0 360 210"
+              role="img"
+              aria-label={
+                locale === "hi"
+                  ? "उदाहरण लेन-देन में UTR की जगह"
+                  : "Example transaction showing where the UTR appears"
+              }
+            >
               <rect x="1" y="1" width="358" height="208" rx="12" />
-              <text x="22" y="30">{locale === "hi" ? "उदाहरण लेन-देन" : "Example transaction"}</text>
-              <text x="22" y="60">{locale === "hi" ? "भुगतान सफल" : "Payment successful"}</text>
-              <text x="270" y="60">₹15,000</text>
-              <text x="22" y="94">{locale === "hi" ? "तारीख" : "Date"}</text>
-              <text x="230" y="94">3 Sep 2026</text>
-              <rect className="utr-example-highlight" x="14" y="124" width="332" height="56" rx="8" />
-              <text x="22" y="146">{locale === "hi" ? "लेन-देन संदर्भ / UTR" : "Transaction reference / UTR"}</text>
-              <text x="22" y="169">123456789012</text>
-              <text x="245" y="169">← {locale === "hi" ? "इसे देखें" : "Look for this"}</text>
+              <text x="22" y="30">
+                {locale === "hi" ? "उदाहरण लेन-देन" : "Example transaction"}
+              </text>
+              <text x="22" y="60">
+                {locale === "hi" ? "भुगतान सफल" : "Payment successful"}
+              </text>
+              <text x="270" y="60">
+                ₹15,000
+              </text>
+              <text x="22" y="94">
+                {locale === "hi" ? "तारीख" : "Date"}
+              </text>
+              <text x="230" y="94">
+                3 Sep 2026
+              </text>
+              <rect
+                className="utr-example-highlight"
+                x="14"
+                y="124"
+                width="332"
+                height="56"
+                rx="8"
+              />
+              <text x="22" y="146">
+                {locale === "hi"
+                  ? "लेन-देन संदर्भ / UTR"
+                  : "Transaction reference / UTR"}
+              </text>
+              <text x="22" y="169">
+                123456789012
+              </text>
+              <text x="245" y="169">
+                ← {locale === "hi" ? "इसे देखें" : "Look for this"}
+              </text>
             </svg>
-            <p>{locale === "hi" ? "नहीं मिल रहा? ‘मेरे पास यह नहीं है’ चुनकर आगे बढ़ें।" : "Can't find it? You can continue with ‘I don’t have this’."}</p>
+            <p>
+              {locale === "hi"
+                ? "नहीं मिल रहा? ‘मेरे पास यह नहीं है’ चुनकर आगे बढ़ें।"
+                : "Can't find it? You can continue with ‘I don’t have this’."}
+            </p>
           </div>
         </details>
       ) : null}
@@ -1270,12 +1548,14 @@ function ReportFieldRow({
 }) {
   const { locale, t } = useI18n();
   const [copied, setCopied] = useState(false);
-  const showSource = SOURCE_VISIBLE_FIELD_IDS.has(field.id) ||
+  const showSource =
+    SOURCE_VISIBLE_FIELD_IDS.has(field.id) ||
     /^transaction-(?:total|\d+-amount)$/.test(field.id) ||
     field.source === t("field.fromConfirmation") ||
     field.source === "Confirmed by you" ||
     field.source === "आपने पुष्टि की";
-  const copyable = /^transaction-\d+-(utr|reference)$/.test(field.id) ||
+  const copyable =
+    /^transaction-\d+-(utr|reference)$/.test(field.id) ||
     /^(suspect-\d+)$/.test(field.id);
   if (field.missingQuestion) {
     const isPartialDate = field.missingQuestion.field === "incidentDateYear";
@@ -1322,9 +1602,17 @@ function ReportFieldRow({
       ) : null}
       {field.source && showSource ? (
         <details className="field-provenance-disclosure">
-          <summary>{locale === "hi" ? "यह रिपोर्ट में क्यों है?" : "Why is this in my report?"}</summary>
+          <summary>
+            {locale === "hi"
+              ? "यह रिपोर्ट में क्यों है?"
+              : "Why is this in my report?"}
+          </summary>
           <p>
-            {locale === "hi" ? "यह जानकारी यहाँ मिली:" : "Found in:"} {field.source}. {locale === "hi" ? "जमा करने से पहले आप इसे बदल सकते हैं।" : "You can change this before submitting."}
+            {locale === "hi" ? "यह जानकारी यहाँ मिली:" : "Found in:"}{" "}
+            {field.source}.{" "}
+            {locale === "hi"
+              ? "जमा करने से पहले आप इसे बदल सकते हैं।"
+              : "You can change this before submitting."}
           </p>
         </details>
       ) : null}
@@ -1338,7 +1626,13 @@ function ReportFieldRow({
             window.setTimeout(() => setCopied(false), 1600);
           }}
         >
-          {copied ? (locale === "hi" ? "कॉपी हो गया" : "Copied") : (locale === "hi" ? "कॉपी करें" : "Copy")}
+          {copied
+            ? locale === "hi"
+              ? "कॉपी हो गया"
+              : "Copied"
+            : locale === "hi"
+              ? "कॉपी करें"
+              : "Copy"}
         </button>
       ) : null}
       {field.kind === "NARRATIVE" && !narrativeEditing ? (
@@ -1411,77 +1705,467 @@ function SectionEditor({
     const parsed = Number(value.replaceAll(",", ""));
     return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
   };
-  const editableValue = (value: string | null) => citizenVisibleValue(value) ?? "";
+  const editableValue = (value: string | null) =>
+    citizenVisibleValue(value) ?? "";
   const controls: ReactNode[] = [];
 
   if (groupId === "INCIDENT") {
     controls.push(
-      <label key="date">{hi ? "घटना की तारीख" : "Incident date"}<input type="date" value={working.incident.incidentDate ?? ""} onChange={(event) => setWorking((current) => ({ ...current, incident: { ...current.incident, incidentDate: event.target.value || null } }))} /></label>,
-      <label key="time">{hi ? "लगभग समय" : "Approximate time"}<input value={editableValue(working.incident.approximateTime)} onChange={(event) => setWorking((current) => ({ ...current, incident: { ...current.incident, approximateTime: event.target.value || null } }))} /></label>,
-      <label key="channel">{hi ? "माध्यम" : "Communication channel"}<input value={editableValue(working.incident.occurredOn)} onChange={(event) => setWorking((current) => ({ ...current, incident: { ...current.incident, occurredOn: event.target.value || null } }))} /></label>,
+      <label key="date">
+        {hi ? "घटना की तारीख" : "Incident date"}
+        <input
+          type="date"
+          value={working.incident.incidentDate ?? ""}
+          onChange={(event) =>
+            setWorking((current) => ({
+              ...current,
+              incident: {
+                ...current.incident,
+                incidentDate: event.target.value || null,
+              },
+            }))
+          }
+        />
+      </label>,
+      <label key="time">
+        {hi ? "लगभग समय" : "Approximate time"}
+        <input
+          value={editableValue(working.incident.approximateTime)}
+          onChange={(event) =>
+            setWorking((current) => ({
+              ...current,
+              incident: {
+                ...current.incident,
+                approximateTime: event.target.value || null,
+              },
+            }))
+          }
+        />
+      </label>,
+      <label key="channel">
+        {hi ? "माध्यम" : "Communication channel"}
+        <input
+          value={editableValue(working.incident.occurredOn)}
+          onChange={(event) =>
+            setWorking((current) => ({
+              ...current,
+              incident: {
+                ...current.incident,
+                occurredOn: event.target.value || null,
+              },
+            }))
+          }
+        />
+      </label>,
     );
   } else if (groupId === "TRANSACTIONS") {
-    controls.push(...working.transactions.map((transaction, index) => (
-      <fieldset className="section-edit-fieldset" key={transaction.id}>
-        <legend>{hi ? `लेन-देन ${index + 1}` : `Transaction ${index + 1}`}</legend>
-        <label>{hi ? "राशि" : "Amount"}<input inputMode="decimal" value={transaction.amount ?? ""} onChange={(event) => setWorking((current) => ({ ...current, transactions: current.transactions.map((item, itemIndex) => itemIndex === index ? { ...item, amount: numberValue(event.target.value) } : item) }))} /></label>
-        <label>{hi ? "बैंक या भुगतान संस्था" : "Bank / payment institution"}<input value={editableValue(transaction.institution)} onChange={(event) => setWorking((current) => ({ ...current, transactions: current.transactions.map((item, itemIndex) => itemIndex === index ? { ...item, institution: event.target.value || null } : item) }))} /></label>
-        <label>{hi ? "खाता / वॉलेट / UPI ID" : "Account / wallet / UPI ID"}<input value={editableValue(transaction.accountOrUpiId)} onChange={(event) => setWorking((current) => ({ ...current, transactions: current.transactions.map((item, itemIndex) => itemIndex === index ? { ...item, accountOrUpiId: event.target.value || null } : item) }))} /></label>
-        <label>{hi ? "लेन-देन संदर्भ / UTR" : "Transaction reference / UTR"}<input value={editableValue(transaction.transactionIdOrUtr)} onChange={(event) => setWorking((current) => ({ ...current, transactions: current.transactions.map((item, itemIndex) => itemIndex === index ? { ...item, transactionIdOrUtr: event.target.value || null } : item) }))} /></label>
-        <label>{hi ? "तारीख" : "Date"}<input type="date" value={transaction.transactionDate ?? ""} onChange={(event) => setWorking((current) => ({ ...current, transactions: current.transactions.map((item, itemIndex) => itemIndex === index ? { ...item, transactionDate: event.target.value || null } : item) }))} /></label>
-        <label>{hi ? "लगभग समय" : "Approximate time"}<input value={editableValue(transaction.approximateTime)} onChange={(event) => setWorking((current) => ({ ...current, transactions: current.transactions.map((item, itemIndex) => itemIndex === index ? { ...item, approximateTime: event.target.value || null } : item) }))} /></label>
-        <button className="text-button" type="button" onClick={() => setWorking((current) => ({ ...current, transactions: current.transactions.filter((_, itemIndex) => itemIndex !== index) }))}>{hi ? "लेन-देन हटाएँ" : "Remove transaction"}</button>
-      </fieldset>
-    )));
-    controls.push(<button key="add" className="secondary-button" type="button" onClick={() => setWorking((current) => {
-      let suffix = current.transactions.length + 1;
-      while (current.transactions.some((item) => item.id === `manual-transaction-${suffix}`)) suffix += 1;
-      return { ...current, transactions: [...current.transactions, { id: `manual-transaction-${suffix}`, institution: null, currency: "INR", paymentMethod: null, accountOrUpiId: null, transactionIdOrUtr: null, amount: null, transactionDate: null, approximateTime: null, referenceNumber: null, status: "MISSING" }] };
-    })}>{hi ? "लेन-देन जोड़ें" : "Add transaction"}</button>);
+    controls.push(
+      ...working.transactions.map((transaction, index) => (
+        <fieldset className="section-edit-fieldset" key={transaction.id}>
+          <legend>
+            {hi ? `लेन-देन ${index + 1}` : `Transaction ${index + 1}`}
+          </legend>
+          <label>
+            {hi ? "राशि" : "Amount"}
+            <input
+              inputMode="decimal"
+              value={transaction.amount ?? ""}
+              onChange={(event) =>
+                setWorking((current) => ({
+                  ...current,
+                  transactions: current.transactions.map((item, itemIndex) =>
+                    itemIndex === index
+                      ? { ...item, amount: numberValue(event.target.value) }
+                      : item,
+                  ),
+                }))
+              }
+            />
+          </label>
+          <label>
+            {hi ? "बैंक या भुगतान संस्था" : "Bank / payment institution"}
+            <input
+              value={editableValue(transaction.institution)}
+              onChange={(event) =>
+                setWorking((current) => ({
+                  ...current,
+                  transactions: current.transactions.map((item, itemIndex) =>
+                    itemIndex === index
+                      ? { ...item, institution: event.target.value || null }
+                      : item,
+                  ),
+                }))
+              }
+            />
+          </label>
+          <label>
+            {hi ? "खाता / वॉलेट / UPI ID" : "Account / wallet / UPI ID"}
+            <input
+              value={editableValue(transaction.accountOrUpiId)}
+              onChange={(event) =>
+                setWorking((current) => ({
+                  ...current,
+                  transactions: current.transactions.map((item, itemIndex) =>
+                    itemIndex === index
+                      ? { ...item, accountOrUpiId: event.target.value || null }
+                      : item,
+                  ),
+                }))
+              }
+            />
+          </label>
+          <label>
+            {hi ? "लेन-देन संदर्भ / UTR" : "Transaction reference / UTR"}
+            <input
+              value={editableValue(transaction.transactionIdOrUtr)}
+              onChange={(event) =>
+                setWorking((current) => ({
+                  ...current,
+                  transactions: current.transactions.map((item, itemIndex) =>
+                    itemIndex === index
+                      ? {
+                          ...item,
+                          transactionIdOrUtr: event.target.value || null,
+                        }
+                      : item,
+                  ),
+                }))
+              }
+            />
+          </label>
+          <label>
+            {hi ? "तारीख" : "Date"}
+            <input
+              type="date"
+              value={transaction.transactionDate ?? ""}
+              onChange={(event) =>
+                setWorking((current) => ({
+                  ...current,
+                  transactions: current.transactions.map((item, itemIndex) =>
+                    itemIndex === index
+                      ? { ...item, transactionDate: event.target.value || null }
+                      : item,
+                  ),
+                }))
+              }
+            />
+          </label>
+          <label>
+            {hi ? "लगभग समय" : "Approximate time"}
+            <input
+              value={editableValue(transaction.approximateTime)}
+              onChange={(event) =>
+                setWorking((current) => ({
+                  ...current,
+                  transactions: current.transactions.map((item, itemIndex) =>
+                    itemIndex === index
+                      ? { ...item, approximateTime: event.target.value || null }
+                      : item,
+                  ),
+                }))
+              }
+            />
+          </label>
+          <button
+            className="text-button"
+            type="button"
+            onClick={() =>
+              setWorking((current) => ({
+                ...current,
+                transactions: current.transactions.filter(
+                  (_, itemIndex) => itemIndex !== index,
+                ),
+              }))
+            }
+          >
+            {hi ? "लेन-देन हटाएँ" : "Remove transaction"}
+          </button>
+        </fieldset>
+      )),
+    );
+    controls.push(
+      <button
+        key="add"
+        className="secondary-button"
+        type="button"
+        onClick={() =>
+          setWorking((current) => {
+            let suffix = current.transactions.length + 1;
+            while (
+              current.transactions.some(
+                (item) => item.id === `manual-transaction-${suffix}`,
+              )
+            )
+              suffix += 1;
+            return {
+              ...current,
+              transactions: [
+                ...current.transactions,
+                {
+                  id: `manual-transaction-${suffix}`,
+                  institution: null,
+                  currency: "INR",
+                  paymentMethod: null,
+                  accountOrUpiId: null,
+                  transactionIdOrUtr: null,
+                  amount: null,
+                  transactionDate: null,
+                  approximateTime: null,
+                  referenceNumber: null,
+                  status: "MISSING",
+                },
+              ],
+            };
+          })
+        }
+      >
+        {hi ? "लेन-देन जोड़ें" : "Add transaction"}
+      </button>,
+    );
   } else if (groupId === "ACCOUNT_SYSTEM") {
     const platformConfig = getPlatformConfig(working.adaptiveFacts.platform);
     controls.push(
-      <label key="platform">{hi ? "प्रभावित प्लेटफ़ॉर्म" : "Affected platform"}<input value={working.adaptiveFacts.platform ?? ""} onChange={(event) => {
-        const platform = event.target.value || null;
-        setWorking((current) => ({ ...current, adaptiveFacts: {
-          ...current.adaptiveFacts,
-          platform,
-          affectedPlatforms: platform ? [platform] : [],
-          entityRelationship: current.adaptiveFacts.messageSourcePlatforms.length > 0
-            ? null
-            : current.adaptiveFacts.entityRelationship,
-          platformType: platform ? getPlatformConfig(platform).platformType : null,
-        } }));
-      }} /></label>,
-      <label key="account">{hi ? "खाता या प्रोफ़ाइल नाम / ID" : platformConfig.identifierLabel}<input value={working.adaptiveFacts.affectedAccount ?? ""} onChange={(event) => setWorking((current) => ({ ...current, adaptiveFacts: { ...current.adaptiveFacts, affectedAccount: event.target.value || null } }))} /><small>{hi ? "यदि उपलब्ध हो तो उपयोगी" : "Helpful if available"}</small></label>,
-      ...(platformConfig.urlLabel ? [<label key="url">{hi ? "प्रोफ़ाइल या खाते का URL" : platformConfig.urlLabel}<input type="url" value={working.adaptiveFacts.profileUrl ?? ""} onChange={(event) => setWorking((current) => ({ ...current, adaptiveFacts: { ...current.adaptiveFacts, profileUrl: event.target.value || null } }))} /><small>{hi ? "यदि उपलब्ध हो तो उपयोगी" : "Helpful if available"}</small></label>] : []),
-      <label key="access">{hi ? "खाते तक पहुँच" : "Account access status"}<input value={working.adaptiveFacts.accountAccessStatus ?? ""} onChange={(event) => setWorking((current) => ({ ...current, adaptiveFacts: { ...current.adaptiveFacts, accountAccessStatus: event.target.value || null } }))} /></label>,
+      <label key="platform">
+        {hi ? "प्रभावित प्लेटफ़ॉर्म" : "Affected platform"}
+        <input
+          value={working.adaptiveFacts.platform ?? ""}
+          onChange={(event) => {
+            const platform = event.target.value || null;
+            setWorking((current) => ({
+              ...current,
+              adaptiveFacts: {
+                ...current.adaptiveFacts,
+                platform,
+                affectedPlatforms: platform ? [platform] : [],
+                entityRelationship:
+                  current.adaptiveFacts.messageSourcePlatforms.length > 0
+                    ? null
+                    : current.adaptiveFacts.entityRelationship,
+                platformType: platform
+                  ? getPlatformConfig(platform).platformType
+                  : null,
+              },
+            }));
+          }}
+        />
+      </label>,
+      <label key="account">
+        {hi ? "खाता या प्रोफ़ाइल नाम / ID" : platformConfig.identifierLabel}
+        <input
+          value={working.adaptiveFacts.affectedAccount ?? ""}
+          onChange={(event) =>
+            setWorking((current) => ({
+              ...current,
+              adaptiveFacts: {
+                ...current.adaptiveFacts,
+                affectedAccount: event.target.value || null,
+              },
+            }))
+          }
+        />
+        <small>{hi ? "यदि उपलब्ध हो तो उपयोगी" : "Helpful if available"}</small>
+      </label>,
+      ...(platformConfig.urlLabel
+        ? [
+            <label key="url">
+              {hi ? "प्रोफ़ाइल या खाते का URL" : platformConfig.urlLabel}
+              <input
+                type="url"
+                value={working.adaptiveFacts.profileUrl ?? ""}
+                onChange={(event) =>
+                  setWorking((current) => ({
+                    ...current,
+                    adaptiveFacts: {
+                      ...current.adaptiveFacts,
+                      profileUrl: event.target.value || null,
+                    },
+                  }))
+                }
+              />
+              <small>
+                {hi ? "यदि उपलब्ध हो तो उपयोगी" : "Helpful if available"}
+              </small>
+            </label>,
+          ]
+        : []),
+      <label key="access">
+        {hi ? "खाते तक पहुँच" : "Account access status"}
+        <input
+          value={working.adaptiveFacts.accountAccessStatus ?? ""}
+          onChange={(event) =>
+            setWorking((current) => ({
+              ...current,
+              adaptiveFacts: {
+                ...current.adaptiveFacts,
+                accountAccessStatus: event.target.value || null,
+              },
+            }))
+          }
+        />
+      </label>,
     );
   } else if (groupId === "THREAT_IMPERSONATION") {
     controls.push(
-      <label key="demand">{hi ? "मांगी गई राशि" : "Amount demanded"}<input inputMode="decimal" value={working.adaptiveFacts.demandedAmount ?? ""} onChange={(event) => setWorking((current) => ({ ...current, adaptiveFacts: { ...current.adaptiveFacts, demandedAmount: numberValue(event.target.value) } }))} /></label>,
-      <label key="threat-channel">{hi ? "धमकी का माध्यम" : "Threat channel"}<input value={working.adaptiveFacts.threatChannel ?? ""} onChange={(event) => setWorking((current) => ({ ...current, adaptiveFacts: { ...current.adaptiveFacts, threatChannel: event.target.value || null } }))} /></label>,
-      <label key="entity">{hi ? "दावा की गई पहचान" : "Claimed identity or organisation"}<input value={working.adaptiveFacts.impersonatedEntity ?? ""} onChange={(event) => setWorking((current) => ({ ...current, adaptiveFacts: { ...current.adaptiveFacts, impersonatedEntity: event.target.value || null } }))} /></label>,
-      <label key="description">{hi ? "धमकी का विवरण" : "Threat description"}<textarea rows={4} value={working.adaptiveFacts.threatDescription ?? ""} onChange={(event) => setWorking((current) => ({ ...current, adaptiveFacts: { ...current.adaptiveFacts, threatDescription: event.target.value || null } }))} /></label>,
+      <label key="demand">
+        {hi ? "मांगी गई राशि" : "Amount demanded"}
+        <input
+          inputMode="decimal"
+          value={working.adaptiveFacts.demandedAmount ?? ""}
+          onChange={(event) =>
+            setWorking((current) => ({
+              ...current,
+              adaptiveFacts: {
+                ...current.adaptiveFacts,
+                demandedAmount: numberValue(event.target.value),
+              },
+            }))
+          }
+        />
+      </label>,
+      <label key="threat-channel">
+        {hi ? "धमकी का माध्यम" : "Threat channel"}
+        <input
+          value={working.adaptiveFacts.threatChannel ?? ""}
+          onChange={(event) =>
+            setWorking((current) => ({
+              ...current,
+              adaptiveFacts: {
+                ...current.adaptiveFacts,
+                threatChannel: event.target.value || null,
+              },
+            }))
+          }
+        />
+      </label>,
+      <label key="entity">
+        {hi ? "दावा की गई पहचान" : "Claimed identity or organisation"}
+        <input
+          value={working.adaptiveFacts.impersonatedEntity ?? ""}
+          onChange={(event) =>
+            setWorking((current) => ({
+              ...current,
+              adaptiveFacts: {
+                ...current.adaptiveFacts,
+                impersonatedEntity: event.target.value || null,
+              },
+            }))
+          }
+        />
+      </label>,
+      <label key="description">
+        {hi ? "धमकी का विवरण" : "Threat description"}
+        <textarea
+          rows={4}
+          value={working.adaptiveFacts.threatDescription ?? ""}
+          onChange={(event) =>
+            setWorking((current) => ({
+              ...current,
+              adaptiveFacts: {
+                ...current.adaptiveFacts,
+                threatDescription: event.target.value || null,
+              },
+            }))
+          }
+        />
+      </label>,
     );
   } else if (groupId === "INFORMATION") {
     controls.push(
-      <label key="requested">{hi ? "मांगी गई जानकारी" : "Information requested"}<input value={working.adaptiveFacts.requestedSensitiveInfo.join(", ")} onChange={(event) => setWorking((current) => ({ ...current, adaptiveFacts: { ...current.adaptiveFacts, requestedSensitiveInfo: event.target.value.split(",").map((item) => item.trim()).filter(Boolean) } }))} /></label>,
-      <label key="shared">{hi ? "साझा की गई जानकारी" : "Information shared"}<input value={working.adaptiveFacts.sharedSensitiveInfo.join(", ")} onChange={(event) => setWorking((current) => ({ ...current, adaptiveFacts: { ...current.adaptiveFacts, sharedSensitiveInfo: event.target.value.split(",").map((item) => item.trim()).filter(Boolean) } }))} /></label>,
+      <label key="requested">
+        {hi ? "मांगी गई जानकारी" : "Information requested"}
+        <input
+          value={working.adaptiveFacts.requestedSensitiveInfo.join(", ")}
+          onChange={(event) =>
+            setWorking((current) => ({
+              ...current,
+              adaptiveFacts: {
+                ...current.adaptiveFacts,
+                requestedSensitiveInfo: event.target.value
+                  .split(",")
+                  .map((item) => item.trim())
+                  .filter(Boolean),
+              },
+            }))
+          }
+        />
+      </label>,
+      <label key="shared">
+        {hi ? "साझा की गई जानकारी" : "Information shared"}
+        <input
+          value={working.adaptiveFacts.sharedSensitiveInfo.join(", ")}
+          onChange={(event) =>
+            setWorking((current) => ({
+              ...current,
+              adaptiveFacts: {
+                ...current.adaptiveFacts,
+                sharedSensitiveInfo: event.target.value
+                  .split(",")
+                  .map((item) => item.trim())
+                  .filter(Boolean),
+              },
+            }))
+          }
+        />
+      </label>,
     );
   }
 
-  const confirmedFields = groupId === "TRANSACTIONS"
-    ? working.transactions.flatMap((_, index) => ["amount", "institution", "accountOrUpiId", "transactionIdOrUtr", "transactionDate", "approximateTime"].map((field) => `transactions.${index}.${field}`))
-    : groupId === "ACCOUNT_SYSTEM"
-      ? ["adaptive.platform", "adaptive.affectedPlatforms", "adaptive.platformType", "adaptive.affectedAccount", "adaptive.profileUrl", "adaptive.accountAccessStatus"]
-      : groupId === "THREAT_IMPERSONATION"
-        ? ["adaptive.demandedAmount", "adaptive.threatChannel", "adaptive.impersonatedEntity", "adaptive.threatDescription"]
-        : groupId === "INFORMATION"
-          ? ["adaptive.requestedSensitiveInfo", "adaptive.sharedSensitiveInfo"]
-          : ["incident.incidentDate", "incident.incidentTime", "incident.communicationChannel"];
+  const confirmedFields =
+    groupId === "TRANSACTIONS"
+      ? working.transactions.flatMap((_, index) =>
+          [
+            "amount",
+            "institution",
+            "accountOrUpiId",
+            "transactionIdOrUtr",
+            "transactionDate",
+            "approximateTime",
+          ].map((field) => `transactions.${index}.${field}`),
+        )
+      : groupId === "ACCOUNT_SYSTEM"
+        ? [
+            "adaptive.platform",
+            "adaptive.affectedPlatforms",
+            "adaptive.platformType",
+            "adaptive.affectedAccount",
+            "adaptive.profileUrl",
+            "adaptive.accountAccessStatus",
+          ]
+        : groupId === "THREAT_IMPERSONATION"
+          ? [
+              "adaptive.demandedAmount",
+              "adaptive.threatChannel",
+              "adaptive.impersonatedEntity",
+              "adaptive.threatDescription",
+            ]
+          : groupId === "INFORMATION"
+            ? [
+                "adaptive.requestedSensitiveInfo",
+                "adaptive.sharedSensitiveInfo",
+              ]
+            : [
+                "incident.incidentDate",
+                "incident.incidentTime",
+                "incident.communicationChannel",
+              ];
 
-  return <div className="report-inline-edit section-inline-edit">{controls}<div className="inline-field-actions"><button className="secondary-button" type="button" onClick={() => onSave(working, confirmedFields)}>{t("field.save")}</button><button className="text-button" type="button" onClick={onCancel}>{t("field.cancel")}</button></div></div>;
+  return (
+    <div className="report-inline-edit section-inline-edit">
+      {controls}
+      <div className="inline-field-actions">
+        <button
+          className="secondary-button"
+          type="button"
+          onClick={() => onSave(working, confirmedFields)}
+        >
+          {t("field.save")}
+        </button>
+        <button className="text-button" type="button" onClick={onCancel}>
+          {t("field.cancel")}
+        </button>
+      </div>
+    </div>
+  );
 }
 
 function ReportGroup({
@@ -1516,28 +2200,39 @@ function ReportGroup({
   const saveSection = (nextDraft: IncidentDraft, confirmedFields: string[]) => {
     onDraftChange({
       ...nextDraft,
-      incident: group.id === "TRANSACTIONS"
-        ? { ...nextDraft.incident, citizenConfirmedLoss: null }
-        : nextDraft.incident,
-      citizenConfirmedFields: Array.from(new Set([
-        ...draft.citizenConfirmedFields.filter((field) =>
-          group.id !== "TRANSACTIONS" || field !== "incident.citizenConfirmedLoss"
-        ),
-        ...confirmedFields,
-      ])),
+      incident:
+        group.id === "TRANSACTIONS"
+          ? { ...nextDraft.incident, citizenConfirmedLoss: null }
+          : nextDraft.incident,
+      citizenConfirmedFields: Array.from(
+        new Set([
+          ...draft.citizenConfirmedFields.filter(
+            (field) =>
+              group.id !== "TRANSACTIONS" ||
+              field !== "incident.citizenConfirmedLoss",
+          ),
+          ...confirmedFields,
+        ]),
+      ),
     });
     setSectionEditing(false);
   };
 
   const editSection = () => {
     if (group.id === "EVIDENCE_SUSPECT") {
-      document.querySelector<HTMLElement>("[data-report-field-id='source-evidence']")?.focus();
-      document.querySelector<HTMLElement>("[data-report-field-id='source-evidence']")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      document
+        .querySelector<HTMLElement>("[data-report-field-id='source-evidence']")
+        ?.focus();
+      document
+        .querySelector<HTMLElement>("[data-report-field-id='source-evidence']")
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
     if (group.id === "REPORTER") {
       document.querySelector<HTMLInputElement>("#reporter-name")?.focus();
-      document.querySelector<HTMLInputElement>("#reporter-name")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      document
+        .querySelector<HTMLInputElement>("#reporter-name")
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
     setSectionEditing(true);
@@ -1553,7 +2248,12 @@ function ReportGroup({
             : `✓ ${t("workspace.complete")}`}
         </span>
       ) : null}
-      <button className="text-button" type="button" onClick={editSection} aria-label={`${t("field.edit")} ${group.label}`}>
+      <button
+        className="text-button"
+        type="button"
+        onClick={editSection}
+        aria-label={`${t("field.edit")} ${group.label}`}
+      >
         <span aria-hidden="true">✎</span> {t("field.edit")}
       </button>
     </div>
@@ -1603,10 +2303,12 @@ function ReportGroup({
             onDraftChange({
               ...draft,
               incident: { ...draft.incident, narrative: narrative || null },
-              citizenConfirmedFields: Array.from(new Set([
-                ...draft.citizenConfirmedFields,
-                "incident.narrative",
-              ])),
+              citizenConfirmedFields: Array.from(
+                new Set([
+                  ...draft.citizenConfirmedFields,
+                  "incident.narrative",
+                ]),
+              ),
             });
             setNarrativeEditing(false);
           }}
@@ -1881,12 +2583,18 @@ function ReportGroup({
             {t("workspace.fullProfile")} <span aria-hidden="true">→</span>
           </summary>
           <div className="report-summary-disclosure-content">
-            {group.sections.filter((section) => section.fields.some((field) => conciseProfileIds.has(field.id))).map((section) => (
-              <section key={section.id} className="report-field-section">
-                {section.title ? <h3>{section.title}</h3> : null}
-                {section.fields.filter((field) => conciseProfileIds.has(field.id)).map(renderField)}
-              </section>
-            ))}
+            {group.sections
+              .filter((section) =>
+                section.fields.some((field) => conciseProfileIds.has(field.id)),
+              )
+              .map((section) => (
+                <section key={section.id} className="report-field-section">
+                  {section.title ? <h3>{section.title}</h3> : null}
+                  {section.fields
+                    .filter((field) => conciseProfileIds.has(field.id))
+                    .map(renderField)}
+                </section>
+              ))}
           </div>
         </details>
       </div>
@@ -1976,11 +2684,18 @@ function ReportReview(props: ReportWorkspaceProps) {
     props.onBackToEdit();
     let attempts = 0;
     const openEditor = () => {
-      const group = document.querySelector<HTMLElement>(`[data-group-id='${groupId}']`);
-      const button = group?.querySelector<HTMLButtonElement>(".report-section-heading button");
+      const group = document.querySelector<HTMLElement>(
+        `[data-group-id='${groupId}']`,
+      );
+      const button = group?.querySelector<HTMLButtonElement>(
+        ".report-section-heading button",
+      );
       if (button) {
         group?.scrollIntoView({
-          behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+          behavior: window.matchMedia("(prefers-reduced-motion: reduce)")
+            .matches
+            ? "auto"
+            : "smooth",
           block: "start",
         });
         button.focus();
@@ -1999,22 +2714,83 @@ function ReportReview(props: ReportWorkspaceProps) {
         <h2>{locale === "hi" ? "शिकायत की जानकारी" : "Complaint details"}</h2>
         <p>{t("workspace.reviewSupport")}</p>
       </div>
-      <section className="case-integrity-summary" aria-labelledby="case-check-heading">
-        <h2 id="case-check-heading">{locale === "hi" ? "जमा करने से पहले जाँच" : "Details to review"}</h2>
+      <section
+        className="case-integrity-summary"
+        aria-labelledby="case-check-heading"
+      >
+        <h2 id="case-check-heading">
+          {locale === "hi" ? "जमा करने से पहले जाँच" : "Details to review"}
+        </h2>
         <ul>
-          {integrity.transactionCount > 0 ? <li><span aria-hidden="true">✓</span> {locale === "hi" ? `${integrity.transactionCount} लेन-देन व्यवस्थित किए गए` : `${integrity.transactionCount} ${integrity.transactionCount === 1 ? "transaction" : "transactions"} organised`}</li> : null}
-          {integrity.importantFactsLinkedToEvidence > 0 ? <li><span aria-hidden="true">✓</span> {locale === "hi" ? `सबूत ${integrity.importantFactsLinkedToEvidence} जरूरी जानकारियों से जुड़ा है` : `Evidence linked to ${integrity.importantFactsLinkedToEvidence} important details`}</li> : null}
+          {integrity.transactionCount > 0 ? (
+            <li>
+              <span aria-hidden="true">✓</span>{" "}
+              {locale === "hi"
+                ? `${integrity.transactionCount} लेन-देन व्यवस्थित किए गए`
+                : `${integrity.transactionCount} ${integrity.transactionCount === 1 ? "transaction" : "transactions"} organised`}
+            </li>
+          ) : null}
+          {integrity.importantFactsLinkedToEvidence > 0 ? (
+            <li>
+              <span aria-hidden="true">✓</span>{" "}
+              {locale === "hi"
+                ? `सबूत ${integrity.importantFactsLinkedToEvidence} जरूरी जानकारियों से जुड़ा है`
+                : `Evidence linked to ${integrity.importantFactsLinkedToEvidence} important details`}
+            </li>
+          ) : null}
           {integrity.unresolvedConflictCount === 0 ? (
-            <li><span aria-hidden="true">✓</span> {locale === "hi" ? "कोई अनसुलझा विरोध नहीं" : "No unresolved contradictions"}</li>
+            <li>
+              <span aria-hidden="true">✓</span>{" "}
+              {locale === "hi"
+                ? "कोई अनसुलझा विरोध नहीं"
+                : "No unresolved contradictions"}
+            </li>
           ) : (
-            <li>{locale === "hi" ? `${integrity.unresolvedConflictCount} विरोध की पुष्टि बाकी है` : `${integrity.unresolvedConflictCount} ${integrity.unresolvedConflictCount === 1 ? "conflict needs" : "conflicts need"} confirmation`}</li>
+            <li>
+              {locale === "hi"
+                ? `${integrity.unresolvedConflictCount} विरोध की पुष्टि बाकी है`
+                : `${integrity.unresolvedConflictCount} ${integrity.unresolvedConflictCount === 1 ? "conflict needs" : "conflicts need"} confirmation`}
+            </li>
           )}
         </ul>
-        {integrity.unavailableImportantDetails.length > 0 ? <p><strong>{locale === "hi" ? "आपके पास नहीं" : "You don’t have"}</strong><br />{integrity.unavailableImportantDetails.join(", ")}</p> : null}
+        {integrity.unavailableImportantDetails.length > 0 ? (
+          <p>
+            <strong>
+              {locale === "hi" ? "आपके पास नहीं" : "You don’t have"}
+            </strong>
+            <br />
+            {integrity.unavailableImportantDetails.join(", ")}
+          </p>
+        ) : null}
       </section>
-      <section className="case-knowledge-summary" aria-labelledby="what-we-know-heading">
-        <div><h2 id="what-we-know-heading">{locale === "hi" ? "उपलब्ध जानकारी" : "Available information"}</h2><ul>{integrity.knownFacts.map((fact) => <li key={fact}>{fact}</li>)}</ul></div>
-        {integrity.stillUnknown.length > 0 ? <div><h2>{locale === "hi" ? "जानकारी उपलब्ध नहीं" : "Information not available"}</h2><ul>{integrity.stillUnknown.map((fact) => <li key={fact}>{fact}</li>)}</ul></div> : null}
+      <section
+        className="case-knowledge-summary"
+        aria-labelledby="what-we-know-heading"
+      >
+        <div>
+          <h2 id="what-we-know-heading">
+            {locale === "hi" ? "उपलब्ध जानकारी" : "Available information"}
+          </h2>
+          <ul>
+            {integrity.knownFacts.map((fact) => (
+              <li key={fact}>{fact}</li>
+            ))}
+          </ul>
+        </div>
+        {integrity.stillUnknown.length > 0 ? (
+          <div>
+            <h2>
+              {locale === "hi"
+                ? "जानकारी उपलब्ध नहीं"
+                : "Information not available"}
+            </h2>
+            <ul>
+              {integrity.stillUnknown.map((fact) => (
+                <li key={fact}>{fact}</li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
       </section>
       <div className="report-review-groups">
         {groups.map((group) => (
@@ -2166,14 +2942,40 @@ function ReportReview(props: ReportWorkspaceProps) {
         locale={locale}
         isDemoIncident={props.isDemoIncident}
       />
-      <section className="before-submit-checkpoint" aria-labelledby="submit-checkpoint-heading">
-        <h2 id="submit-checkpoint-heading">{locale === "hi" ? "जमा करने के लिए तैयार" : "Ready to submit"}</h2>
+      <section
+        className="before-submit-checkpoint"
+        aria-labelledby="submit-checkpoint-heading"
+      >
+        <h2 id="submit-checkpoint-heading">
+          {locale === "hi" ? "जमा करने के लिए तैयार" : "Ready to submit"}
+        </h2>
         <dl>
-          {reviewTotal ? <div><strong>{formatCurrency(reviewTotal)}</strong><span>{locale === "hi" ? "रिपोर्ट की गई हानि" : "Reported loss"}</span></div> : null}
-          {props.draft.transactions.length > 0 ? <div><strong>{props.draft.transactions.length}</strong><span>{locale === "hi" ? "लेन-देन" : "Transactions"}</span></div> : null}
-          {props.draft.evidence.length > 0 ? <div><strong>{props.draft.evidence.length}</strong><span>{locale === "hi" ? "सबूत" : "Evidence items"}</span></div> : null}
+          {reviewTotal ? (
+            <div>
+              <strong>{formatCurrency(reviewTotal)}</strong>
+              <span>
+                {locale === "hi" ? "रिपोर्ट की गई हानि" : "Reported loss"}
+              </span>
+            </div>
+          ) : null}
+          {props.draft.transactions.length > 0 ? (
+            <div>
+              <strong>{props.draft.transactions.length}</strong>
+              <span>{locale === "hi" ? "लेन-देन" : "Transactions"}</span>
+            </div>
+          ) : null}
+          {props.draft.evidence.length > 0 ? (
+            <div>
+              <strong>{props.draft.evidence.length}</strong>
+              <span>{locale === "hi" ? "सबूत" : "Evidence items"}</span>
+            </div>
+          ) : null}
         </dl>
-        <p>{locale === "hi" ? "कोई जरूरी जानकारी बाकी नहीं है। जमा करने से पहले आप अभी भी कुछ भी बदल सकते हैं।" : "No unresolved required details. You can still change anything before submitting."}</p>
+        <p>
+          {locale === "hi"
+            ? "कोई जरूरी जानकारी बाकी नहीं है। जमा करने से पहले आप अभी भी कुछ भी बदल सकते हैं।"
+            : "No unresolved required details. You can still change anything before submitting."}
+        </p>
       </section>
       <label className="report-declaration">
         <input
@@ -2284,8 +3086,12 @@ function ReportingPathControl({
       >
         <h3>
           {noIncidentIdentified
-            ? locale === "hi" ? "अभी रिपोर्ट करने योग्य घटना नहीं मिली" : "Nothing to report yet"
-            : locale === "hi" ? "अतिरिक्त जानकारी" : "Additional information"}
+            ? locale === "hi"
+              ? "अभी रिपोर्ट करने योग्य घटना नहीं मिली"
+              : "Nothing to report yet"
+            : locale === "hi"
+              ? "अतिरिक्त जानकारी"
+              : "Additional information"}
         </h3>
         <p>
           {noIncidentIdentified
@@ -2488,73 +3294,131 @@ function ReportStatusCard({
     props.draft.classification.ambiguity === "INSUFFICIENT_INFORMATION" &&
     props.draft.classification.cyberElementPresent !== true,
   );
-  const title = props.mode === "PROCESSING"
-    ? hi ? "शिकायत तैयार हो रही है…" : "Preparing complaint…"
-    : props.mode === "ERROR"
-      ? props.preparationFailure === "TRANSLATION"
-        ? hi ? "अनुवाद पूरा नहीं हो सका" : "Translation couldn't be completed"
-        : props.isTranscriptionError
-        ? hi ? "हम इस रिकॉर्डिंग को लिखित रूप में नहीं बदल पाए" : "We couldn't transcribe this recording"
-        : hi ? "शिकायत अभी तैयार नहीं हो सकी" : "The complaint couldn't be prepared right now"
-      : isEmpty
-        ? hi ? "शिकायत की जानकारी" : "Complaint details"
-        : noIncidentIdentified
-          ? hi ? "अभी रिपोर्ट करने योग्य घटना नहीं मिली" : "Nothing to report yet"
-        : readiness?.state === "STALE"
-          ? hi ? "आपकी जानकारी बदल गई है" : "Your information changed"
-          : readiness?.state === "NEEDS_CLARIFICATION"
-            ? hi ? "जानकारी जरूरी है" : "Information required"
-            : readiness?.state === "MISSING_REQUIRED"
-              ? hi ? "शिकायत लगभग तैयार है" : "Complaint almost ready"
-              : hi ? "शिकायत जाँचने के लिए तैयार है" : "Complaint ready to review";
-  const support = props.mode === "PROCESSING"
-    ? hi ? "दी गई जानकारी से शिकायत का विवरण तैयार हो रहा है।" : "Preparing complaint details from the information provided."
-    : props.mode === "ERROR"
-      ? props.preparationFailure === "TRANSLATION"
-        ? hi ? "आपका मूल बयान सुरक्षित है।" : "Your original statement is saved."
-        : props.isTranscriptionError
-        ? hi ? "शिकायत की दूसरी जानकारी सुरक्षित है।" : "Your other complaint details are saved."
-        : hi ? "आपका बयान और सबूत सुरक्षित हैं।" : "Your statement and evidence are saved."
-      : isEmpty
-        ? hi
-          ? "घटना की जानकारी देने पर शिकायत का विवरण यहाँ दिखाई देगा।"
-          : "Provide the incident information to prepare the complaint details."
-        : noIncidentIdentified
+  const title =
+    props.mode === "PROCESSING"
+      ? hi
+        ? "शिकायत तैयार हो रही है…"
+        : "Preparing complaint…"
+      : props.mode === "ERROR"
+        ? props.preparationFailure === "TRANSLATION"
           ? hi
-            ? "आपने जो बताया, उसमें अभी साइबर अपराध की घटना पहचानने के लिए पर्याप्त जानकारी नहीं मिली।"
-            : "The information provided does not yet identify a cybercrime incident."
-        : readiness?.state === "STALE"
-          ? hi ? "आगे बढ़ने से पहले शिकायत को नई जानकारी के साथ अपडेट करें।" : "Update the complaint with the new information before continuing."
-          : readiness?.state === "NEEDS_CLARIFICATION"
-            ? hi ? "सचेत को आगे बढ़ने से पहले एक जवाब चाहिए।" : "One answer is needed before सचेत can continue."
-            : readiness?.state === "MISSING_REQUIRED"
+            ? "अनुवाद पूरा नहीं हो सका"
+            : "Translation couldn't be completed"
+          : props.isTranscriptionError
+            ? hi
+              ? "हम इस रिकॉर्डिंग को लिखित रूप में नहीं बदल पाए"
+              : "We couldn't transcribe this recording"
+            : hi
+              ? "शिकायत अभी तैयार नहीं हो सकी"
+              : "The complaint couldn't be prepared right now"
+        : isEmpty
+          ? hi
+            ? "शिकायत की जानकारी"
+            : "Complaint details"
+          : noIncidentIdentified
+            ? hi
+              ? "अभी रिपोर्ट करने योग्य घटना नहीं मिली"
+              : "Nothing to report yet"
+            : readiness?.state === "STALE"
               ? hi
-                ? `${readiness.blockingItems.length} जरूरी जानकारी पर अभी ध्यान देना बाकी है।`
-                : `${readiness.blockingItems.length} required ${readiness.blockingItems.length === 1 ? "detail still needs" : "details still need"} your attention.`
-              : hi ? "इस शिकायत के लिए जरूरी जानकारी उपलब्ध है।" : "The required complaint information is available.";
-  const actionLabel = props.mode === "PROCESSING"
-    ? t("workspace.preparingReport")
-    : props.mode === "ERROR"
-      ? props.preparationFailure === "TRANSLATION"
-        ? hi ? "अनुवाद फिर से करें" : "Retry translation"
-        : props.isTranscriptionError
-        ? hi ? "फिर से ट्रांसक्राइब करें" : "Retry transcription"
-        : t("workspace.tryAgain")
-      : !props.draft
-        ? t("workspace.organise")
-        : noIncidentIdentified
-          ? hi ? "जानकारी जोड़ें" : "Add details"
-        : readiness?.state === "STALE"
-          ? hi ? "शिकायत अपडेट करें" : "Update complaint"
-          : readiness?.state === "NEEDS_CLARIFICATION"
-            ? hi ? "सवाल का जवाब दें" : "Answer question"
-            : readiness?.state === "MISSING_REQUIRED"
-              ? hi ? "अगली जरूरी जानकारी पर जाएँ" : "Go to next missing detail"
-              : hi ? "शिकायत जाँचें" : "Review complaint";
+                ? "आपकी जानकारी बदल गई है"
+                : "Your information changed"
+              : readiness?.state === "NEEDS_CLARIFICATION"
+                ? hi
+                  ? "जानकारी जरूरी है"
+                  : "Information required"
+                : readiness?.state === "MISSING_REQUIRED"
+                  ? hi
+                    ? "शिकायत लगभग तैयार है"
+                    : "Complaint almost ready"
+                  : hi
+                    ? "शिकायत जाँचने के लिए तैयार है"
+                    : "Complaint ready to review";
+  const support =
+    props.mode === "PROCESSING"
+      ? hi
+        ? "दी गई जानकारी से शिकायत का विवरण तैयार हो रहा है।"
+        : "Preparing complaint details from the information provided."
+      : props.mode === "ERROR"
+        ? props.preparationFailure === "TRANSLATION"
+          ? hi
+            ? "आपका मूल बयान सुरक्षित है।"
+            : "Your original statement is saved."
+          : props.isTranscriptionError
+            ? hi
+              ? "शिकायत की दूसरी जानकारी सुरक्षित है।"
+              : "Your other complaint details are saved."
+            : hi
+              ? "आपका बयान और सबूत सुरक्षित हैं।"
+              : "Your statement and evidence are saved."
+        : isEmpty
+          ? hi
+            ? "घटना की जानकारी देने पर शिकायत का विवरण यहाँ दिखाई देगा।"
+            : "Provide the incident information to prepare the complaint details."
+          : noIncidentIdentified
+            ? hi
+              ? "आपने जो बताया, उसमें अभी साइबर अपराध की घटना पहचानने के लिए पर्याप्त जानकारी नहीं मिली।"
+              : "The information provided does not yet identify a cybercrime incident."
+            : readiness?.state === "STALE"
+              ? hi
+                ? "आगे बढ़ने से पहले शिकायत को नई जानकारी के साथ अपडेट करें।"
+                : "Update the complaint with the new information before continuing."
+              : readiness?.state === "NEEDS_CLARIFICATION"
+                ? hi
+                  ? "सचेत को आगे बढ़ने से पहले एक जवाब चाहिए।"
+                  : "One answer is needed before सचेत can continue."
+                : readiness?.state === "MISSING_REQUIRED"
+                  ? hi
+                    ? `${readiness.blockingItems.length} जरूरी जानकारी पर अभी ध्यान देना बाकी है।`
+                    : `${readiness.blockingItems.length} required ${readiness.blockingItems.length === 1 ? "detail still needs" : "details still need"} your attention.`
+                  : hi
+                    ? "इस शिकायत के लिए जरूरी जानकारी उपलब्ध है।"
+                    : "The required complaint information is available.";
+  const actionLabel =
+    props.mode === "PROCESSING"
+      ? t("workspace.preparingReport")
+      : props.mode === "ERROR"
+        ? props.preparationFailure === "TRANSLATION"
+          ? hi
+            ? "अनुवाद फिर से करें"
+            : "Retry translation"
+          : props.isTranscriptionError
+            ? hi
+              ? "फिर से ट्रांसक्राइब करें"
+              : "Retry transcription"
+            : t("workspace.tryAgain")
+        : !props.draft
+          ? t("workspace.organise")
+          : noIncidentIdentified
+            ? hi
+              ? "जानकारी जोड़ें"
+              : "Add details"
+            : readiness?.state === "STALE"
+              ? hi
+                ? "शिकायत अपडेट करें"
+                : "Update complaint"
+              : readiness?.state === "NEEDS_CLARIFICATION"
+                ? hi
+                  ? "सवाल का जवाब दें"
+                  : "Answer question"
+                : readiness?.state === "MISSING_REQUIRED"
+                  ? hi
+                    ? "अगली जरूरी जानकारी पर जाएँ"
+                    : "Go to next missing detail"
+                  : hi
+                    ? "शिकायत जाँचें"
+                    : "Review complaint";
 
   return (
-    <section className={`report-status-card${isEmpty ? " report-status-card-empty" : ""}`} aria-live="polite">
-      <p className="report-status-label" id="report-details-heading" tabIndex={-1}>
+    <section
+      className={`report-status-card${isEmpty ? " report-status-card-empty" : ""}`}
+      aria-live="polite"
+    >
+      <p
+        className="report-status-label"
+        id="report-details-heading"
+        tabIndex={-1}
+      >
         {t("workspace.reportInfo")}
       </p>
       {isEmpty ? <EmptyReportIllustration /> : null}
@@ -2564,7 +3428,9 @@ function ReportStatusCard({
         <button
           className="primary-button"
           type="button"
-          disabled={props.mode === "PROCESSING" || (!props.draft && !sourceReady)}
+          disabled={
+            props.mode === "PROCESSING" || (!props.draft && !sourceReady)
+          }
           onClick={onPrimaryAction}
         >
           {actionLabel}
@@ -2586,7 +3452,10 @@ function ReportDetailsPane({
   groups: ReportGroupView[];
   readiness: ReportReadiness | null;
   consistencyIssues: CaseConsistencyIssue[];
-  onResolveConsistencyIssue: (issue: CaseConsistencyIssue, resolution: ConsistencyResolution) => void;
+  onResolveConsistencyIssue: (
+    issue: CaseConsistencyIssue,
+    resolution: ConsistencyResolution,
+  ) => void;
   sourceReady: boolean;
   onPrimaryAction: () => void;
 }) {
@@ -2602,9 +3471,10 @@ function ReportDetailsPane({
   const firstMissingQuestion = props.draft
     ? deriveMissingQuestions(props.draft)[0]
     : null;
-  const evidenceMissing = readiness?.blockingItems.some(
-    (item) => item.fieldId === "source-evidence",
-  ) ?? false;
+  const evidenceMissing =
+    readiness?.blockingItems.some(
+      (item) => item.fieldId === "source-evidence",
+    ) ?? false;
   const priorityField = firstMissingQuestion
     ? groups
         .flatMap((group) => group.sections)
@@ -2658,14 +3528,32 @@ function ReportDetailsPane({
         onPrimaryAction={onPrimaryAction}
       />
 
-      {props.draft?.incident.financialLossState === "YES" && props.draft.transactions.length > 0 ? (
-        <aside className="financial-triage" aria-labelledby="financial-triage-heading">
+      {props.draft?.incident.financialLossState === "YES" &&
+      props.draft.transactions.length > 0 ? (
+        <aside
+          className="financial-triage"
+          aria-labelledby="financial-triage-heading"
+        >
           <div>
-            <p className="eyebrow">{locale === "hi" ? "पैसे ट्रांसफर हुए हैं?" : "Money was transferred?"}</p>
-            <h2 id="financial-triage-heading">{locale === "hi" ? "यदि अभी तक नहीं किया है, तो तुरंत 1930 पर कॉल करें" : "Call 1930 promptly if you have not already"}</h2>
-            <p>{locale === "hi" ? "आप यहाँ अपनी रिपोर्ट तैयार करना जारी रख सकते हैं।" : "You can continue preparing your report here."}</p>
+            <p className="eyebrow">
+              {locale === "hi"
+                ? "पैसे ट्रांसफर हुए हैं?"
+                : "Money was transferred?"}
+            </p>
+            <h2 id="financial-triage-heading">
+              {locale === "hi"
+                ? "यदि अभी तक नहीं किया है, तो तुरंत 1930 पर कॉल करें"
+                : "Call 1930 promptly if you have not already"}
+            </h2>
+            <p>
+              {locale === "hi"
+                ? "आप यहाँ अपनी रिपोर्ट तैयार करना जारी रख सकते हैं।"
+                : "You can continue preparing your report here."}
+            </p>
           </div>
-          <a className="primary-button" href="tel:1930">{locale === "hi" ? "1930 पर कॉल करें" : "Call 1930"}</a>
+          <a className="primary-button" href="tel:1930">
+            {locale === "hi" ? "1930 पर कॉल करें" : "Call 1930"}
+          </a>
         </aside>
       ) : null}
 
@@ -2844,20 +3732,29 @@ function ReportDetailsPane({
                     </button>
                   ))}
                 <label className="custom-amount-choice">
-                  <span>{locale === "hi" ? "दूसरी राशि" : "Another amount"}</span>
+                  <span>
+                    {locale === "hi" ? "दूसरी राशि" : "Another amount"}
+                  </span>
                   <input
                     type="number"
                     min="1"
                     inputMode="numeric"
                     value={customReportedAmount}
-                    onChange={(event) => setCustomReportedAmount(event.target.value)}
+                    onChange={(event) =>
+                      setCustomReportedAmount(event.target.value)
+                    }
                   />
                 </label>
                 <button
                   className="secondary-button"
                   type="button"
-                  disabled={!Number.isFinite(Number(customReportedAmount)) || Number(customReportedAmount) <= 0}
-                  onClick={() => props.onReportedAmountSelect(Number(customReportedAmount))}
+                  disabled={
+                    !Number.isFinite(Number(customReportedAmount)) ||
+                    Number(customReportedAmount) <= 0
+                  }
+                  onClick={() =>
+                    props.onReportedAmountSelect(Number(customReportedAmount))
+                  }
                 >
                   {locale === "hi" ? "यह राशि उपयोग करें" : "Use this amount"}
                 </button>
@@ -2872,7 +3769,9 @@ function ReportDetailsPane({
               data-report-field-id={issue.affectedFieldIds[0]}
               aria-labelledby={`${issue.id}-heading`}
             >
-              <p className="eyebrow">{locale === "hi" ? "पुष्टि जरूरी है" : "Needs confirmation"}</p>
+              <p className="eyebrow">
+                {locale === "hi" ? "पुष्टि जरूरी है" : "Needs confirmation"}
+              </p>
               <h3 id={`${issue.id}-heading`}>
                 {issue.type === "ENTITY_RELATIONSHIP" && locale === "hi"
                   ? "पुष्टि करें कि ये खाते किस तरह जुड़े हैं"
@@ -2893,33 +3792,113 @@ function ReportDetailsPane({
                           : "प्रभावित बताया गया खाता"
                         : source.label}
                     </dt>
-                    <dd>{typeof source.value === "number" ? formatCurrency(source.value) : source.value}</dd>
+                    <dd>
+                      {typeof source.value === "number"
+                        ? formatCurrency(source.value)
+                        : source.value}
+                    </dd>
                   </div>
                 ))}
               </dl>
               <div className="inline-field-actions">
                 {issue.type === "POSSIBLE_DUPLICATE" ? (
                   <>
-                    <button className="secondary-button" type="button" onClick={() => onResolveConsistencyIssue(issue, "SAME")}>
+                    <button
+                      className="secondary-button"
+                      type="button"
+                      onClick={() => onResolveConsistencyIssue(issue, "SAME")}
+                    >
                       {locale === "hi" ? "एक ही लेन-देन" : "Same transaction"}
                     </button>
-                    <button className="secondary-button" type="button" onClick={() => onResolveConsistencyIssue(issue, "DIFFERENT")}>
+                    <button
+                      className="secondary-button"
+                      type="button"
+                      onClick={() =>
+                        onResolveConsistencyIssue(issue, "DIFFERENT")
+                      }
+                    >
                       {locale === "hi" ? "दो अलग लेन-देन" : "They’re different"}
                     </button>
                   </>
                 ) : issue.type === "FINANCIAL_LOSS_CONTRADICTION" ? (
                   <>
-                    <button className="secondary-button" type="button" onClick={() => onResolveConsistencyIssue(issue, "YES")}>{locale === "hi" ? "पैसे गए" : "Money was lost"}</button>
-                    <button className="secondary-button" type="button" onClick={() => onResolveConsistencyIssue(issue, "NO")}>{locale === "hi" ? "पैसे नहीं गए" : "No money was lost"}</button>
-                    <button className="secondary-button" type="button" onClick={() => onResolveConsistencyIssue(issue, "UNKNOWN")}>{locale === "hi" ? "पक्का नहीं" : "I’m not sure"}</button>
+                    <button
+                      className="secondary-button"
+                      type="button"
+                      onClick={() => onResolveConsistencyIssue(issue, "YES")}
+                    >
+                      {locale === "hi" ? "पैसे गए" : "Money was lost"}
+                    </button>
+                    <button
+                      className="secondary-button"
+                      type="button"
+                      onClick={() => onResolveConsistencyIssue(issue, "NO")}
+                    >
+                      {locale === "hi" ? "पैसे नहीं गए" : "No money was lost"}
+                    </button>
+                    <button
+                      className="secondary-button"
+                      type="button"
+                      onClick={() =>
+                        onResolveConsistencyIssue(issue, "UNKNOWN")
+                      }
+                    >
+                      {locale === "hi" ? "पक्का नहीं" : "I’m not sure"}
+                    </button>
                   </>
                 ) : issue.type === "ENTITY_RELATIONSHIP" ? (
                   <>
-                    <button className="secondary-button" type="button" onClick={() => onResolveConsistencyIssue(issue, "BOTH_AFFECTED")}>{locale === "hi" ? "हाँ — दोनों खाते प्रभावित हुए" : "Yes — both accounts were affected"}</button>
-                    <button className="secondary-button" type="button" onClick={() => onResolveConsistencyIssue(issue, "SOURCE_ONLY")}>{locale === "hi" ? "नहीं — केवल संदेश वाला खाता" : "No — only the message-source account"}</button>
-                    <button className="secondary-button" type="button" onClick={() => onResolveConsistencyIssue(issue, "TARGET_ONLY")}>{locale === "hi" ? "नहीं — केवल बाद में बताया खाता" : "No — only the later account was affected"}</button>
-                    <button className="secondary-button" type="button" onClick={() => onResolveConsistencyIssue(issue, "SEPARATE_THREADS")}>{locale === "hi" ? "ये दो अलग घटनाएँ हैं" : "They are two separate incidents"}</button>
-                    <button className="secondary-button" type="button" onClick={() => onResolveConsistencyIssue(issue, "UNSURE")}>{locale === "hi" ? "पक्का नहीं" : "I’m not sure"}</button>
+                    <button
+                      className="secondary-button"
+                      type="button"
+                      onClick={() =>
+                        onResolveConsistencyIssue(issue, "BOTH_AFFECTED")
+                      }
+                    >
+                      {locale === "hi"
+                        ? "हाँ — दोनों खाते प्रभावित हुए"
+                        : "Yes — both accounts were affected"}
+                    </button>
+                    <button
+                      className="secondary-button"
+                      type="button"
+                      onClick={() =>
+                        onResolveConsistencyIssue(issue, "SOURCE_ONLY")
+                      }
+                    >
+                      {locale === "hi"
+                        ? "नहीं — केवल संदेश वाला खाता"
+                        : "No — only the message-source account"}
+                    </button>
+                    <button
+                      className="secondary-button"
+                      type="button"
+                      onClick={() =>
+                        onResolveConsistencyIssue(issue, "TARGET_ONLY")
+                      }
+                    >
+                      {locale === "hi"
+                        ? "नहीं — केवल बाद में बताया खाता"
+                        : "No — only the later account was affected"}
+                    </button>
+                    <button
+                      className="secondary-button"
+                      type="button"
+                      onClick={() =>
+                        onResolveConsistencyIssue(issue, "SEPARATE_THREADS")
+                      }
+                    >
+                      {locale === "hi"
+                        ? "ये दो अलग घटनाएँ हैं"
+                        : "They are two separate incidents"}
+                    </button>
+                    <button
+                      className="secondary-button"
+                      type="button"
+                      onClick={() => onResolveConsistencyIssue(issue, "UNSURE")}
+                    >
+                      {locale === "hi" ? "पक्का नहीं" : "I’m not sure"}
+                    </button>
                   </>
                 ) : null}
               </div>
@@ -3009,7 +3988,9 @@ function ReportDetailsPane({
                   screenshots={props.screenshots}
                   isDemoIncident={props.isDemoIncident}
                   demoCase={props.demoCase}
-                  blockingCount={readiness?.sectionBlockingCounts[group.id] ?? 0}
+                  blockingCount={
+                    readiness?.sectionBlockingCounts[group.id] ?? 0
+                  }
                 />
               </section>
             ))}
@@ -3019,7 +4000,6 @@ function ReportDetailsPane({
             draft={props.draft}
             amountResolution={props.amountResolution}
           />
-
         </>
       ) : null}
     </section>
@@ -3038,24 +4018,37 @@ function DemoCaseSelector({
   const { locale } = useI18n();
   const hi = locale === "hi";
   return (
-    <section className="demo-case-selector" aria-labelledby="demo-case-selector-heading">
+    <section
+      className="demo-case-selector"
+      aria-labelledby="demo-case-selector-heading"
+    >
       <div className="demo-case-selector-heading">
         <div>
-          <p className="eyebrow">{hi ? "डेमो मोड · सिंथेटिक मामला" : "Demo Mode · Synthetic case"}</p>
-          <h2 id="demo-case-selector-heading">{hi ? "डेमो मामले" : "Demo cases"}</h2>
+          <p className="eyebrow">
+            {hi ? "डेमो मोड · सिंथेटिक मामला" : "Demo Mode · Synthetic case"}
+          </p>
+          <h2 id="demo-case-selector-heading">
+            {hi ? "डेमो मामले" : "Demo cases"}
+          </h2>
         </div>
         <button className="text-button" type="button" onClick={onReset}>
           {hi ? "डेमो मामला रीसेट करें" : "Reset demo case"}
         </button>
       </div>
-      <div className="demo-case-options" role="radiogroup" aria-label={hi ? "डेमो मामला चुनें" : "Choose a demo case"}>
+      <div
+        className="demo-case-options"
+        role="radiogroup"
+        aria-label={hi ? "डेमो मामला चुनें" : "Choose a demo case"}
+      >
         {DEMO_CASES.map((demoCase) => (
           <button
             key={demoCase.id}
             type="button"
             role="radio"
             aria-checked={activeCase.id === demoCase.id}
-            className={activeCase.id === demoCase.id ? "is-selected" : undefined}
+            className={
+              activeCase.id === demoCase.id ? "is-selected" : undefined
+            }
             onClick={() => onChange(demoCase.id)}
           >
             {hi ? demoCase.selectorLabelHi : demoCase.selectorLabel}
@@ -3070,7 +4063,9 @@ export function ReportWorkspace(props: ReportWorkspaceProps) {
   const { locale } = useI18n();
   const [pendingTargetId, setPendingTargetId] = useState<string | null>(null);
   const [navigationMessage, setNavigationMessage] = useState("");
-  const [ignoredConsistencyIssueIds, setIgnoredConsistencyIssueIds] = useState<Set<string>>(() => new Set());
+  const [ignoredConsistencyIssueIds, setIgnoredConsistencyIssueIds] = useState<
+    Set<string>
+  >(() => new Set());
   const highlightTimerRef = useRef<number | null>(null);
   const groups = props.draft
     ? deriveReportGroups(props.draft, {
@@ -3100,19 +4095,22 @@ export function ReportWorkspace(props: ReportWorkspaceProps) {
         identityDocumentProvided: props.identityDocumentProvided,
       })
     : null;
-  const readiness = props.draft && complaint
-    ? deriveReportReadiness({
-        draft: props.draft,
-        complaint,
-        amountResolution: props.amountResolution,
-        locale,
-        isStale: props.isReportStale,
-        ignoredConsistencyIssueIds,
-      })
-    : null;
+  const readiness =
+    props.draft && complaint
+      ? deriveReportReadiness({
+          draft: props.draft,
+          complaint,
+          amountResolution: props.amountResolution,
+          locale,
+          isStale: props.isReportStale,
+          ignoredConsistencyIssueIds,
+        })
+      : null;
   const consistencyIssues = props.draft
     ? getCaseConsistencyIssues(props.draft).filter(
-        (issue) => issue.type !== "TOTAL_MISMATCH" && !ignoredConsistencyIssueIds.has(issue.id),
+        (issue) =>
+          issue.type !== "TOTAL_MISMATCH" &&
+          !ignoredConsistencyIssueIds.has(issue.id),
       )
     : [];
   const sourceReady = Boolean(
@@ -3137,7 +4135,9 @@ export function ReportWorkspace(props: ReportWorkspaceProps) {
       }
 
       if (!target) {
-        const fallback = document.querySelector<HTMLElement>("#report-details-heading");
+        const fallback = document.querySelector<HTMLElement>(
+          "#report-details-heading",
+        );
         fallback?.focus({ preventScroll: true });
         fallback?.scrollIntoView({ behavior: "auto", block: "start" });
         setNavigationMessage(
@@ -3170,7 +4170,8 @@ export function ReportWorkspace(props: ReportWorkspaceProps) {
       });
       focusTarget?.focus({ preventScroll: true });
       target.classList.add("report-field-target-highlight");
-      if (highlightTimerRef.current) window.clearTimeout(highlightTimerRef.current);
+      if (highlightTimerRef.current)
+        window.clearTimeout(highlightTimerRef.current);
       highlightTimerRef.current = window.setTimeout(() => {
         target.classList.remove("report-field-target-highlight");
       }, 1600);
@@ -3184,9 +4185,13 @@ export function ReportWorkspace(props: ReportWorkspaceProps) {
     return () => window.cancelAnimationFrame(frame);
   }, [locale, pendingTargetId]);
 
-  useEffect(() => () => {
-    if (highlightTimerRef.current) window.clearTimeout(highlightTimerRef.current);
-  }, []);
+  useEffect(
+    () => () => {
+      if (highlightTimerRef.current)
+        window.clearTimeout(highlightTimerRef.current);
+    },
+    [],
+  );
 
   useEffect(() => {
     setIgnoredConsistencyIssueIds(new Set());
@@ -3194,7 +4199,11 @@ export function ReportWorkspace(props: ReportWorkspaceProps) {
 
   function runPrimaryAction() {
     if (props.mode === "PROCESSING") return;
-    if (!props.draft || props.mode === "ERROR" || readiness?.state === "STALE") {
+    if (
+      !props.draft ||
+      props.mode === "ERROR" ||
+      readiness?.state === "STALE"
+    ) {
       props.onOrganizeReport();
       return;
     }
@@ -3203,9 +4212,13 @@ export function ReportWorkspace(props: ReportWorkspaceProps) {
       props.draft.classification.ambiguity === "INSUFFICIENT_INFORMATION" &&
       props.draft.classification.cyberElementPresent !== true
     ) {
-      const input = document.querySelector<HTMLTextAreaElement>("#incident-narrative");
+      const input = document.querySelector<HTMLTextAreaElement>(
+        "#incident-narrative",
+      );
       input?.scrollIntoView({
-        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+          ? "auto"
+          : "smooth",
         block: "center",
       });
       input?.focus({ preventScroll: true });
@@ -3230,37 +4243,51 @@ export function ReportWorkspace(props: ReportWorkspaceProps) {
     if (!props.draft) return;
     if (issue.type === "POSSIBLE_DUPLICATE") {
       if (resolution === "DIFFERENT") {
-        setIgnoredConsistencyIssueIds((current) => new Set(current).add(issue.id));
+        setIgnoredConsistencyIssueIds((current) =>
+          new Set(current).add(issue.id),
+        );
         return;
       }
-      const rightIndex = Number(/transaction-(\d+)-amount/.exec(issue.affectedFieldIds[1] ?? "")?.[1]);
+      const rightIndex = Number(
+        /transaction-(\d+)-amount/.exec(issue.affectedFieldIds[1] ?? "")?.[1],
+      );
       props.onDraftChange({
         ...props.draft,
-        transactions: props.draft.transactions.filter((_, index) => index !== rightIndex),
+        transactions: props.draft.transactions.filter(
+          (_, index) => index !== rightIndex,
+        ),
       });
       return;
     }
     if (issue.type === "FINANCIAL_LOSS_CONTRADICTION") {
-      const state = resolution === "YES" ? "YES" : resolution === "NO" ? "NO" : "UNKNOWN";
+      const state =
+        resolution === "YES" ? "YES" : resolution === "NO" ? "NO" : "UNKNOWN";
       props.onDraftChange({
         ...props.draft,
-        classification: { ...props.draft.classification, moneyLost: state === "YES" ? true : state === "NO" ? false : null },
+        classification: {
+          ...props.draft.classification,
+          moneyLost: state === "YES" ? true : state === "NO" ? false : null,
+        },
         incident: {
           ...props.draft.incident,
           financialLossState: state,
           moneyLost: state === "YES" ? true : state === "NO" ? false : null,
-          statedTotalLoss: state === "NO" ? null : props.draft.incident.statedTotalLoss,
-          reportedAmount: state === "NO" ? null : props.draft.incident.reportedAmount,
+          statedTotalLoss:
+            state === "NO" ? null : props.draft.incident.statedTotalLoss,
+          reportedAmount:
+            state === "NO" ? null : props.draft.incident.reportedAmount,
         },
         transactions: state === "NO" ? [] : props.draft.transactions,
       });
       return;
     }
     if (issue.type === "ENTITY_RELATIONSHIP") {
-      props.onDraftChange(resolveEntityRelationship(
-        props.draft,
-        resolution as EntityRelationshipResolution,
-      ));
+      props.onDraftChange(
+        resolveEntityRelationship(
+          props.draft,
+          resolution as EntityRelationshipResolution,
+        ),
+      );
     }
   }
 
