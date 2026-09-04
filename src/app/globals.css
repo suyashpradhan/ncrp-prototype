@@ -185,7 +185,13 @@ h3 {
 .sachet-logo {
   display: inline-flex;
   align-items: center;
-  gap: 9px;
+}
+
+.sachet-logo-image {
+  width: auto;
+  height: 40px;
+  display: block;
+  object-fit: contain;
 }
 
 .sachet-logo-mark {
@@ -3930,6 +3936,10 @@ html[data-ui-locale="hi"] .companion-eyebrow {
   .sachet-logo-mark {
     width: 30px;
     height: 30px;
+  }
+
+  .sachet-logo-image {
+    height: 34px;
   }
 
   .sachet-logo-wordmark {
