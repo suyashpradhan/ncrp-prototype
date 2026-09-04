@@ -169,21 +169,27 @@ function EvidenceIncluded({
             <article className="evidence-contribution" key={item.evidenceId}>
               <div className="evidence-contribution-title">
                 <div>
-                  <button
-                    className="text-button evidence-title-button"
-                    type="button"
-                    onClick={() => requestEvidencePreview(item.evidenceId)}
-                  >
-                    {item.evidenceLabel}
-                  </button>
-                  <span>{item.evidenceType}</span>
+                  <strong>{item.evidenceLabel}</strong>
+                  <span>
+                    {item.evidenceType}
+                    {item.contributions.length > 0
+                      ? ` · ${hi ? `${item.contributions.length} जानकारियों से जुड़ा` : `linked to ${item.contributions.length} ${item.contributions.length === 1 ? "detail" : "details"}`}`
+                      : ""}
+                  </span>
                 </div>
+                <button
+                  className="text-button"
+                  type="button"
+                  data-evidence-id={item.evidenceId}
+                  aria-haspopup="dialog"
+                  onClick={() => requestEvidencePreview(item.evidenceId)}
+                >
+                  {hi ? "देखें" : "View"} →
+                </button>
               </div>
               {item.contributions.length > 0 ? (
-                <>
-                  <p className="evidence-used-label">
-                    {hi ? "इसके लिए उपयोग हुआ" : "Used for"}
-                  </p>
+                <details className="evidence-linkage-details">
+                  <summary>{hi ? "जुड़ी हुई जानकारी" : "Linked complaint details"}</summary>
                   <ul className="evidence-used-list">
                     {item.contributions.map((fact) => (
                       <li key={`${item.evidenceId}-${fact.fieldKey}`}>
@@ -194,19 +200,8 @@ function EvidenceIncluded({
                       </li>
                     ))}
                   </ul>
-                </>
-              ) : (
-                <p>{hi ? "रिपोर्ट के साथ संलग्न" : "Attached to the report"}</p>
-              )}
-              <button
-                className="text-button"
-                type="button"
-                data-evidence-id={item.evidenceId}
-                aria-haspopup="dialog"
-                onClick={() => requestEvidencePreview(item.evidenceId)}
-              >
-                {hi ? "सबूत देखें" : "View evidence"} →
-              </button>
+                </details>
+              ) : null}
             </article>
           ))}
         </div>
@@ -290,6 +285,24 @@ export function PostSubmissionCaseHome({
     missingReferenceIndex >= 0 ? "ADDITIONAL_INFO_REQUESTED" : "SUBMITTED",
     locale,
   );
+  const compactSummaryIds = [
+    "reporting-path",
+    "reported-loss",
+    "money-lost",
+    "transactions",
+    "incident-date",
+    "channel",
+    "affected-platforms",
+    "affected-account",
+    "affected-platform",
+  ];
+  const compactSummary = compactSummaryIds
+    .map((id) => summary.find((item) => item.id === id))
+    .filter((item): item is (typeof summary)[number] => Boolean(item))
+    .slice(0, 6);
+  const processBoundaries = Array.from(
+    new Set([stateExplanation.whatItDoesNotMean, ...process.importantBoundaries]),
+  );
 
   function saveTransactionReference(value: string) {
     if (missingReferenceIndex < 0) return;
@@ -338,31 +351,26 @@ export function PostSubmissionCaseHome({
         <JourneyProgress current="RESOLUTION" completeCurrent />
         <div className="reading-shell post-submission-content">
           <header className="post-submission-header">
-            <span className="success-mark" aria-hidden="true">✓</span>
-            <h1 tabIndex={-1}>{hi ? "शिकायत जमा हो गई" : "Complaint submitted"}</h1>
-            <p>
-              {hi
-                ? "आपकी रिपोर्ट इस प्रोटोटाइप में दर्ज की गई है।"
-                : "Your complaint has been recorded in this prototype."}
-            </p>
-            <div className="prototype-reference-block">
-              <span>{hi ? "शिकायत संदर्भ" : "Complaint reference"}</span>
+            <div className="post-submission-title-row">
+              <span className="success-mark" aria-hidden="true">✓</span>
+              <h1 tabIndex={-1}>{hi ? "शिकायत जमा हो गई" : "Complaint submitted"}</h1>
+            </div>
+            <div className="prototype-reference-line">
+              <span>{hi ? "प्रोटोटाइप संदर्भ:" : "Prototype reference:"}</span>
               <strong>{prototypeReference}</strong>
               <button className="text-button" type="button" onClick={() => void copyText(prototypeReference, "REFERENCE")}>
                 {copiedValue === "REFERENCE" ? (hi ? "कॉपी हो गया" : "Copied") : (hi ? "कॉपी करें" : "Copy")}
               </button>
             </div>
             <p className="prototype-boundary">
-              <strong>{hi ? "प्रोटोटाइप सबमिशन" : "Prototype submission"}</strong>
-              <span>
-                {hi
-                  ? "NCRP या किसी अन्य सरकारी प्रणाली को जमा नहीं किया गया।"
-                  : "Not submitted to NCRP or another government system."}
-              </span>
+              {hi
+                ? "यह सबमिशन केवल इस प्रोटोटाइप में दर्ज है। इसे NCRP या किसी अन्य सरकारी प्रणाली को नहीं भेजा गया।"
+                : "This submission is recorded only in this prototype. It has not been sent to NCRP or another government system."}
             </p>
           </header>
 
-          <section className="companion-section" aria-labelledby="post-report-actions-heading">
+          <div className="post-submission-priority-grid">
+          <section className="companion-section immediate-action-section" aria-labelledby="post-report-actions-heading">
             <h2 id="post-report-actions-heading">{hi ? "तुरंत कार्रवाई" : "Immediate action"}</h2>
             {primaryAction ? (
               <article className="post-report-primary-action">
@@ -395,94 +403,112 @@ export function PostSubmissionCaseHome({
             ) : null}
           </section>
 
-          <section className="companion-section" aria-labelledby="case-summary-heading">
-            <h2 id="case-summary-heading">{hi ? "शिकायत की जानकारी" : "Complaint details"}</h2>
+          <section className="companion-section complaint-summary-section" aria-labelledby="case-summary-heading">
+            <h2 id="case-summary-heading">{hi ? "शिकायत का सार" : "Complaint summary"}</h2>
             <dl className="companion-summary-list">
-              {summary.map((item) => (
+              {compactSummary.map((item) => (
                 <div key={item.id}>
                   <dt>{item.label}</dt>
                   <dd>{item.value}</dd>
                 </div>
               ))}
             </dl>
-          </section>
-
-          {keepReady.length > 0 ? (
-            <section className="companion-section case-keep-ready" aria-labelledby="keep-ready-heading">
-              <h2 id="keep-ready-heading">{hi ? "ये जानकारी तैयार रखें" : "Keep these details ready"}</h2>
-              <ul>{keepReady.map((item) => <li key={item}>{item}</li>)}</ul>
-            </section>
-          ) : null}
-
-          {missingReferenceIndex >= 0 || followUpSaved ? (
-            <section className="companion-section prototype-follow-up" aria-labelledby="follow-up-heading">
-              <p className="companion-eyebrow">{hi ? "प्रोटोटाइप फॉलो-अप" : "Prototype follow-up"}</p>
-              <h2 id="follow-up-heading">
-                {followUpSaved
-                  ? (hi ? "मामला अपडेट हो गया" : "Case updated")
-                  : (hi ? "एक और जानकारी मददगार होगी" : "One more detail would help")}
-              </h2>
-              {followUpSaved ? (
-                <p>{hi ? "लेन-देन संदर्भ की पुष्टि आपने की है।" : "The transaction reference is now confirmed by you."}</p>
-              ) : (
-                <>
-                  <p>{hi ? `लेन-देन ${missingReferenceIndex + 1} का UTR या संदर्भ जोड़ने से बैंक भुगतान पहचान सकता है।` : `Adding the UTR or reference for transaction ${missingReferenceIndex + 1} can help identify the payment.`}</p>
-                  {followUpOpen ? (
-                    <div className="prototype-follow-up-form">
-                      <label htmlFor="post-report-transaction-reference">{hi ? "लेन-देन संदर्भ / UTR" : "Transaction reference / UTR"}</label>
-                      <input id="post-report-transaction-reference" value={followUpValue} onChange={(event) => setFollowUpValue(event.target.value)} autoFocus />
-                      <div className="entry-actions">
-                        <button className="primary-button" type="button" disabled={!followUpValue.trim()} onClick={() => saveTransactionReference(followUpValue.trim())}>{hi ? "जानकारी जोड़ें" : "Add detail"}</button>
-                        <button className="secondary-button" type="button" onClick={() => saveTransactionReference(CITIZEN_DOES_NOT_HAVE)}>{hi ? "यह मेरे पास नहीं है" : "I don’t have this"}</button>
-                      </div>
+            <details className="submitted-complaint-details">
+              <summary>{hi ? "शिकायत की पूरी जानकारी देखें" : "View complaint details"}</summary>
+              <div className="submitted-complaint-details-content">
+                <dl className="companion-summary-list">
+                  {summary.map((item) => (
+                    <div key={`full-${item.id}`}>
+                      <dt>{item.label}</dt>
+                      <dd>{item.value}</dd>
                     </div>
-                  ) : (
-                    <button className="secondary-button" type="button" onClick={() => setFollowUpOpen(true)}>{hi ? "जानकारी जोड़ें" : "Add detail"}</button>
-                  )}
-                </>
-              )}
-            </section>
-          ) : null}
+                  ))}
+                </dl>
+                {draft.incident.narrative ? (
+                  <div className="submitted-statement">
+                    <h3>{hi ? "बयान" : "Statement"}</h3>
+                    <p>{draft.incident.narrative}</p>
+                  </div>
+                ) : null}
+                {draft.transactions.length > 0 ? (
+                  <div className="submitted-transaction-details">
+                    <h3>{hi ? "लेन-देन" : "Transactions"}</h3>
+                    <div className="submitted-transaction-list">
+                      {draft.transactions.map((transaction, index) => (
+                        <article key={transaction.id}>
+                          <h4>{hi ? `लेन-देन ${index + 1}` : `Transaction ${index + 1}`}</h4>
+                          <dl>
+                            {transaction.amount ? <div><dt>{hi ? "राशि" : "Amount"}</dt><dd>₹{transaction.amount.toLocaleString("en-IN")}</dd></div> : null}
+                            {citizenVisibleValue(transaction.institution) ? <div><dt>{hi ? "बैंक या भुगतान ऐप" : "Bank or payment app"}</dt><dd>{citizenVisibleValue(transaction.institution)}</dd></div> : null}
+                            {transaction.transactionDate ? <div><dt>{hi ? "तारीख" : "Date"}</dt><dd>{formatIndiaShortDateWithYear(transaction.transactionDate, locale)}</dd></div> : null}
+                            {citizenVisibleValue(transaction.approximateTime) ? <div><dt>{hi ? "समय" : "Time"}</dt><dd>{citizenVisibleValue(transaction.approximateTime)}</dd></div> : null}
+                            {citizenVisibleValue(transaction.transactionIdOrUtr) ? <div><dt>{hi ? "लेन-देन संदर्भ / UTR" : "Transaction reference / UTR"}</dt><dd>{citizenVisibleValue(transaction.transactionIdOrUtr)}</dd></div> : null}
+                          </dl>
+                        </article>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+                {keepReady.length > 0 ? (
+                  <div className="case-keep-ready">
+                    <h3>{hi ? "ये जानकारी तैयार रखें" : "Keep these details ready"}</h3>
+                    <ul>{keepReady.map((item) => <li key={item}>{item}</li>)}</ul>
+                  </div>
+                ) : null}
+                {missingReferenceIndex >= 0 || followUpSaved ? (
+                  <div className="prototype-follow-up" aria-labelledby="follow-up-heading">
+                    <h3 id="follow-up-heading">
+                      {followUpSaved
+                        ? (hi ? "जानकारी अपडेट हो गई" : "Detail updated")
+                        : (hi ? "लेन-देन संदर्भ जोड़ें" : "Add transaction reference")}
+                    </h3>
+                    {followUpSaved ? (
+                      <p>{hi ? "लेन-देन संदर्भ की पुष्टि आपने की है।" : "The transaction reference is now confirmed by you."}</p>
+                    ) : (
+                      <>
+                        <p>{hi ? `लेन-देन ${missingReferenceIndex + 1} का UTR या संदर्भ उपलब्ध हो तो जोड़ें।` : `Add the UTR or reference for transaction ${missingReferenceIndex + 1} if it is available.`}</p>
+                        {followUpOpen ? (
+                          <div className="prototype-follow-up-form">
+                            <label htmlFor="post-report-transaction-reference">{hi ? "लेन-देन संदर्भ / UTR" : "Transaction reference / UTR"}</label>
+                            <input id="post-report-transaction-reference" value={followUpValue} onChange={(event) => setFollowUpValue(event.target.value)} autoFocus />
+                            <div className="entry-actions">
+                              <button className="primary-button" type="button" disabled={!followUpValue.trim()} onClick={() => saveTransactionReference(followUpValue.trim())}>{hi ? "जानकारी जोड़ें" : "Add detail"}</button>
+                              <button className="secondary-button" type="button" onClick={() => saveTransactionReference(CITIZEN_DOES_NOT_HAVE)}>{hi ? "यह मेरे पास नहीं है" : "I don’t have this"}</button>
+                            </div>
+                          </div>
+                        ) : (
+                          <button className="secondary-button" type="button" onClick={() => setFollowUpOpen(true)}>{hi ? "जानकारी जोड़ें" : "Add detail"}</button>
+                        )}
+                      </>
+                    )}
+                  </div>
+                ) : null}
+              </div>
+            </details>
+          </section>
+          </div>
 
           <section className="companion-section" aria-labelledby="post-report-process-heading">
-            <h2 id="post-report-process-heading">{hi ? "आगे क्या होता है" : "What happens next"}</h2>
-            <div className="post-report-process-part">
-              <h3>{hi ? "इसका क्या अर्थ है" : "What this means"}</h3>
-              <p className="post-report-known-state">
-                <strong>{stateExplanation.title}</strong>
-                <span>{stateExplanation.whatItMeans}</span>
-              </p>
-            </div>
-            <div className="post-report-process-part">
-              <h3>{hi ? "इसका क्या अर्थ नहीं है" : "What this does not mean"}</h3>
-              <p>{stateExplanation.whatItDoesNotMean}</p>
-            </div>
-            <div className="post-report-process-part">
-              <h3>{hi ? "आप क्या कर सकते हैं" : "What you can do"}</h3>
-              <p>{stateExplanation.whatYouCanDo}</p>
-            </div>
-            <div className="post-report-process-part">
-              <h3>{process.possibleNextStagesHeading}</h3>
-              <ol className="post-report-stage-list">
-                {process.possibleNextStages.map((stage, index) => (
-                  <li key={stage.id}>
-                    <span aria-hidden="true">{index + 1}</span>
-                    <div>
-                      <strong>{stage.title}</strong>
-                      <p>{stage.description}</p>
-                    </div>
-                  </li>
-                ))}
-              </ol>
-            </div>
-            <div className="post-report-process-part">
-              <h3>{hi ? "इसका क्या अर्थ नहीं है" : "What this does not mean"}</h3>
+            <h2 id="post-report-process-heading">{hi ? "आगे क्या हो सकता है" : "What may happen next"}</h2>
+            <ol className="post-report-stage-list compact-process-list">
+              {process.possibleNextStages.map((stage, index) => (
+                <li key={stage.id}>
+                  <span aria-hidden="true">{index + 1}</span>
+                  <div>
+                    <strong>{stage.title}</strong>
+                    <p>{stage.description}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+            <details className="process-boundaries-disclosure">
+              <summary>{hi ? "इसका क्या अर्थ नहीं है" : "What this does not mean"}</summary>
               <ul className="post-report-boundary-list">
-                {process.importantBoundaries.map((boundary) => (
+                {processBoundaries.map((boundary) => (
                   <li key={boundary}>{boundary}</li>
                 ))}
               </ul>
-            </div>
+            </details>
           </section>
 
           <section className="companion-section stay-informed" aria-labelledby="stay-informed-heading">
@@ -490,45 +516,50 @@ export function PostSubmissionCaseHome({
               <h2 id="stay-informed-heading">{hi ? "जानकारी पाते रहें" : "Stay informed"}</h2>
               <p>{hi ? "अगले उपयोगी कदमों और साइबर सुरक्षा सावधानियों के बारे में रिमाइंडर पाएँ।" : "Get reminders about useful next steps and cyber-safety precautions."}</p>
             </div>
-            <fieldset>
-              <legend>{hi ? "रिमाइंडर का माध्यम" : "Reminder channel"}</legend>
-              <label>
-                <input type="radio" name="notification-channel" value="EMAIL" checked={notificationChannel === "EMAIL"} onChange={() => setNotificationChannel("EMAIL")} />
-                <span>{hi ? "ईमेल" : "Email"}</span>
-              </label>
-              <label>
-                <input type="radio" name="notification-channel" value="WHATSAPP" checked={notificationChannel === "WHATSAPP"} onChange={() => setNotificationChannel("WHATSAPP")} />
-                <span>WhatsApp</span>
-              </label>
-            </fieldset>
-            <button className="secondary-button" type="button" onClick={() => setRemindersEnabled(true)}>
-              {remindersEnabled
-                ? hi ? "रिमाइंडर चालू हैं" : "Reminders turned on"
-                : hi ? "रिमाइंडर चालू करें" : "Turn on reminders"}
-            </button>
-            <p className="source-note" role="status">
-              {remindersEnabled
-                ? hi
-                  ? "प्रोटोटाइप रिमाइंडर चालू हुआ। कोई असली संदेश नहीं भेजा गया।"
-                  : "Prototype reminders are on. No real message was sent."
-                : isDemoIncident
-                  ? hi
-                    ? "सिंथेटिक संपर्क · केवल डेमो पूर्वावलोकन"
-                    : "Synthetic contact · Demo preview only"
-                  : hi
-                    ? "केवल प्रोटोटाइप व्यवहार · कोई असली संदेश नहीं भेजा जाएगा"
-                    : "Prototype behavior only · No real message will be sent"}
-            </p>
-            {isDemoIncident ? (
-              <div className="reminder-preview" aria-label={hi ? "रिमाइंडर पूर्वावलोकन" : "Reminder preview"}>
-                <h3>{hi ? "रिमाइंडर पूर्वावलोकन" : "Reminder preview"}</h3>
-                {nudges.map((nudge) => (
+            {remindersEnabled ? (
+              <div className="reminders-confirmed" role="status">
+                <span className="success-mark" aria-hidden="true">✓</span>
+                <div>
+                  <h3>{hi ? "रिमाइंडर चालू हैं" : "Reminders on"}</h3>
+                  <strong>{notificationChannel === "EMAIL" ? (hi ? "ईमेल" : "Email") : "WhatsApp"}</strong>
+                  <p>{hi ? "इस शिकायत के लिए उपयोगी सुरक्षा रिमाइंडर मिलेंगे।" : "You'll receive follow-up safety reminders for this complaint."}</p>
+                  <button className="text-button" type="button" onClick={() => setRemindersEnabled(false)}>{hi ? "पसंद बदलें" : "Change preference"}</button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <fieldset>
+                  <legend>{hi ? "रिमाइंडर का माध्यम" : "Reminder channel"}</legend>
+                  <label>
+                    <input type="radio" name="notification-channel" value="EMAIL" checked={notificationChannel === "EMAIL"} onChange={() => setNotificationChannel("EMAIL")} />
+                    <span>{hi ? "ईमेल" : "Email"}</span>
+                  </label>
+                  <label>
+                    <input type="radio" name="notification-channel" value="WHATSAPP" checked={notificationChannel === "WHATSAPP"} onChange={() => setNotificationChannel("WHATSAPP")} />
+                    <span>WhatsApp</span>
+                  </label>
+                </fieldset>
+                <button className="secondary-button" type="button" onClick={() => setRemindersEnabled(true)}>
+                  {hi ? "रिमाइंडर चालू करें" : "Turn on reminders"}
+                </button>
+                <p className="source-note">
+                  {isDemoIncident
+                    ? hi ? "सिंथेटिक संपर्क · केवल डेमो पूर्वावलोकन" : "Synthetic contact · Demo preview only"
+                    : hi ? "केवल प्रोटोटाइप · कोई असली संदेश नहीं भेजा जाएगा" : "Prototype only · No real message will be sent"}
+                </p>
+              </>
+            )}
+            {remindersEnabled ? (
+              <div className="reminder-preview" aria-label={hi ? "आने वाले रिमाइंडर" : "Upcoming reminders"}>
+                <h3>{hi ? "आने वाले रिमाइंडर" : "Upcoming reminders"}</h3>
+                {nudges.slice(0, 2).map((nudge) => (
                   <article key={nudge.id}>
                     <span>{nudge.schedule === "TODAY" ? (hi ? "आज" : "Today") : (hi ? "कल" : "Tomorrow")}</span>
                     <strong>{nudge.title}</strong>
                     <p>{nudge.body}</p>
                   </article>
                 ))}
+                <p className="source-note">{hi ? "प्रोटोटाइप पूर्वावलोकन · कोई असली संदेश नहीं भेजा गया" : "Prototype preview · No real message was sent"}</p>
               </div>
             ) : null}
           </section>
@@ -537,6 +568,7 @@ export function PostSubmissionCaseHome({
             <IncidentTimeline
               events={timeline}
               heading={hi ? "मामले की समयरेखा" : "Case timeline"}
+              groupByDate
             />
           </section>
 
@@ -547,7 +579,8 @@ export function PostSubmissionCaseHome({
           demoCase={demoCase}
         />
 
-          <section className="companion-section case-copy-section" aria-label={hi ? "रिपोर्ट की प्रति" : "Report copy"}>
+          <section className="companion-section case-copy-section" aria-labelledby="complaint-actions-heading">
+            <h2 id="complaint-actions-heading">{hi ? "शिकायत के विकल्प" : "Complaint actions"}</h2>
             <div className="case-copy-actions">
               <button className="secondary-button" type="button" onClick={() => void copyText(getSafeCaseSummary(draft, prototypeReference, locale), "SUMMARY")}>
                 {copiedValue === "SUMMARY" ? (hi ? "सार कॉपी हो गया" : "Summary copied") : (hi ? "मामले का सार कॉपी करें" : "Copy case summary")}
@@ -555,12 +588,11 @@ export function PostSubmissionCaseHome({
               <button className="secondary-button" type="button" onClick={printReport}>
                 {hi ? "प्रिंट करें या PDF सहेजें" : "Print or save PDF"}
               </button>
+              <button className="text-button" type="button" onClick={onStartNewReport}>
+                {hi ? "नई शिकायत शुरू करें" : "Start new complaint"}
+              </button>
             </div>
           </section>
-
-          <button className="secondary-button" type="button" onClick={onStartNewReport}>
-            {hi ? "नई शिकायत शुरू करें" : "Start new complaint"}
-          </button>
           <PrintableCaseReport draft={draft} prototypeReference={prototypeReference} milestones={milestones} transcription={transcription} />
         </div>
       </div>

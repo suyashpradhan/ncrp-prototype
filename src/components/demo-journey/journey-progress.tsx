@@ -17,8 +17,9 @@ export function JourneyProgress({
   current: JourneyProgressStep;
   completeCurrent?: boolean;
 }) {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   const currentIndex = JOURNEY_STEPS.findIndex((step) => step.id === current);
+  const submittedLabel = locale === "hi" ? "जमा हुआ" : "Submitted";
 
   return (
     <ol className="journey-progress" aria-label={t("journey.progressLabel")}>
@@ -32,7 +33,11 @@ export function JourneyProgress({
           aria-current={currentStep ? "step" : undefined}
         >
           <span className="journey-progress-number" aria-hidden="true">{completed ? "✓" : index + 1}</span>
-          <span>{t(step.labelKey)}</span>
+          <span>
+            {step.id === "RESOLUTION" && completeCurrent
+              ? submittedLabel
+              : t(step.labelKey)}
+          </span>
         </li>
         );
       })}

@@ -122,14 +122,20 @@ export function getCaseStateExplanation(
 }
 
 function formatApplicationTime(value: string, locale: UiLocale): string {
-  return new Intl.DateTimeFormat(locale === "hi" ? "hi-IN" : "en-IN", {
+  const date = new Date(value);
+  const dateLabel = new Intl.DateTimeFormat(locale === "hi" ? "hi-IN" : "en-IN", {
     day: "numeric",
     month: "short",
+    year: "numeric",
+    timeZone: "Asia/Kolkata",
+  }).format(date);
+  const timeLabel = new Intl.DateTimeFormat(locale === "hi" ? "hi-IN" : "en-IN", {
     hour: "numeric",
     minute: "2-digit",
     hour12: true,
     timeZone: "Asia/Kolkata",
-  }).format(new Date(value));
+  }).format(date);
+  return `${dateLabel} · ${timeLabel}`;
 }
 
 function formatKnownTime(value: string | null, locale: UiLocale): string | null {
@@ -365,6 +371,15 @@ export function getPostReportActions(
   if (hasFinancialLoss) {
     const totalLoss = totalReportedLoss(draft);
     const transactionCount = draft.transactions.length;
+    const transactionInstitutions = Array.from(
+      new Set(
+        draft.transactions
+          .map((transaction) => citizenVisibleValue(transaction.institution))
+          .filter((institution): institution is string => Boolean(institution)),
+      ),
+    );
+    const institutionName =
+      transactionInstitutions.length === 1 ? transactionInstitutions[0] : null;
     const knownReferences = draft.transactions.filter(
       (transaction) =>
         transaction.transactionIdOrUtr &&
@@ -387,6 +402,19 @@ export function getPostReportActions(
           : "Start recovery through the affected platform's official settings or support.",
       }] : []),
       {
+        id: "contact-bank",
+        title: institutionName
+          ? hi
+            ? `${institutionName} से उसके आधिकारिक माध्यम से संपर्क करें`
+            : `Contact ${institutionName} through its official channel`
+          : hi
+            ? "अपने बैंक से उसके आधिकारिक माध्यम से संपर्क करें"
+            : "Contact your bank through its official channel",
+        description: hi
+          ? "उन्हें बताएं कि लेन-देन संदिग्ध साइबर धोखाधड़ी से जुड़ा है।"
+          : `Tell them the ${transactionCount === 1 ? "transaction is" : "transactions are"} connected to suspected cyber fraud.`,
+      },
+      {
         id: "keep-transactions",
         title: knownReferences > 0
           ? hi
@@ -402,13 +430,6 @@ export function getPostReportActions(
           : hi
             ? "बैंक से हुई बातचीत और आपके पास मौजूद भुगतान विवरण सुरक्षित रखें।"
             : "Keep bank communication and the payment details you have available.",
-      },
-      {
-        id: "contact-bank",
-        title: hi ? "अपने बैंक से उसके आधिकारिक माध्यम से संपर्क करें" : "Contact your bank through its official channel",
-        description: hi
-          ? "उन्हें बताएं कि लेन-देन संदिग्ध साइबर धोखाधड़ी से जुड़ा है।"
-          : `Tell them the ${transactionCount === 1 ? "transaction is" : "transactions are"} connected to suspected cyber fraud.`,
       },
       {
         id: "preserve-evidence",
@@ -1125,8 +1146,13 @@ export function getPostSubmissionTimeline(
   const hi = locale === "hi";
   const baseEvents = deriveIncidentTimeline(draft, { locale, isDemoIncident })
     .filter((event) => !/transaction/.test(event.id))
-    .map((event) => ({
+    .map((event, index) => ({
       ...event,
+      timeLabel: factTimeLabel(
+        draft.incident.incidentDate,
+        index === 0 ? draft.incident.approximateTime : event.timeLabel,
+        locale,
+      ),
       sourceRefs: event.sourceRefs.map((source) => ({
         ...source,
         label: /^(Source:|स्रोत:)/.test(source.label)
@@ -1194,5 +1220,9 @@ export function getPostSubmissionTimeline(
       sourceRefs: [{ type: "PROTOTYPE", label: hi ? "स्रोत: प्रोटोटाइप सबमिशन" : "Source: Prototype submission" }],
     },
   ];
-  return [incidentEvent, ...baseEvents, ...transactionEvents, ...applicationEvents];
+  return [
+    ...(baseEvents.length > 0 ? baseEvents : [incidentEvent]),
+    ...transactionEvents,
+    ...applicationEvents,
+  ];
 }

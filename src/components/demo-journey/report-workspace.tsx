@@ -3070,13 +3070,6 @@ function ReportReview(props: ReportWorkspaceProps) {
         >
           {t("workspace.submitSynthetic")}
         </button>
-        <button
-          className="text-button"
-          type="button"
-          onClick={props.onBackToEdit}
-        >
-          {t("workspace.backEdit")}
-        </button>
       </div>
       <p className="prototype-submit-note">{t("workspace.noSubmit")}</p>
       {!declarationAccepted ? (
@@ -4544,6 +4537,16 @@ export function ReportWorkspace(props: ReportWorkspaceProps) {
             onChange={props.onDemoCaseChange}
             onReset={props.onResetDemoCase}
           />
+        ) : null}
+        {props.mode === "REVIEW" ? (
+          <button
+            className="journey-context-back"
+            type="button"
+            onClick={props.onBackToEdit}
+          >
+            <span aria-hidden="true">‹</span>{" "}
+            {locale === "hi" ? "घटना की जानकारी पर वापस जाएँ" : "Back to incident"}
+          </button>
         ) : null}
         <JourneyProgress
           current={props.mode === "REVIEW" ? "RESTORE" : "REPORT"}
