@@ -6,6 +6,7 @@ import type { UiLocale } from "../../i18n/i18n-provider";
 import { formatCurrency } from "../../presentation/format";
 import { deriveIncidentTimeline } from "../../presentation/incident-timeline";
 import { IncidentTimeline } from "./incident-timeline";
+import { isInternalCaseValue } from "../../presentation/citizen-visible-value";
 
 type ComplaintPacketProps = {
   complaint: NcrpCompatibleComplaint;
@@ -17,6 +18,7 @@ type ComplaintPacketProps = {
 
 function printableValue(value: string | number | boolean | null): string | null {
   if (value === null || value === "") return null;
+  if (isInternalCaseValue(value)) return null;
   if (typeof value === "boolean") return value ? "Yes" : "No";
   return String(value);
 }

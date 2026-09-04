@@ -1,4 +1,4 @@
-import type { IncidentDraft } from "./schema";
+import { CITIZEN_DOES_NOT_HAVE, type IncidentDraft } from "./schema";
 import { deriveFinancialFactsFromText } from "./normalization";
 import {
   requirementsForIncident,
@@ -185,8 +185,9 @@ function transactionQuestion(
   const number = transactionIndex + 1;
   const amountEn = amount ? `₹${amount.toLocaleString("en-IN")}` : `transaction ${number}`;
   const amountHi = amount ? `₹${amount.toLocaleString("en-IN")}` : `लेन-देन ${number}`;
-  const paymentEn = institution ? `${amountEn} ${institution}` : amountEn;
-  const paymentHi = institution ? `${amountHi} ${institution}` : amountHi;
+  const visibleInstitution = institution === CITIZEN_DOES_NOT_HAVE ? null : institution;
+  const paymentEn = visibleInstitution ? `${amountEn} ${visibleInstitution}` : amountEn;
+  const paymentHi = visibleInstitution ? `${amountHi} ${visibleInstitution}` : amountHi;
   const questions: Partial<Record<ReportRequirementKey, [string, string]>> = {
     institution: [
       `For the ${amountEn} payment, which bank or payment app did you use?`,

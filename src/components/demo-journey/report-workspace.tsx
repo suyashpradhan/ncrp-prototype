@@ -52,6 +52,7 @@ import {
   type ReportGroupView,
 } from "../../presentation/report-details";
 import { formatCurrency } from "../../presentation/format";
+import { citizenVisibleValue } from "../../presentation/citizen-visible-value";
 import { deriveEvidenceContributions } from "../../presentation/evidence-contributions";
 import { getCaseIntegritySummary } from "../../presentation/case-integrity";
 import { deriveIncidentTimeline } from "../../presentation/incident-timeline";
@@ -559,7 +560,7 @@ function SourceSummary({
     setIsPlaying(false);
     setPlaybackSeconds(0);
     audioRef.current?.load();
-  }, [demoNarrationLanguage]);
+  }, [demoCase?.id, demoNarration?.audioPath, demoNarrationLanguage]);
 
   const formatPlayback = (seconds: number) =>
     `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, "0")}`;
@@ -573,7 +574,7 @@ function SourceSummary({
         <div className="report-source-block demo-narration-block">
           <div className="demo-narration-heading">
             <div>
-              <h3>{t("workspace.sampleNarration")}</h3>
+              <h3>{t("workspace.yourStatement")}</h3>
               <p className="source-meta">
                 {demoCase?.sourceLanguage ?? demoNarration.nativeLabel} ·{" "}
                 {t("workspace.approxSeconds", {
@@ -1385,24 +1386,25 @@ function SectionEditor({
     const parsed = Number(value.replaceAll(",", ""));
     return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
   };
+  const editableValue = (value: string | null) => citizenVisibleValue(value) ?? "";
   const controls: ReactNode[] = [];
 
   if (groupId === "INCIDENT") {
     controls.push(
       <label key="date">{hi ? "घटना की तारीख" : "Incident date"}<input type="date" value={working.incident.incidentDate ?? ""} onChange={(event) => setWorking((current) => ({ ...current, incident: { ...current.incident, incidentDate: event.target.value || null } }))} /></label>,
-      <label key="time">{hi ? "लगभग समय" : "Approximate time"}<input value={working.incident.approximateTime ?? ""} onChange={(event) => setWorking((current) => ({ ...current, incident: { ...current.incident, approximateTime: event.target.value || null } }))} /></label>,
-      <label key="channel">{hi ? "माध्यम" : "Communication channel"}<input value={working.incident.occurredOn ?? ""} onChange={(event) => setWorking((current) => ({ ...current, incident: { ...current.incident, occurredOn: event.target.value || null } }))} /></label>,
+      <label key="time">{hi ? "लगभग समय" : "Approximate time"}<input value={editableValue(working.incident.approximateTime)} onChange={(event) => setWorking((current) => ({ ...current, incident: { ...current.incident, approximateTime: event.target.value || null } }))} /></label>,
+      <label key="channel">{hi ? "माध्यम" : "Communication channel"}<input value={editableValue(working.incident.occurredOn)} onChange={(event) => setWorking((current) => ({ ...current, incident: { ...current.incident, occurredOn: event.target.value || null } }))} /></label>,
     );
   } else if (groupId === "TRANSACTIONS") {
     controls.push(...working.transactions.map((transaction, index) => (
       <fieldset className="section-edit-fieldset" key={transaction.id}>
         <legend>{hi ? `लेन-देन ${index + 1}` : `Transaction ${index + 1}`}</legend>
         <label>{hi ? "राशि" : "Amount"}<input inputMode="decimal" value={transaction.amount ?? ""} onChange={(event) => setWorking((current) => ({ ...current, transactions: current.transactions.map((item, itemIndex) => itemIndex === index ? { ...item, amount: numberValue(event.target.value) } : item) }))} /></label>
-        <label>{hi ? "बैंक या भुगतान संस्था" : "Bank / payment institution"}<input value={transaction.institution ?? ""} onChange={(event) => setWorking((current) => ({ ...current, transactions: current.transactions.map((item, itemIndex) => itemIndex === index ? { ...item, institution: event.target.value || null } : item) }))} /></label>
-        <label>{hi ? "खाता / वॉलेट / UPI ID" : "Account / wallet / UPI ID"}<input value={transaction.accountOrUpiId ?? ""} onChange={(event) => setWorking((current) => ({ ...current, transactions: current.transactions.map((item, itemIndex) => itemIndex === index ? { ...item, accountOrUpiId: event.target.value || null } : item) }))} /></label>
-        <label>{hi ? "लेन-देन संदर्भ / UTR" : "Transaction reference / UTR"}<input value={transaction.transactionIdOrUtr ?? ""} onChange={(event) => setWorking((current) => ({ ...current, transactions: current.transactions.map((item, itemIndex) => itemIndex === index ? { ...item, transactionIdOrUtr: event.target.value || null } : item) }))} /></label>
+        <label>{hi ? "बैंक या भुगतान संस्था" : "Bank / payment institution"}<input value={editableValue(transaction.institution)} onChange={(event) => setWorking((current) => ({ ...current, transactions: current.transactions.map((item, itemIndex) => itemIndex === index ? { ...item, institution: event.target.value || null } : item) }))} /></label>
+        <label>{hi ? "खाता / वॉलेट / UPI ID" : "Account / wallet / UPI ID"}<input value={editableValue(transaction.accountOrUpiId)} onChange={(event) => setWorking((current) => ({ ...current, transactions: current.transactions.map((item, itemIndex) => itemIndex === index ? { ...item, accountOrUpiId: event.target.value || null } : item) }))} /></label>
+        <label>{hi ? "लेन-देन संदर्भ / UTR" : "Transaction reference / UTR"}<input value={editableValue(transaction.transactionIdOrUtr)} onChange={(event) => setWorking((current) => ({ ...current, transactions: current.transactions.map((item, itemIndex) => itemIndex === index ? { ...item, transactionIdOrUtr: event.target.value || null } : item) }))} /></label>
         <label>{hi ? "तारीख" : "Date"}<input type="date" value={transaction.transactionDate ?? ""} onChange={(event) => setWorking((current) => ({ ...current, transactions: current.transactions.map((item, itemIndex) => itemIndex === index ? { ...item, transactionDate: event.target.value || null } : item) }))} /></label>
-        <label>{hi ? "लगभग समय" : "Approximate time"}<input value={transaction.approximateTime ?? ""} onChange={(event) => setWorking((current) => ({ ...current, transactions: current.transactions.map((item, itemIndex) => itemIndex === index ? { ...item, approximateTime: event.target.value || null } : item) }))} /></label>
+        <label>{hi ? "लगभग समय" : "Approximate time"}<input value={editableValue(transaction.approximateTime)} onChange={(event) => setWorking((current) => ({ ...current, transactions: current.transactions.map((item, itemIndex) => itemIndex === index ? { ...item, approximateTime: event.target.value || null } : item) }))} /></label>
         <button className="text-button" type="button" onClick={() => setWorking((current) => ({ ...current, transactions: current.transactions.filter((_, itemIndex) => itemIndex !== index) }))}>{hi ? "लेन-देन हटाएँ" : "Remove transaction"}</button>
       </fieldset>
     )));
@@ -1468,6 +1470,7 @@ function ReportGroup({
   screenshots,
   isDemoIncident,
   demoCase,
+  blockingCount,
 }: {
   group: ReportGroupView;
   draft: IncidentDraft;
@@ -1479,6 +1482,7 @@ function ReportGroup({
   screenshots: File[];
   isDemoIncident: boolean;
   demoCase: DemoCaseDefinition | null;
+  blockingCount?: number;
 }) {
   const { locale, t } = useI18n();
   const [narrativeEditing, setNarrativeEditing] = useState(false);
@@ -1517,6 +1521,13 @@ function ReportGroup({
   const sectionHeading = (
     <div className="section-heading-with-action report-section-heading">
       <h2>{group.label}</h2>
+      {blockingCount !== undefined ? (
+        <span className="report-section-status">
+          {blockingCount > 0
+            ? `${blockingCount} ${t("workspace.actionNeeded")}`
+            : `✓ ${t("workspace.complete")}`}
+        </span>
+      ) : null}
       <button className="text-button" type="button" onClick={editSection} aria-label={`${t("field.edit")} ${group.label}`}>
         <span aria-hidden="true">✎</span> {t("field.edit")}
       </button>
@@ -2962,14 +2973,6 @@ function ReportDetailsPane({
           <div className="prepared-report-groups">
             {remainingGroups.map((group) => (
               <section className="prepared-report-section" key={group.id}>
-                <div className="prepared-section-heading">
-                  <h3>{group.label}</h3>
-                  <span>
-                    {(readiness?.sectionBlockingCounts[group.id] ?? 0) > 0
-                      ? `${readiness?.sectionBlockingCounts[group.id] ?? 0} ${t("workspace.actionNeeded")}`
-                      : `✓ ${t("workspace.complete")}`}
-                  </span>
-                </div>
                 <ReportGroup
                   group={group}
                   draft={props.draft!}
@@ -2981,6 +2984,7 @@ function ReportDetailsPane({
                   screenshots={props.screenshots}
                   isDemoIncident={props.isDemoIncident}
                   demoCase={props.demoCase}
+                  blockingCount={readiness?.sectionBlockingCounts[group.id] ?? 0}
                 />
               </section>
             ))}

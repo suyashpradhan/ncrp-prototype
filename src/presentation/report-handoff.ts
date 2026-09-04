@@ -1,5 +1,5 @@
 import type { ReportedAmountResolution } from "../incident/complaint-case";
-import { CITIZEN_DOES_NOT_HAVE } from "./report-details";
+import { citizenVisibleValue } from "./citizen-visible-value";
 import type { IncidentDraft } from "../incident/schema";
 import { sanitizeSensitiveText } from "../incident/sensitive-text";
 import type { UiLocale } from "../i18n/i18n-provider";
@@ -90,7 +90,7 @@ export function buildCallBrief(
     locale,
   );
   const institution = transactionCount === 1
-    ? transaction?.institution?.trim() || null
+    ? citizenVisibleValue(transaction?.institution)
     : null;
   const context = financialContext(draft, locale);
   const reference = transaction?.transactionIdOrUtr;
@@ -126,7 +126,7 @@ export function buildCallBrief(
     lines.push([when, event].filter(Boolean).join(hi ? " " : ", "));
   }
 
-  if (transactionCount === 1 && reference && reference !== CITIZEN_DOES_NOT_HAVE) {
+  if (transactionCount === 1 && citizenVisibleValue(reference)) {
     lines.push(
       hi
         ? `लेन-देन संदर्भ: ${reference}।`

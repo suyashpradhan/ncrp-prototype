@@ -30,7 +30,6 @@ export type DemoCaseDefinition = {
   selectorLabelHi: string;
   citizen: ReporterProfile;
   sourceLanguage: string;
-  displayLanguage: DemoNarrationLanguage;
   statement: string;
   narrations: Record<DemoNarrationLanguage, DemoNarration>;
   evidence: readonly DemoEvidenceDefinition[];
@@ -73,11 +72,12 @@ function narration(
   originalTranscript: string,
   englishTranscript: string,
   durationSeconds: number,
+  audioPath: string,
 ): DemoNarration {
   return {
     label: languageCode === "hi-IN" ? "Hindi" : "English",
     nativeLabel: languageCode === "hi-IN" ? "हिन्दी" : "English",
-    audioPath: "",
+    audioPath,
     durationSeconds,
     languageCode,
     originalTranscript,
@@ -454,11 +454,10 @@ export const DEMO_CASES: readonly DemoCaseDefinition[] = [
     selectorLabelHi: "राशि में अंतर",
     citizen: demoProfile("Asha Verma", "Female", "0024", "asha.demo"),
     sourceLanguage: "Hinglish",
-    displayLanguage: "en-IN",
     statement: amountMismatchStatement,
     narrations: {
-      "en-IN": narration("en-IN", amountMismatchStatement, "Yesterday I received an SBI KYC update message on WhatsApp. I opened the link. First ₹5,000 was debited and later another ₹15,000. I thought the total loss was ₹25,000. I do not have the exact UTRs right now.", 31),
-      "hi-IN": narration("hi-IN", amountMismatchStatement, "Yesterday I received an SBI KYC update message on WhatsApp. I opened the link. First ₹5,000 was debited and later another ₹15,000. I thought the total loss was ₹25,000. I do not have the exact UTRs right now.", 31),
+      "en-IN": narration("en-IN", amountMismatchStatement, "Yesterday I received an SBI KYC update message on WhatsApp. I opened the link. First ₹5,000 was debited and later another ₹15,000. I thought the total loss was ₹25,000. I do not have the exact UTRs right now.", 20, "/demo/audio/amount-mismatch.mp3"),
+      "hi-IN": narration("hi-IN", amountMismatchStatement, "Yesterday I received an SBI KYC update message on WhatsApp. I opened the link. First ₹5,000 was debited and later another ₹15,000. I thought the total loss was ₹25,000. I do not have the exact UTRs right now.", 20, "/demo/audio/amount-mismatch.mp3"),
     },
     evidence: [
       { id: "demo-evidence-0", src: "/demo/evidence/asha-kyc-message-demo.svg", label: "WhatsApp KYC message", labelHi: "WhatsApp KYC संदेश", typeLabel: "Message screenshot", typeLabelHi: "संदेश का स्क्रीनशॉट" },
@@ -474,11 +473,10 @@ export const DEMO_CASES: readonly DemoCaseDefinition[] = [
     selectorLabelHi: "अकाउंट पर कब्ज़ा",
     citizen: demoProfile("Shubham Mehta", "Male", "1187", "shubham.demo"),
     sourceLanguage: "English + Hinglish",
-    displayLanguage: "en-IN",
     statement: accountCompromiseStatement,
     narrations: {
-      "en-IN": narration("en-IN", accountCompromiseStatement, accountCompromiseStatement, 29),
-      "hi-IN": narration("hi-IN", accountCompromiseStatement, accountCompromiseStatement, 29),
+      "en-IN": narration("en-IN", accountCompromiseStatement, accountCompromiseStatement, 21, "/demo/audio/account-compromise.mp3"),
+      "hi-IN": narration("hi-IN", accountCompromiseStatement, accountCompromiseStatement, 21, "/demo/audio/account-compromise.mp3"),
     },
     evidence: [
       { id: "demo-evidence-0", src: "/demo/evidence/account-reset-demo.svg", label: "Instagram password-reset email", labelHi: "Instagram पासवर्ड-रीसेट ईमेल", typeLabel: "Email screenshot", typeLabelHi: "ईमेल का स्क्रीनशॉट" },
@@ -494,11 +492,10 @@ export const DEMO_CASES: readonly DemoCaseDefinition[] = [
     selectorLabelHi: "लॉटरी की कोशिश",
     citizen: demoProfile("Vivek Sharma", "Male", "2500", "vivek.demo"),
     sourceLanguage: "Hindi / Hinglish",
-    displayLanguage: "hi-IN",
     statement: lotteryStatement,
     narrations: {
-      "en-IN": narration("en-IN", lotteryStatement, "I was told on WhatsApp and a phone call that I had won ₹25 lakh in a KBC lucky draw. They asked for a ₹10,000 processing fee, an Aadhaar photo and bank details. I did not pay or share anything.", 27),
-      "hi-IN": narration("hi-IN", lotteryStatement, "I was told on WhatsApp and a phone call that I had won ₹25 lakh in a KBC lucky draw. They asked for a ₹10,000 processing fee, an Aadhaar photo and bank details. I did not pay or share anything.", 27),
+      "en-IN": narration("en-IN", lotteryStatement, "I was told on WhatsApp and a phone call that I had won ₹25 lakh in a KBC lucky draw. They asked for a ₹10,000 processing fee, an Aadhaar photo and bank details. I did not pay or share anything.", 19, "/demo/audio/lottery-attempt.mp3"),
+      "hi-IN": narration("hi-IN", lotteryStatement, "I was told on WhatsApp and a phone call that I had won ₹25 lakh in a KBC lucky draw. They asked for a ₹10,000 processing fee, an Aadhaar photo and bank details. I did not pay or share anything.", 19, "/demo/audio/lottery-attempt.mp3"),
     },
     evidence: [
       { id: "demo-evidence-0", src: "/demo/evidence/lottery-message-demo.svg", label: "WhatsApp lottery message", labelHi: "WhatsApp लॉटरी संदेश", typeLabel: "Message screenshot", typeLabelHi: "संदेश का स्क्रीनशॉट" },
@@ -514,11 +511,10 @@ export const DEMO_CASES: readonly DemoCaseDefinition[] = [
     selectorLabelHi: "धमकी और वसूली",
     citizen: demoProfile("Riya Kapoor", "Female", "7721", "riya.demo"),
     sourceLanguage: "Hindi + English",
-    displayLanguage: "hi-IN",
     statement: extortionStatement,
     narrations: {
-      "en-IN": narration("en-IN", extortionStatement, "An unknown Telegram account threatened to share my private photos with my contacts unless I paid ₹20,000. The same threat later arrived by email. I made no payment and do not know the sender's real identity.", 28),
-      "hi-IN": narration("hi-IN", extortionStatement, "An unknown Telegram account threatened to share my private photos with my contacts unless I paid ₹20,000. The same threat later arrived by email. I made no payment and do not know the sender's real identity.", 28),
+      "en-IN": narration("en-IN", extortionStatement, "An unknown Telegram account threatened to share my private photos with my contacts unless I paid ₹20,000. The same threat later arrived by email. I made no payment and do not know the sender's real identity.", 20, "/demo/audio/extortion.mp3"),
+      "hi-IN": narration("hi-IN", extortionStatement, "An unknown Telegram account threatened to share my private photos with my contacts unless I paid ₹20,000. The same threat later arrived by email. I made no payment and do not know the sender's real identity.", 20, "/demo/audio/extortion.mp3"),
     },
     evidence: [
       { id: "demo-evidence-0", src: "/demo/evidence/telegram-threat-demo.svg", label: "Redacted Telegram threat", labelHi: "छिपाया गया Telegram धमकी संदेश", typeLabel: "Message screenshot", typeLabelHi: "संदेश का स्क्रीनशॉट" },

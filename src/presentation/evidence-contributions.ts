@@ -2,6 +2,7 @@ import type { IncidentDraft } from "../incident/schema";
 import { sanitizeSensitiveText } from "../incident/sensitive-text";
 import type { UiLocale } from "../i18n/i18n-provider";
 import { formatCurrency } from "./format";
+import { citizenVisibleValue } from "./citizen-visible-value";
 
 export type EvidenceFact = {
   fieldKey: string;
@@ -40,9 +41,10 @@ function formatDate(value: string | null, locale: UiLocale) {
 }
 
 function formatTime(value: string | null, locale: UiLocale) {
-  if (!value || value === "__CITIZEN_DOES_NOT_HAVE__" || value === "UNKNOWN") return null;
-  const [hours, minutes] = value.split(":").map(Number);
-  if (!Number.isInteger(hours) || !Number.isInteger(minutes)) return value;
+  const visibleValue = citizenVisibleValue(value);
+  if (!visibleValue) return null;
+  const [hours, minutes] = visibleValue.split(":").map(Number);
+  if (!Number.isInteger(hours) || !Number.isInteger(minutes)) return visibleValue;
   return new Intl.DateTimeFormat(locale === "hi" ? "hi-IN" : "en-IN", {
     hour: "numeric",
     minute: "2-digit",
@@ -56,7 +58,7 @@ function contribution(
   label: string,
   displayValue: string | null | undefined,
 ): EvidenceFact | null {
-  const value = displayValue?.trim();
+  const value = citizenVisibleValue(displayValue);
   return value
     ? { fieldKey, label, displayValue: sanitizeSensitiveText(value).text }
     : null;

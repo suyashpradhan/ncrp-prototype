@@ -7,6 +7,7 @@ import { sanitizeSensitiveText } from "../incident/sensitive-text";
 import { deriveFinancialFactsFromText } from "../incident/normalization";
 import { getIncidentCapabilities, getPlatformConfig } from "../incident/capabilities";
 import { resolveFinancialLoss } from "../incident/financial-summary";
+import { citizenVisibleValue, isInternalCaseValue } from "./citizen-visible-value";
 import { textForLocale, type UiLocale } from "../i18n/i18n-provider";
 import { formatCurrency } from "./format";
 
@@ -93,7 +94,7 @@ export { CITIZEN_DOES_NOT_HAVE } from "../incident/schema";
 
 function formatDate(value: string | null, locale: UiLocale): string {
   if (!value) return textForLocale(locale, "field.notProvided");
-  if (value === CITIZEN_DOES_NOT_HAVE) return textForLocale(locale, "field.notAvailable");
+  if (isInternalCaseValue(value)) return textForLocale(locale, "field.notAvailable");
   const [year, month, day] = value.split("-").map(Number);
   const parsed = new Date(Date.UTC(year, month - 1, day, 12));
   if (Number.isNaN(parsed.getTime())) return value;
@@ -107,9 +108,10 @@ function formatDate(value: string | null, locale: UiLocale): string {
 }
 
 function display(value: string | null | undefined, locale: UiLocale): string {
-  if (value === CITIZEN_DOES_NOT_HAVE) return textForLocale(locale, "field.notAvailable");
-  return value?.trim()
-    ? sanitizeSensitiveText(value.trim()).text
+  const visibleValue = citizenVisibleValue(value);
+  if (isInternalCaseValue(value)) return textForLocale(locale, "field.notAvailable");
+  return visibleValue
+    ? sanitizeSensitiveText(visibleValue).text
     : textForLocale(locale, "field.notProvided");
 }
 
@@ -131,7 +133,7 @@ function field(
     id,
     label,
     value: displayed,
-    state: value === CITIZEN_DOES_NOT_HAVE
+    state: isInternalCaseValue(value)
       ? "CITIZEN_DOES_NOT_HAVE"
       : options.missingQuestion
       ? options.missingQuestion.field === "incidentDateYear"

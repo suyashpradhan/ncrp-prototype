@@ -2159,6 +2159,13 @@ html[data-ui-locale="hi"] .landing-case-check h2 {
   margin: 0;
 }
 
+.report-section-status {
+  margin-left: auto;
+  color: var(--secondary);
+  font-size: 12px;
+  font-weight: 650;
+}
+
 .section-inline-edit {
   margin-bottom: 22px;
   padding: 18px;

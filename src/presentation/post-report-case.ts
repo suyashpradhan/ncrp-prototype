@@ -7,6 +7,7 @@ import {
   formatCurrency,
   formatIndiaShortDateWithYear,
 } from "./format";
+import { citizenVisibleValue, isInternalCaseValue } from "./citizen-visible-value";
 
 export type PostReportMilestones = {
   preparedAt: string;
@@ -132,12 +133,13 @@ function formatApplicationTime(value: string, locale: UiLocale): string {
 }
 
 function formatKnownTime(value: string | null, locale: UiLocale): string | null {
-  if (!value || value === "__CITIZEN_DOES_NOT_HAVE__" || value === "UNKNOWN") return null;
-  const match = /^(\d{1,2}):(\d{2})$/.exec(value);
-  if (!match) return value;
+  const visibleValue = citizenVisibleValue(value);
+  if (!visibleValue) return null;
+  const match = /^(\d{1,2}):(\d{2})$/.exec(visibleValue);
+  if (!match) return visibleValue;
   const hours = Number(match[1]);
   const minutes = Number(match[2]);
-  if (!Number.isInteger(hours) || hours > 23 || minutes > 59) return value;
+  if (!Number.isInteger(hours) || hours > 23 || minutes > 59) return visibleValue;
   return new Intl.DateTimeFormat(locale === "hi" ? "hi-IN" : "en-IN", {
     hour: "numeric",
     minute: "2-digit",
@@ -366,7 +368,7 @@ export function getPostReportActions(
     const knownReferences = draft.transactions.filter(
       (transaction) =>
         transaction.transactionIdOrUtr &&
-        transaction.transactionIdOrUtr !== "__CITIZEN_DOES_NOT_HAVE__",
+        !isInternalCaseValue(transaction.transactionIdOrUtr),
     ).length;
     const actions: PostReportAction[] = [
       {
@@ -602,11 +604,8 @@ export function getKeepReadyPacket(
   draft.transactions.forEach((transaction, index) => {
     const details = [
       transaction.amount ? formatCurrency(transaction.amount) : null,
-      transaction.institution,
-      transaction.transactionIdOrUtr &&
-      transaction.transactionIdOrUtr !== "__CITIZEN_DOES_NOT_HAVE__"
-        ? transaction.transactionIdOrUtr
-        : null,
+      citizenVisibleValue(transaction.institution),
+      citizenVisibleValue(transaction.transactionIdOrUtr),
     ].filter((value): value is string => Boolean(value));
     if (details.length > 0) {
       items.push(
@@ -663,7 +662,7 @@ function processKeepReadyItems(
     (transaction) =>
       Boolean(
         transaction.transactionIdOrUtr &&
-          transaction.transactionIdOrUtr !== "__CITIZEN_DOES_NOT_HAVE__",
+          !isInternalCaseValue(transaction.transactionIdOrUtr),
       ),
   );
   const platform =

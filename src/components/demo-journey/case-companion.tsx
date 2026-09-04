@@ -14,6 +14,7 @@ import {
   formatCurrency,
   formatIndiaShortDateWithYear,
 } from "../../presentation/format";
+import { citizenVisibleValue } from "../../presentation/citizen-visible-value";
 
 type AcknowledgementFormProps = {
   onContinue: (acknowledgement: AddedAcknowledgement) => void;
@@ -166,7 +167,7 @@ export function CaseCompanion({
   const isFinancialFraud =
     draft.classification.reportFamily === "FINANCIAL_FRAUD";
   const amount = resolveFinancialLoss(draft).resolvedLoss;
-  const institution = draft.transactions[0]?.institution;
+  const institution = citizenVisibleValue(draft.transactions[0]?.institution);
   const incidentDate = draft.incident.incidentDate;
   const evidenceCount = draft.evidence.length;
   const category =

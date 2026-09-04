@@ -1,6 +1,7 @@
 import type { IncidentDraft } from "../incident/schema";
 import type { UiLocale } from "../i18n/i18n-provider";
 import { formatCurrency } from "./format";
+import { citizenVisibleValue } from "./citizen-visible-value";
 
 export type TimelineSourceRef = {
   type:
@@ -27,9 +28,10 @@ type TimelineOptions = {
 };
 
 function displayTime(value: string | null, locale: UiLocale, approximate = false) {
-  if (!value) return null;
-  const [hours, minutes] = value.split(":").map(Number);
-  if (!Number.isInteger(hours) || !Number.isInteger(minutes)) return value;
+  const visibleValue = citizenVisibleValue(value);
+  if (!visibleValue) return null;
+  const [hours, minutes] = visibleValue.split(":").map(Number);
+  if (!Number.isInteger(hours) || !Number.isInteger(minutes)) return visibleValue;
   const date = new Date(Date.UTC(2020, 0, 1, hours, minutes));
   const formatted = new Intl.DateTimeFormat(locale === "hi" ? "hi-IN" : "en-IN", {
     hour: "numeric",
@@ -112,7 +114,7 @@ export function deriveIncidentTimeline(
 
   draft.transactions.forEach((transaction, index) => {
     if (!transaction.amount) return;
-    const institution = transaction.institution?.trim();
+    const institution = citizenVisibleValue(transaction.institution);
     const transactionEvidenceIndexes = draft.evidence
       .map((item, evidenceIndex) => item.type === "TRANSACTION_SCREENSHOT" ? evidenceIndex : -1)
       .filter((evidenceIndex) => evidenceIndex >= 0);

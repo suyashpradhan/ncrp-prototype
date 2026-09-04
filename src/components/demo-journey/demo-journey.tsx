@@ -389,10 +389,11 @@ export function DemoJourney() {
     {},
   );
   const [isDemoIncident, setIsDemoIncident] = useState(false);
-  const [demoNarrationLanguage, setDemoNarrationLanguage] =
-    useState<DemoNarrationLanguage>("hi-IN");
+  const demoNarrationLanguage: DemoNarrationLanguage =
+    locale === "hi" ? "hi-IN" : "en-IN";
   const [selectedDemoCaseId, setSelectedDemoCaseId] =
     useState<DemoCaseId>(DEFAULT_DEMO_CASE_ID);
+  const [demoCaseRevision, setDemoCaseRevision] = useState(0);
   const activeDemoCase = getDemoCase(selectedDemoCaseId);
   const [selectedReportedAmount, setSelectedReportedAmount] = useState<
     number | null
@@ -601,10 +602,6 @@ export function DemoJourney() {
       setDraft(restoredDraft.data);
       setNarrative(candidate.narrative);
       setTranscription(restoredTranscription.data);
-      setDemoNarrationLanguage(
-        candidate.demoNarrationLanguage as DemoNarrationLanguage,
-      );
-      setLocale(candidate.demoNarrationLanguage === "hi-IN" ? "hi" : "en");
       setRecordingSeconds(candidate.recordingSeconds);
       setSubmittedReference(candidate.submittedReference);
       const restoredMilestones = candidate.postReportMilestones;
@@ -642,7 +639,7 @@ export function DemoJourney() {
     } catch {
       clearPersistedDemoSession();
     }
-  }, [beginExperience, setLocale]);
+  }, [beginExperience]);
 
   useEffect(() => {
     if (
@@ -875,18 +872,19 @@ export function DemoJourney() {
 
   function useDemoIncident(caseId: DemoCaseId = DEFAULT_DEMO_CASE_ID) {
     const demoCase = getDemoCase(caseId);
+    const narrationLanguage: DemoNarrationLanguage =
+      locale === "hi" ? "hi-IN" : "en-IN";
     clearPersistedDemoSession();
     clearUnfinishedReport();
     setRecoverableReport(null);
     resetDemo();
     resetInputs();
     setSelectedDemoCaseId(demoCase.id);
+    setDemoCaseRevision((current) => current + 1);
     beginExperience("DEMO_CASE", demoCase.citizen);
     setNarrative(demoCase.statement);
-    setDemoNarrationLanguage(demoCase.displayLanguage);
-    setLocale(demoCase.displayLanguage === "hi-IN" ? "hi" : "en");
-    setTranscription(demoCase.narrations[demoCase.displayLanguage]);
-    setRecordingSeconds(demoCase.narrations[demoCase.displayLanguage].durationSeconds);
+    setTranscription(demoCase.narrations[narrationLanguage]);
+    setRecordingSeconds(demoCase.narrations[narrationLanguage].durationSeconds);
     setIsDemoIncident(true);
     setDraft(structuredClone(demoCase.draft));
     setSubmittedReference(demoCase.reference);
@@ -895,7 +893,7 @@ export function DemoJourney() {
       reportSourceSignature({
         narrative: demoCase.statement,
         reporterName: demoCase.citizen.displayName,
-        transcription: demoCase.narrations[demoCase.displayLanguage],
+        transcription: demoCase.narrations[narrationLanguage],
         screenshots: [],
         audio: null,
       }),
@@ -956,7 +954,6 @@ export function DemoJourney() {
   }
 
   function chooseDemoNarration(language: DemoNarrationLanguage) {
-    setDemoNarrationLanguage(language);
     setLocale(language === "hi-IN" ? "hi" : "en");
     setTranscription(activeDemoCase.narrations[language]);
     setRecordingSeconds(activeDemoCase.narrations[language].durationSeconds);
@@ -1572,6 +1569,7 @@ export function DemoJourney() {
               : "INPUT";
     content = (
       <ReportWorkspace
+        key={isDemoIncident ? `${selectedDemoCaseId}-${demoCaseRevision}` : "live"}
         mode={mode}
         reportMethod={reportMethod}
         narrative={narrative}

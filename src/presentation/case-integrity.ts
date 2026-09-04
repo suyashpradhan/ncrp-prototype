@@ -4,6 +4,7 @@ import { resolveFinancialLoss } from "../incident/financial-summary";
 import type { UiLocale } from "../i18n/i18n-provider";
 import { deriveEvidenceContributions } from "./evidence-contributions";
 import { formatCurrency, formatIndiaShortDateWithYear } from "./format";
+import { citizenVisibleValue } from "./citizen-visible-value";
 
 export type CaseIntegritySummary = {
   transactionCount: number;
@@ -43,16 +44,19 @@ export function getCaseIntegritySummary(
   if (draft.transactions.length > 0) {
     knownFacts.push(hi ? `${draft.transactions.length} लेन-देन` : `${draft.transactions.length} ${draft.transactions.length === 1 ? "transaction" : "transactions"}`);
   }
-  if (draft.incident.occurredOn) {
-    knownFacts.push(hi ? `संपर्क माध्यम: ${draft.incident.occurredOn}` : `${draft.incident.occurredOn} was the contact channel`);
+  const occurredOn = citizenVisibleValue(draft.incident.occurredOn);
+  if (occurredOn) {
+    knownFacts.push(hi ? `संपर्क माध्यम: ${occurredOn}` : `${occurredOn} was the contact channel`);
   }
   if (draft.incident.incidentDate) {
     knownFacts.push(hi ? `घटना की तारीख: ${formatIndiaShortDateWithYear(draft.incident.incidentDate, locale)}` : `Incident date: ${formatIndiaShortDateWithYear(draft.incident.incidentDate, locale)}`);
   } else {
     stillUnknown.push(hi ? "घटना की तारीख" : "Incident date");
   }
-  const affected = draft.adaptiveFacts.affectedPlatforms.join(", ") ||
-    (draft.adaptiveFacts.affectedAccount ?? draft.adaptiveFacts.platform ?? draft.classification.platform);
+  const affected = citizenVisibleValue(draft.adaptiveFacts.affectedPlatforms.join(", ")) ||
+    citizenVisibleValue(draft.adaptiveFacts.affectedAccount) ||
+    citizenVisibleValue(draft.adaptiveFacts.platform) ||
+    citizenVisibleValue(draft.classification.platform);
   if (affected) knownFacts.push(hi ? `प्रभावित खाता या प्लेटफ़ॉर्म: ${affected}` : `Affected account or platform: ${affected}`);
 
   draft.transactions.forEach((transaction, index) => {
