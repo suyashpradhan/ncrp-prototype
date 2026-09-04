@@ -115,6 +115,17 @@ type PersistedUnfinishedReport = {
   preparedSourceSignature: string | null;
 };
 
+function isPostReportMilestones(
+  value: PostReportMilestones | null | undefined,
+): value is PostReportMilestones {
+  return Boolean(
+    value &&
+      typeof value.preparedAt === "string" &&
+      typeof value.reviewedAt === "string" &&
+      typeof value.submittedAt === "string",
+  );
+}
+
 function sanitizeForDeviceStorage<T>(value: T): T {
   if (typeof value === "string") return sanitizeSensitiveText(value).text as T;
   if (Array.isArray(value)) {
@@ -646,11 +657,8 @@ export function DemoJourney() {
       }
 
       const restoredMilestones = candidate.postReportMilestones;
-      const validRestoredMilestones = Boolean(
-        restoredMilestones &&
-          typeof restoredMilestones.preparedAt === "string" &&
-          typeof restoredMilestones.reviewedAt === "string" &&
-          typeof restoredMilestones.submittedAt === "string",
+      const validRestoredMilestones = isPostReportMilestones(
+        restoredMilestones,
       );
       if (candidate.view === "SUCCESS" && !validRestoredMilestones) {
         clearPersistedDemoSession();
