@@ -26,6 +26,10 @@ import { JourneyProgress } from "./journey-progress";
 import { formatIndiaShortDateWithYear } from "../../presentation/format";
 import type { DemoCaseDefinition } from "../../incident/demo-incident";
 import { citizenVisibleValue } from "../../presentation/citizen-visible-value";
+import {
+  OPEN_EVIDENCE_PREVIEW_EVENT,
+  requestEvidencePreview,
+} from "./evidence-preview-events";
 
 type PostSubmissionCaseHomeProps = {
   draft: IncidentDraft;
@@ -126,6 +130,18 @@ function EvidenceIncluded({
     }
   }, [activeItem]);
 
+  useEffect(() => {
+    const openRequestedEvidence = (event: Event) => {
+      const evidenceId = (event as CustomEvent<string>).detail;
+      if (items.some((item) => item.evidenceId === evidenceId)) {
+        setActiveEvidenceId(evidenceId);
+      }
+    };
+    window.addEventListener(OPEN_EVIDENCE_PREVIEW_EVENT, openRequestedEvidence);
+    return () =>
+      window.removeEventListener(OPEN_EVIDENCE_PREVIEW_EVENT, openRequestedEvidence);
+  }, [items]);
+
   function closePreview() {
     dialogRef.current?.close();
     setActiveEvidenceId(null);
@@ -149,7 +165,13 @@ function EvidenceIncluded({
             <article className="evidence-contribution" key={item.evidenceId}>
               <div className="evidence-contribution-title">
                 <div>
-                  <strong>{item.evidenceLabel}</strong>
+                  <button
+                    className="text-button evidence-title-button"
+                    type="button"
+                    onClick={() => requestEvidencePreview(item.evidenceId)}
+                  >
+                    {item.evidenceLabel}
+                  </button>
                   <span>{item.evidenceType}</span>
                 </div>
               </div>
@@ -177,7 +199,7 @@ function EvidenceIncluded({
                 type="button"
                 data-evidence-id={item.evidenceId}
                 aria-haspopup="dialog"
-                onClick={() => setActiveEvidenceId(item.evidenceId)}
+                onClick={() => requestEvidencePreview(item.evidenceId)}
               >
                 {hi ? "सबूत देखें" : "View evidence"} →
               </button>

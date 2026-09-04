@@ -1351,6 +1351,13 @@ html[data-ui-locale="hi"] .landing-case-check h2 {
   background: #faf9f6;
 }
 
+.evidence-title-button {
+  padding: 0;
+  color: var(--text);
+  font-weight: 700;
+  text-align: left;
+}
+
 .evidence-preview-trigger img {
   width: 72px;
   height: 54px;

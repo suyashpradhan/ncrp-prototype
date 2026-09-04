@@ -1,18 +1,13 @@
 "use client";
 
 import type { IncidentTimelineEvent } from "../../presentation/incident-timeline";
+import { requestEvidencePreview } from "./evidence-preview-events";
 
 type IncidentTimelineProps = {
   events: IncidentTimelineEvent[];
   heading: string;
   interactive?: boolean;
 };
-
-function openEvidence(evidenceId: string) {
-  document
-    .querySelector<HTMLButtonElement>(`[data-evidence-id="${evidenceId}"]`)
-    ?.click();
-}
 
 export function IncidentTimeline({
   events,
@@ -42,7 +37,7 @@ export function IncidentTimeline({
                       <button
                         className="text-button"
                         type="button"
-                        onClick={() => openEvidence(source.evidenceId!)}
+                        onClick={() => requestEvidencePreview(source.evidenceId!)}
                       >
                         {source.label} →
                       </button>

@@ -64,6 +64,10 @@ import { ComplaintPacket } from "./complaint-packet";
 import { ImmediateHandoff } from "./immediate-handoff";
 import { IncidentTimeline } from "./incident-timeline";
 import { JourneyProgress } from "./journey-progress";
+import {
+  OPEN_EVIDENCE_PREVIEW_EVENT,
+  requestEvidencePreview,
+} from "./evidence-preview-events";
 
 export type ReportWorkspaceMode =
   | "INPUT"
@@ -223,6 +227,23 @@ function EvidenceRows({
       removeDialogRef.current.showModal();
     }
   }, [pendingRemovalIndex]);
+
+  useEffect(() => {
+    const openRequestedEvidence = (event: Event) => {
+      const evidenceId = (event as CustomEvent<string>).detail;
+      if (isDemoIncident) {
+        const evidence = demoCase?.evidence.find((item) => item.id === evidenceId);
+        if (evidence) setActiveDemoEvidence(evidence);
+        return;
+      }
+      const match = /^uploaded-(\d+)$/.exec(evidenceId);
+      const file = match ? screenshots[Number(match[1])] : null;
+      if (file) setActiveUploadedEvidence(file);
+    };
+    window.addEventListener(OPEN_EVIDENCE_PREVIEW_EVENT, openRequestedEvidence);
+    return () =>
+      window.removeEventListener(OPEN_EVIDENCE_PREVIEW_EVENT, openRequestedEvidence);
+  }, [demoCase, isDemoIncident, screenshots]);
 
   function closeEvidence() {
     dialogRef.current?.close();
@@ -461,7 +482,13 @@ function EvidenceContributions({
           <article className="evidence-contribution" key={item.evidenceId}>
             <div className="evidence-contribution-title">
               <div>
-                <strong>{item.evidenceLabel}</strong>
+                <button
+                  className="text-button evidence-title-button"
+                  type="button"
+                  onClick={() => requestEvidencePreview(item.evidenceId)}
+                >
+                  {item.evidenceLabel}
+                </button>
                 <span>{item.evidenceType}</span>
               </div>
               <small>
@@ -503,13 +530,7 @@ function EvidenceContributions({
               className="text-button"
               type="button"
               aria-haspopup="dialog"
-              onClick={() =>
-                document
-                  .querySelector<HTMLButtonElement>(
-                    `[data-evidence-id="${item.evidenceId}"]`,
-                  )
-                  ?.click()
-              }
+              onClick={() => requestEvidencePreview(item.evidenceId)}
             >
               {locale === "hi" ? "सबूत देखें" : "View evidence"} →
             </button>
@@ -2121,7 +2142,7 @@ function ReportReview(props: ReportWorkspaceProps) {
                         : status === "NOT_PROVIDED_OPTIONAL"
                           ? t("field.notProvided")
                           : status === "CITIZEN_DOES_NOT_HAVE"
-                            ? t("field.notAvailable")
+                            ? t("field.notProvided")
                             : t("field.needsInput")}
                     </span>
                     <span role="cell">{sourceLabel(sources)}</span>
