@@ -1353,6 +1353,15 @@ html[data-ui-locale="hi"] .landing-case-check h2 {
   margin-top: 0;
 }
 
+.prepared-complaint-summary h2 {
+  margin-bottom: 6px;
+}
+
+.prepared-complaint-summary > div > p {
+  margin: 0;
+  color: var(--secondary);
+}
+
 .prepared-complaint-summary dl {
   margin: 18px 0 0;
   display: grid;
@@ -1374,6 +1383,25 @@ html[data-ui-locale="hi"] .landing-case-check h2 {
   overflow-wrap: anywhere;
   font-size: 1.08rem;
   font-weight: 700;
+}
+
+.prepared-complaint-disclosure {
+  margin-top: 24px;
+  border-top: 1px solid var(--border);
+}
+
+.prepared-complaint-disclosure > summary {
+  min-height: 48px;
+  padding: 16px 2px;
+  color: var(--focus);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  cursor: pointer;
+}
+
+.prepared-complaint-disclosure-content {
+  padding-top: 8px;
 }
 
 .review-reporter-details {

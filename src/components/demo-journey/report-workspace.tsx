@@ -13,6 +13,7 @@ import {
   type MissingQuestion,
 } from "../../incident/missing-information";
 import { containsSensitiveDetail } from "../../incident/sensitive-text";
+import { deriveFinancialFactsFromText } from "../../incident/normalization";
 import {
   getCaseConsistencyIssues,
   resolveEntityRelationship,
@@ -3519,17 +3520,62 @@ function PreparedComplaintSummary({ draft }: { draft: IncidentDraft }) {
   const { locale } = useI18n();
   const hi = locale === "hi";
   const financial = resolveFinancialLoss(draft);
-  const displayedLoss = financial.resolvedLoss ?? financial.computedTransactionLoss;
+  const financialMentions = deriveFinancialFactsFromText(
+    [
+      draft.incident.narrative,
+      draft.citizenSummary.shortSummary,
+      ...draft.evidence.flatMap((item) => item.extractedFacts),
+    ]
+      .filter(Boolean)
+      .join("\n"),
+  ).monetaryMentions;
+  const requestedAmount = financialMentions.find(
+    (mention) => mention.role === "REQUESTED_AMOUNT",
+  )?.amount;
+  const displayedLoss =
+    financial.resolvedLoss ?? financial.computedTransactionLoss;
+  const incidentLabel = draft.adaptiveFacts.threatOrExtortion
+    ? hi
+      ? "ऑनलाइन जबरन वसूली"
+      : "Online extortion"
+    : draft.adaptiveFacts.accountCompromise
+      ? hi
+        ? "अकाउंट से छेड़छाड़"
+        : "Account compromise"
+      : /lottery|prize/i.test(draft.classification.subCategory ?? "")
+        ? hi
+          ? "लॉटरी या इनाम धोखाधड़ी का प्रयास"
+          : "Lottery / prize scam attempt"
+        : draft.classification.reportFamily === "FINANCIAL_FRAUD"
+          ? hi
+            ? "वित्तीय धोखाधड़ी"
+            : "Financial fraud"
+          : hi
+            ? draft.classification.reportFamily ===
+              "WOMEN_CHILDREN_RELATED_CRIME"
+              ? "महिलाओं या बच्चों से जुड़ा साइबर अपराध"
+              : draft.classification.reportFamily === "OTHER_CYBER_CRIME"
+                ? "अन्य साइबर अपराध"
+                : "साइबर अपराध की घटना"
+            : draft.citizenSummary.incidentLabel;
   const summaryItems = [
+    { label: hi ? "घटना" : "Incident", value: incidentLabel },
     displayedLoss
       ? {
           label: financial.hasExplicitTotalConflict
-            ? hi ? "लेन-देन का कुल" : "Payments add up to"
-            : hi ? "रिपोर्ट की गई हानि" : "Reported loss",
+            ? hi
+              ? "लेन-देन का कुल"
+              : "Payments add up to"
+            : hi
+              ? "रिपोर्ट की गई हानि"
+              : "Reported loss",
           value: formatCurrency(displayedLoss),
         }
       : draft.incident.financialLossState === "NO"
-        ? { label: hi ? "पैसे गए" : "Money lost", value: hi ? "नहीं" : "No" }
+        ? {
+            label: hi ? "भुगतान" : "Payment",
+            value: hi ? "कोई भुगतान नहीं बताया गया" : "No payment reported",
+          }
         : null,
     draft.transactions.length > 0
       ? {
@@ -3558,19 +3604,37 @@ function PreparedComplaintSummary({ draft }: { draft: IncidentDraft }) {
             label: hi ? "प्रभावित सेवा" : "Affected service",
             value: draft.adaptiveFacts.affectedPlatforms.join(", "),
           }
-        : draft.adaptiveFacts.threatOrExtortion
-          ? {
-              label: hi ? "घटना" : "Incident",
-              value: hi ? "ऑनलाइन धमकी या वसूली" : "Online threat or extortion",
-            }
-          : null,
+        : null,
+    draft.adaptiveFacts.demandedAmount
+      ? {
+          label: hi ? "मांगी गई राशि" : "Amount demanded",
+          value: formatCurrency(draft.adaptiveFacts.demandedAmount),
+        }
+      : requestedAmount
+        ? {
+            label: hi ? "मांगी गई राशि" : "Amount requested",
+            value: formatCurrency(requestedAmount),
+          }
+        : null,
+    draft.adaptiveFacts.communicationChannels.length > 1
+      ? {
+          label: hi ? "माध्यम" : "Channels",
+          value: draft.adaptiveFacts.communicationChannels.join(", "),
+        }
+      : null,
   ].filter((item): item is { label: string; value: string } => Boolean(item));
 
   return (
     <section id="prepared-complaint-summary" className="prepared-complaint-summary" aria-labelledby="prepared-summary-heading">
       <div>
-        <p className="eyebrow">{hi ? "तैयार सार" : "Prepared summary"}</p>
-        <h2 id="prepared-summary-heading">{hi ? "इन जानकारियों को जाँचें" : "Check these details"}</h2>
+        <h2 id="prepared-summary-heading">
+          {hi ? "शिकायत की जानकारी" : "Complaint details"}
+        </h2>
+        <p>
+          {hi
+            ? "देखें कि सचेत ने आपकी बात से क्या समझा।"
+            : "Check what सचेत understood from what you shared."}
+        </p>
       </div>
       <dl>
         {summaryItems.map((item) => (
@@ -3667,12 +3731,14 @@ function ReportDetailsPane({
       className="report-details-pane"
       aria-labelledby="report-details-heading"
     >
-      <ReportStatusCard
-        {...props}
-        readiness={readiness}
-        sourceReady={sourceReady}
-        onPrimaryAction={onPrimaryAction}
-      />
+      {props.mode !== "READY" || !props.draft ? (
+        <ReportStatusCard
+          {...props}
+          readiness={readiness}
+          sourceReady={sourceReady}
+          onPrimaryAction={onPrimaryAction}
+        />
+      ) : null}
 
       {props.mode === "READY" && props.draft ? (
         <PreparedComplaintSummary draft={props.draft} />
@@ -3711,9 +3777,11 @@ function ReportDetailsPane({
       ) : null}
 
       {props.mode === "READY" && props.draft ? (
-        <ReportingPathControl
-          draft={props.draft}
-          onReportFamilyChange={props.onReportFamilyChange}
+        <ReportStatusCard
+          {...props}
+          readiness={readiness}
+          sourceReady={sourceReady}
+          onPrimaryAction={onPrimaryAction}
         />
       ) : null}
 
@@ -3792,23 +3860,6 @@ function ReportDetailsPane({
       props.draft &&
       props.draft.classification.ambiguity === "NONE" ? (
         <>
-          {incidentGroup ? (
-            <section className="prepared-report-section prepared-report-core">
-              <ReportGroup
-                group={incidentGroup}
-                draft={props.draft}
-                missingAnswers={props.missingAnswers}
-                onMissingAnswerChange={props.onMissingAnswerChange}
-                onSaveMissingAnswer={props.onSaveMissingAnswer}
-                onDraftChange={props.onDraftChange}
-                showMissingEditors={false}
-                screenshots={props.screenshots}
-                isDemoIncident={props.isDemoIncident}
-                demoCase={props.demoCase}
-              />
-            </section>
-          ) : null}
-
           {sensitiveDetailDetected ? (
             <aside className="sensitive-detail-notice" role="status">
               <strong>
@@ -4127,37 +4178,68 @@ function ReportDetailsPane({
             </section>
           ) : null}
 
-          <IncidentTimeline
-            events={timeline}
-            heading={locale === "hi" ? "क्या हुआ" : "What happened"}
-          />
+          <details className="prepared-complaint-disclosure">
+            <summary>
+              {locale === "hi"
+                ? "शिकायत की पूरी जानकारी देखें"
+                : "View all complaint details"}
+            </summary>
+            <div className="prepared-complaint-disclosure-content">
+              <ReportingPathControl
+                draft={props.draft}
+                onReportFamilyChange={props.onReportFamilyChange}
+              />
 
-          <div className="prepared-report-groups">
-            {remainingGroups.map((group) => (
-              <section className="prepared-report-section" key={group.id}>
-                <ReportGroup
-                  group={group}
-                  draft={props.draft!}
-                  missingAnswers={props.missingAnswers}
-                  onMissingAnswerChange={props.onMissingAnswerChange}
-                  onSaveMissingAnswer={props.onSaveMissingAnswer}
-                  onDraftChange={props.onDraftChange}
-                  showMissingEditors={false}
-                  screenshots={props.screenshots}
-                  isDemoIncident={props.isDemoIncident}
-                  demoCase={props.demoCase}
-                  blockingCount={
-                    readiness?.sectionBlockingCounts[group.id] ?? 0
-                  }
-                />
-              </section>
-            ))}
-          </div>
+              {incidentGroup ? (
+                <section className="prepared-report-section prepared-report-core">
+                  <ReportGroup
+                    group={incidentGroup}
+                    draft={props.draft}
+                    missingAnswers={props.missingAnswers}
+                    onMissingAnswerChange={props.onMissingAnswerChange}
+                    onSaveMissingAnswer={props.onSaveMissingAnswer}
+                    onDraftChange={props.onDraftChange}
+                    showMissingEditors={false}
+                    screenshots={props.screenshots}
+                    isDemoIncident={props.isDemoIncident}
+                    demoCase={props.demoCase}
+                  />
+                </section>
+              ) : null}
 
-          <ImmediateHandoff
-            draft={props.draft}
-            amountResolution={props.amountResolution}
-          />
+              <IncidentTimeline
+                events={timeline}
+                heading={locale === "hi" ? "क्या हुआ" : "What happened"}
+              />
+
+              <div className="prepared-report-groups">
+                {remainingGroups.map((group) => (
+                  <section className="prepared-report-section" key={group.id}>
+                    <ReportGroup
+                      group={group}
+                      draft={props.draft!}
+                      missingAnswers={props.missingAnswers}
+                      onMissingAnswerChange={props.onMissingAnswerChange}
+                      onSaveMissingAnswer={props.onSaveMissingAnswer}
+                      onDraftChange={props.onDraftChange}
+                      showMissingEditors={false}
+                      screenshots={props.screenshots}
+                      isDemoIncident={props.isDemoIncident}
+                      demoCase={props.demoCase}
+                      blockingCount={
+                        readiness?.sectionBlockingCounts[group.id] ?? 0
+                      }
+                    />
+                  </section>
+                ))}
+              </div>
+
+              <ImmediateHandoff
+                draft={props.draft}
+                amountResolution={props.amountResolution}
+              />
+            </div>
+          </details>
         </>
       ) : null}
     </section>
