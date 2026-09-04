@@ -270,7 +270,7 @@ export function deriveMissingQuestions(draft: IncidentDraft): MissingQuestion[] 
         .filter((item) => TRANSACTION_REQUIREMENT_KEYS.has(item.key))
         .map((item) => item.key),
     );
-    outer: for (let index = 0; index < draft.transactions.length; index += 1) {
+    for (let index = 0; index < draft.transactions.length; index += 1) {
       for (const field of TRANSACTION_QUESTION_PRIORITY) {
         if (!requiredTransactionFields.has(field)) continue;
         if (transactionValueMissing(draft, index, field)) {
@@ -280,7 +280,6 @@ export function deriveMissingQuestions(draft: IncidentDraft): MissingQuestion[] 
             draft.transactions[index]?.amount ?? null,
             draft.transactions[index]?.institution ?? null,
           ));
-          break outer;
         }
       }
     }
@@ -330,6 +329,10 @@ export function applyMissingAnswer(
           reportedAmount: selected ? draft.incident.reportedAmount : null,
         },
         transactions: selected ? draft.transactions : [],
+        citizenConfirmedFields: Array.from(new Set([
+          ...draft.citizenConfirmedFields,
+          "incident.financialLossState",
+        ])),
         missingRequiredFields: draft.missingRequiredFields.filter((item) => item !== field),
       };
     }
@@ -341,6 +344,10 @@ export function applyMissingAnswer(
         delayInReporting: selected,
         delayReason: selected ? draft.incident.delayReason : null,
       },
+      citizenConfirmedFields: Array.from(new Set([
+        ...draft.citizenConfirmedFields,
+        "incident.delayInReporting",
+      ])),
       missingRequiredFields: draft.missingRequiredFields.filter(
         (item) => item !== field && (selected || item !== "delayReason"),
       ),
@@ -351,14 +358,25 @@ export function applyMissingAnswer(
     return {
       ...draft,
       incident: { ...draft.incident, delayReason: answer },
+      citizenConfirmedFields: Array.from(new Set([
+        ...draft.citizenConfirmedFields,
+        "incident.delayReason",
+      ])),
       missingRequiredFields: draft.missingRequiredFields.filter((item) => item !== field),
     };
   }
 
   if (field === "incidentDate" || field === "occurredOn") {
+    const confirmedPath = field === "incidentDate"
+      ? "incident.incidentDate"
+      : "incident.communicationChannel";
     return {
       ...draft,
       incident: { ...draft.incident, [field]: answer },
+      citizenConfirmedFields: Array.from(new Set([
+        ...draft.citizenConfirmedFields,
+        confirmedPath,
+      ])),
       missingRequiredFields: draft.missingRequiredFields.filter((item) => item !== field),
     };
   }
@@ -377,6 +395,10 @@ export function applyMissingAnswer(
         incidentDate: `${year}-${partialDate}`,
         incidentDateWithoutYear: null,
       },
+      citizenConfirmedFields: Array.from(new Set([
+        ...draft.citizenConfirmedFields,
+        "incident.incidentDate",
+      ])),
       missingRequiredFields: draft.missingRequiredFields.filter(
         (item) => item !== "incidentDate" && item !== "incidentDateYear",
       ),
@@ -387,6 +409,10 @@ export function applyMissingAnswer(
     return {
       ...draft,
       incident: { ...draft.incident, approximateTime: answer },
+      citizenConfirmedFields: Array.from(new Set([
+        ...draft.citizenConfirmedFields,
+        "incident.incidentTime",
+      ])),
       missingRequiredFields: draft.missingRequiredFields.filter(
         (item) => item !== "approximateTime" && item !== field,
       ),
@@ -400,15 +426,21 @@ export function applyMissingAnswer(
     field === "accountCompromiseBasis" ||
     field === "affectedSystem"
   ) {
+    const unavailable = answer === CITIZEN_DOES_NOT_HAVE;
+    const confirmedPath = `adaptive.${field}`;
     return {
       ...draft,
-      classification: field === "platform"
+      classification: field === "platform" && !unavailable
         ? { ...draft.classification, platform: answer }
         : draft.classification,
-      incident: field === "platform" && !draft.incident.occurredOn
+      incident: field === "platform" && !unavailable && !draft.incident.occurredOn
         ? { ...draft.incident, occurredOn: answer }
         : draft.incident,
       adaptiveFacts: { ...draft.adaptiveFacts, [field]: answer },
+      citizenConfirmedFields: Array.from(new Set([
+        ...draft.citizenConfirmedFields,
+        confirmedPath,
+      ])),
       missingRequiredFields: draft.missingRequiredFields.filter((item) => item !== field),
     };
   }
@@ -424,6 +456,10 @@ export function applyMissingAnswer(
     return {
       ...draft,
       adaptiveFacts: { ...draft.adaptiveFacts, recoveryInformationChanged: changed },
+      citizenConfirmedFields: Array.from(new Set([
+        ...draft.citizenConfirmedFields,
+        "adaptive.recoveryInformationChanged",
+      ])),
       missingRequiredFields: draft.missingRequiredFields.filter((item) => item !== field),
     };
   }

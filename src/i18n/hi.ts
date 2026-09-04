@@ -368,7 +368,7 @@ export const HI_TEXT: Record<string, string> = {
   "field.amount": "राशि",
   "field.institution": "बैंक / भुगतान संस्था",
   "field.account": "खाता, वॉलेट या यूपीआई आईडी",
-  "field.transactionReference": "लेन-देन संदर्भ संख्या",
+  "field.transactionReference": "लेन-देन संदर्भ / यूटीआर",
   "field.transactionReferenceHelp": "यह आमतौर पर बैंक या यूपीआई लेन-देन के विवरण में मिलता है; इसे यूटीआर भी कहा जा सकता है।",
   "field.transactionDate": "लेन-देन की तारीख",
   "field.reference": "संदर्भ संख्या",

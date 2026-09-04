@@ -98,9 +98,13 @@ const SOURCE_VISIBLE_FIELD_IDS = new Set([
 const UNAVAILABLE_QUESTION_FIELDS = new Set<MissingQuestion["field"]>([
   "transactionIdOrUtr",
   "transactionApproximateTime",
+  "transactionDate",
   "incidentApproximateTime",
   "accountOrUpiId",
   "institution",
+  "platform",
+  "affectedAccount",
+  "affectedSystem",
 ]);
 
 type ReportWorkspaceProps = {
@@ -1254,6 +1258,7 @@ function MissingFieldEditor({
           ? "तारीख से भुगतान रिकॉर्ड को बैंक या UPI विवरण से मिलाने में मदद मिलती है।"
           : "The date helps match this payment with the bank or UPI record.";
       case "affectedAccount":
+      case "platform":
         return locale === "hi"
           ? "इससे शिकायत में प्रभावित अकाउंट या प्रोफ़ाइल की सही पहचान होती है।"
           : "This identifies the account or profile affected by the incident.";
@@ -1309,11 +1314,12 @@ function MissingFieldEditor({
               onChange={(event) => onChange(event.target.value)}
             />
             <button
-              className="secondary-button"
+              className="primary-button"
               type="button"
+              disabled={!value.trim()}
               onClick={() => onSave()}
             >
-              {locale === "hi" ? "साल सहेजें" : "Save year"}
+              {locale === "hi" ? "सहेजें और आगे बढ़ें" : "Save and continue"}
             </button>
           </div>
         ) : null}
@@ -1423,11 +1429,12 @@ function MissingFieldEditor({
               onChange={(event) => onChange(event.target.value)}
             />
             <button
-              className="secondary-button"
+              className="primary-button"
               type="button"
+              disabled={!value.trim()}
               onClick={() => onSave()}
             >
-              {t("field.save")}
+              {locale === "hi" ? "सहेजें और आगे बढ़ें" : "Save and continue"}
             </button>
           </div>
         ) : null}
@@ -1435,19 +1442,39 @@ function MissingFieldEditor({
     );
   }
 
+  const inputId = `missing-${field.id}`;
+  const reasonId = `${inputId}-reason`;
+  const helperId = `${inputId}-help`;
+  const isTransactionReference = question.field === "transactionIdOrUtr";
+
   return (
     <div
       className="report-missing-editor"
       data-missing-field={question.field}
       data-report-field-id={field.id}
     >
-      <label htmlFor={`missing-${question.field}`}>
+      <label htmlFor={inputId}>
         {locale === "hi" ? question.questionHi : question.question}
       </label>
-      {field.helpText ? (
-        <p className="report-field-help">{field.helpText}</p>
+      {isTransactionReference && whyNeeded ? (
+        <p className="report-field-help clarification-reason" id={reasonId}>
+          {whyNeeded}
+        </p>
       ) : null}
-      {whyNeeded ? (
+      <input
+        id={inputId}
+        type={question.inputType}
+        value={value}
+        aria-describedby={[
+          isTransactionReference && whyNeeded ? reasonId : null,
+          field.helpText && !isTransactionReference ? helperId : null,
+        ].filter(Boolean).join(" ") || undefined}
+        onChange={(event) => onChange(event.target.value)}
+      />
+      {field.helpText && !isTransactionReference ? (
+        <p className="report-field-help" id={helperId}>{field.helpText}</p>
+      ) : null}
+      {whyNeeded && !isTransactionReference ? (
         <details className="field-help-disclosure field-why-needed">
           <summary>
             {locale === "hi" ? "यह क्यों जरूरी है?" : "Why is this needed?"}
@@ -1455,7 +1482,7 @@ function MissingFieldEditor({
           <p>{whyNeeded}</p>
         </details>
       ) : null}
-      {question.field === "transactionIdOrUtr" ? (
+      {isTransactionReference ? (
         <details className="field-help-disclosure">
           <summary>
             {locale === "hi" ? "यह कहाँ मिलेगा?" : "Where do I find this?"}
@@ -1525,28 +1552,23 @@ function MissingFieldEditor({
           </div>
         </details>
       ) : null}
-      <input
-        id={`missing-${question.field}`}
-        type={question.inputType}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-      />
       <div className="inline-field-actions">
         <button
-          className="secondary-button"
+          className="primary-button"
           type="button"
+          disabled={!value.trim()}
           onClick={() => onSave()}
         >
-          {t("field.save")}
+          {locale === "hi" ? "सहेजें और आगे बढ़ें" : "Save and continue"}
         </button>
         {UNAVAILABLE_QUESTION_FIELDS.has(question.field) ? (
           <button
-            className="text-button"
+            className="secondary-button"
             type="button"
             onClick={() => onSave(CITIZEN_DOES_NOT_HAVE)}
           >
             {locale === "hi"
-              ? "मेरे पास यह जानकारी नहीं है"
+              ? "मेरे पास यह नहीं है"
               : "I don’t have this"}
           </button>
         ) : null}
@@ -3662,6 +3684,7 @@ function ReportDetailsPane({
 }) {
   const { locale, t } = useI18n();
   const [customReportedAmount, setCustomReportedAmount] = useState("");
+  const [unavailableNotice, setUnavailableNotice] = useState(false);
   const amountConflictMissing = Boolean(
     props.amountResolution?.hasConflict &&
     !props.amountResolution.selectedAmount,
@@ -3669,9 +3692,10 @@ function ReportDetailsPane({
   const amountConflictResolution = amountConflictMissing
     ? props.amountResolution
     : null;
-  const firstMissingQuestion = props.draft
-    ? deriveMissingQuestions(props.draft)[0]
-    : null;
+  const missingQuestions = props.draft
+    ? deriveMissingQuestions(props.draft)
+    : [];
+  const firstMissingQuestion = missingQuestions[0] ?? null;
   const evidenceMissing =
     readiness?.blockingItems.some(
       (item) => item.fieldId === "source-evidence",
@@ -3682,9 +3706,17 @@ function ReportDetailsPane({
         .flatMap((section) => section.fields)
         .find(
           (field) =>
-            field.missingQuestion?.field === firstMissingQuestion.field,
+            field.missingQuestion?.field === firstMissingQuestion.field &&
+            field.missingQuestion?.transactionIndex ===
+              firstMissingQuestion.transactionIndex,
         )
     : null;
+  const clarificationDetailCount =
+    missingQuestions.length + (evidenceMissing ? 1 : 0);
+
+  useEffect(() => {
+    setUnavailableNotice(false);
+  }, [props.demoCase?.id, props.experienceMode]);
   const incidentGroup = groups.find((group) => group.id === "INCIDENT");
   const remainingGroups = groups.filter(
     (group) => group.id !== "INCIDENT" && group.id !== "REPORTER",
@@ -4107,13 +4139,32 @@ function ReportDetailsPane({
             </section>
           ))}
 
+          {unavailableNotice ? (
+            <div className="clarification-unavailable-confirmation" role="status">
+              <strong>{locale === "hi" ? "उपलब्ध नहीं" : "Not available"}</strong>
+              <p>
+                {locale === "hi"
+                  ? "कोई बात नहीं। यह जानकारी शिकायत में उपलब्ध नहीं के रूप में दर्ज रहेगी।"
+                  : "That’s okay. This detail will remain unavailable in the complaint."}
+              </p>
+            </div>
+          ) : null}
+
           {priorityField && !amountConflictMissing ? (
             <section className="priority-missing-question">
               <p className="eyebrow">
                 {locale === "hi"
-                  ? "अगली जरूरी जानकारी"
-                  : "Information required"}
+                  ? "एक जानकारी जाँचें"
+                  : "One detail to check"}
               </p>
+              {clarificationDetailCount > 1 ? (
+                <p className="clarification-progress" role="status">
+                  {locale === "hi"
+                    ? `${clarificationDetailCount} जानकारियाँ जाँचनी हैं`
+                    : `${clarificationDetailCount} details to check`}
+                </p>
+              ) : null}
+              <h3>{priorityField.label}</h3>
               <MissingFieldEditor
                 field={priorityField}
                 value={
@@ -4133,6 +4184,7 @@ function ReportDetailsPane({
                 }}
                 onSave={(fallback) => {
                   if (priorityField.missingQuestion) {
+                    setUnavailableNotice(fallback === CITIZEN_DOES_NOT_HAVE);
                     props.onSaveMissingAnswer(
                       priorityField.missingQuestion,
                       fallback,
@@ -4147,17 +4199,41 @@ function ReportDetailsPane({
             <section className="priority-missing-question">
               <p className="eyebrow">
                 {locale === "hi"
-                  ? "अगली जरूरी जानकारी"
-                  : "Information required"}
+                  ? "एक जानकारी जाँचें"
+                  : "One detail to check"}
               </p>
+              {clarificationDetailCount > 1 ? (
+                <p className="clarification-progress" role="status">
+                  {locale === "hi"
+                    ? `${clarificationDetailCount} जानकारियाँ जाँचनी हैं`
+                    : `${clarificationDetailCount} details to check`}
+                </p>
+              ) : null}
               <h3>{t("field.evidenceSupplied")}</h3>
               <p>
                 {locale === "hi"
                   ? "वित्तीय रिपोर्ट के लिए सहायक सबूत जोड़ें।"
                   : "Add supporting evidence for this financial report."}
               </p>
+              <details className="field-help-disclosure evidence-help-disclosure">
+                <summary>
+                  {locale === "hi" ? "क्या जोड़ना चाहिए?" : "What should I add?"}
+                </summary>
+                <div className="field-help-content">
+                  <p>
+                    {locale === "hi"
+                      ? "संदेश, भुगतान रसीद, अकाउंट सूचना, प्रोफ़ाइल लिंक या स्क्रीनशॉट शिकायत को समझने में मदद कर सकते हैं।"
+                      : "Messages, payment receipts, account notifications, profile links or screenshots can help support the complaint."}
+                  </p>
+                  <p className="evidence-safety-note">
+                    {locale === "hi"
+                      ? "पासवर्ड, OTP, PIN या CVV अपलोड न करें।"
+                      : "Do not upload passwords, OTPs, PINs or CVVs."}
+                  </p>
+                </div>
+              </details>
               <button
-                className="secondary-button"
+                className="primary-button"
                 type="button"
                 data-report-field-id="source-evidence"
                 onClick={() =>

@@ -631,7 +631,9 @@ export function normalizeIncidentDraft(
   const inferredDate = resolveOmittedYearDate(partialDateContext, options.reportingDate);
   const isFinancialIncident = classification.reportFamily === "FINANCIAL_FRAUD";
   const financialLossState = isFinancialIncident
-    ? extracted.lossStateExplicit
+    ? draft.citizenConfirmedFields.includes("incident.financialLossState")
+      ? draft.incident.financialLossState
+      : extracted.lossStateExplicit
       ? extracted.financialLossState
       : draft.incident.financialLossState
     : classification.moneyLost === false || draft.incident.moneyLost === false

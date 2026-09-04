@@ -94,7 +94,7 @@ export { CITIZEN_DOES_NOT_HAVE } from "../incident/schema";
 
 function formatDate(value: string | null, locale: UiLocale): string {
   if (!value) return textForLocale(locale, "field.notProvided");
-  if (isInternalCaseValue(value)) return textForLocale(locale, "field.notProvided");
+  if (isInternalCaseValue(value)) return textForLocale(locale, "field.notAvailable");
   const [year, month, day] = value.split("-").map(Number);
   const parsed = new Date(Date.UTC(year, month - 1, day, 12));
   if (Number.isNaN(parsed.getTime())) return value;
@@ -109,7 +109,7 @@ function formatDate(value: string | null, locale: UiLocale): string {
 
 function display(value: string | null | undefined, locale: UiLocale): string {
   const visibleValue = citizenVisibleValue(value);
-  if (isInternalCaseValue(value)) return textForLocale(locale, "field.notProvided");
+  if (isInternalCaseValue(value)) return textForLocale(locale, "field.notAvailable");
   return visibleValue
     ? sanitizeSensitiveText(visibleValue).text
     : textForLocale(locale, "field.notProvided");

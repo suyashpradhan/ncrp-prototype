@@ -205,7 +205,7 @@ const EN_TEXT: Record<string, string> = {
   "field.amount": "Amount",
   "field.institution": "Bank / payment institution",
   "field.account": "Account, wallet or UPI ID",
-  "field.transactionReference": "Transaction reference",
+  "field.transactionReference": "Transaction reference / UTR",
   "field.transactionReferenceHelp": "Usually shown in your bank or UPI transaction details; it may be called a UTR.",
   "field.transactionDate": "Transaction date",
   "field.reference": "Reference number",

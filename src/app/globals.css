@@ -2214,6 +2214,49 @@ html[data-ui-locale="hi"] .utr-example text {
   text-transform: uppercase;
 }
 
+.clarification-progress {
+  margin: 0 0 14px;
+  color: var(--secondary);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.priority-missing-question > h3 {
+  margin-bottom: 12px;
+  font-size: 20px;
+}
+
+.clarification-reason {
+  margin-bottom: 10px;
+}
+
+.clarification-unavailable-confirmation {
+  margin-bottom: 18px;
+  padding: 14px 16px;
+  background: var(--surface-subtle);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.clarification-unavailable-confirmation strong {
+  display: block;
+  margin-bottom: 2px;
+}
+
+.clarification-unavailable-confirmation p,
+.evidence-safety-note {
+  margin: 0;
+  color: var(--secondary);
+}
+
+.evidence-help-disclosure {
+  margin-bottom: 12px;
+}
+
+.evidence-safety-note {
+  font-weight: 700;
+}
+
 .priority-missing-question .report-missing-editor {
   margin-top: 0;
   padding: 0;
@@ -3976,6 +4019,10 @@ html[data-ui-locale="hi"] .companion-eyebrow {
   .entry-actions > *,
   .report-primary-actions > *,
   .classification-options > * {
+    width: 100%;
+  }
+
+  .priority-missing-question .inline-field-actions > * {
     width: 100%;
   }
 
