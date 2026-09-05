@@ -330,6 +330,7 @@ export function PostSubmissionCaseHome({
   const compactSummaryIds = [
     "reporting-path",
     "reported-loss",
+    "additional-amount-requested",
     "money-lost",
     "transactions",
     "incident-date",
@@ -342,6 +343,9 @@ export function PostSubmissionCaseHome({
     .map((id) => summary.find((item) => item.id === id))
     .filter((item): item is (typeof summary)[number] => Boolean(item))
     .slice(0, 6);
+  const evidenceToKeep = isDemoIncident
+    ? (demoCase?.evidence.map((item) => hi ? item.labelHi : item.label) ?? [])
+    : screenshots.map((file) => file.name);
   const processBoundaries = Array.from(
     new Set([stateExplanation.whatItDoesNotMean, ...process.importantBoundaries]),
   );
@@ -446,7 +450,20 @@ export function PostSubmissionCaseHome({
           </section>
 
           <section className="companion-section complaint-summary-section" aria-labelledby="case-summary-heading">
-            <h2 id="case-summary-heading">{hi ? "शिकायत का सार" : "Complaint summary"}</h2>
+            <h2 id="case-summary-heading">{hi ? "इन्हें सुरक्षित रखें" : "Keep these safe"}</h2>
+            <ul className="post-submit-keep-list">
+              {evidenceToKeep.map((item) => <li key={item}>{item}</li>)}
+              <li>{hi ? "शिकायत की प्रति" : "Complaint copy"}</li>
+            </ul>
+            <div className="case-copy-actions post-submit-primary-actions">
+              <button className="secondary-button" type="button" onClick={() => void copyText(getSafeCaseSummary(draft, prototypeReference, locale), "SUMMARY")}>
+                {copiedValue === "SUMMARY" ? (hi ? "सार कॉपी हो गया" : "Summary copied") : (hi ? "मामले का सार कॉपी करें" : "Copy case summary")}
+              </button>
+              <button className="secondary-button" type="button" onClick={printReport}>
+                {hi ? "प्रिंट करें या PDF सहेजें" : "Print or save PDF"}
+              </button>
+            </div>
+            <h3 className="post-submit-summary-heading">{hi ? "शिकायत का सार" : "Complaint summary"}</h3>
             <dl className="companion-summary-list">
               {compactSummary.map((item) => (
                 <div key={item.id}>
@@ -624,12 +641,6 @@ export function PostSubmissionCaseHome({
           <section className="companion-section case-copy-section" aria-labelledby="complaint-actions-heading">
             <h2 id="complaint-actions-heading">{hi ? "शिकायत के विकल्प" : "Complaint actions"}</h2>
             <div className="case-copy-actions">
-              <button className="secondary-button" type="button" onClick={() => void copyText(getSafeCaseSummary(draft, prototypeReference, locale), "SUMMARY")}>
-                {copiedValue === "SUMMARY" ? (hi ? "सार कॉपी हो गया" : "Summary copied") : (hi ? "मामले का सार कॉपी करें" : "Copy case summary")}
-              </button>
-              <button className="secondary-button" type="button" onClick={printReport}>
-                {hi ? "प्रिंट करें या PDF सहेजें" : "Print or save PDF"}
-              </button>
               <button className="text-button" type="button" onClick={onStartNewReport}>
                 {hi ? "नई शिकायत शुरू करें" : "Start new complaint"}
               </button>

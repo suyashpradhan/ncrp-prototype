@@ -179,6 +179,7 @@ function incidentPathLabel(draft: IncidentDraft, locale: UiLocale): string {
     "Internet Banking Related Fraud": "इंटरनेट बैंकिंग से जुड़ी धोखाधड़ी",
     "Investment / Trading Fraud": "निवेश / ट्रेडिंग धोखाधड़ी",
     "Online Lottery Scam": "ऑनलाइन लॉटरी धोखाधड़ी",
+    "Online Job Fraud": "ऑनलाइन नौकरी धोखाधड़ी",
     "Profile Hacking": "प्रोफ़ाइल हैकिंग",
     Ransomware: "रैनसमवेयर",
     "Other Cyber Crime": "अन्य साइबर अपराध",
@@ -208,6 +209,24 @@ export function getCaseSummary(
       id: "reported-loss",
       label: hi ? "रिपोर्ट किया गया नुकसान" : "Reported loss",
       value: formatCurrency(totalLoss),
+    });
+  }
+  if (draft.adaptiveFacts.demandedAmount) {
+    const status = draft.incident.financialLossState === "NO"
+      ? hi ? "भुगतान नहीं किया" : "Not paid"
+      : draft.citizenConfirmedFields.includes(
+      "adaptive.requestedAmountPaymentStatus.NOT_PAID",
+    )
+      ? hi ? "भुगतान नहीं किया" : "Not paid"
+      : draft.citizenConfirmedFields.includes(
+            "adaptive.requestedAmountPaymentStatus.PAID",
+          )
+        ? hi ? "कुछ राशि दी गई" : "Some amount paid"
+        : hi ? "भुगतान की स्थिति उपलब्ध नहीं" : "Payment status unavailable";
+    items.push({
+      id: "additional-amount-requested",
+      label: hi ? "बाद में मांगी गई राशि" : "Additional amount requested",
+      value: `${formatCurrency(draft.adaptiveFacts.demandedAmount)} · ${status}`,
     });
   }
   if (draft.transactions.length > 0) {

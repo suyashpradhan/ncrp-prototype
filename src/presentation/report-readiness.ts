@@ -51,6 +51,10 @@ const QUESTION_TARGETS: Record<
   MissingQuestion["field"],
   { fieldId: ReportFieldId; sectionId: ReportGroupId }
 > = {
+  requestedAmountPaymentStatus: {
+    fieldId: "requested-amount-payment-status",
+    sectionId: "THREAT_IMPERSONATION",
+  },
   moneyLost: { fieldId: "money-lost", sectionId: "INCIDENT" },
   incidentDate: { fieldId: "incident-date", sectionId: "INCIDENT" },
   incidentDateYear: { fieldId: "incident-date", sectionId: "INCIDENT" },
@@ -104,6 +108,7 @@ const CONTRACT_TARGETS: Record<string, { fieldId: ReportFieldId; sectionId: Repo
 };
 
 const CLARIFICATION_FIELDS = new Set<MissingQuestion["field"]>([
+  "requestedAmountPaymentStatus",
   "moneyLost",
   "accountCompromiseBasis",
   "incidentDateYear",

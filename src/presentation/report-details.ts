@@ -69,6 +69,7 @@ const GROUP_LABELS: Record<ReportGroupId, string> = {
 };
 
 const MISSING_GROUP: Record<MissingQuestion["field"], ReportGroupId> = {
+  requestedAmountPaymentStatus: "THREAT_IMPERSONATION",
   moneyLost: "INCIDENT",
   incidentDate: "INCIDENT",
   incidentDateYear: "INCIDENT",
@@ -643,10 +644,45 @@ export function deriveReportGroups(
     sections: [{ id: "account-system", fields: accountSystemFields }],
   };
   const threatFields: ReportFieldView[] = [
+    ...(draft.adaptiveFacts.demandedAmount
+      ? [
+          makeField(
+            "requested-amount-payment-status",
+            locale === "hi" ? "बाद में मांगी गई राशि" : "Additional amount requested",
+            `${formatCurrency(draft.adaptiveFacts.demandedAmount)} · ${
+              draft.citizenConfirmedFields.includes(
+                "adaptive.requestedAmountPaymentStatus.NOT_PAID",
+              )
+                ? locale === "hi"
+                  ? "भुगतान नहीं किया"
+                  : "Not paid"
+                : draft.citizenConfirmedFields.includes(
+                      "adaptive.requestedAmountPaymentStatus.PAID",
+                    )
+                  ? locale === "hi"
+                    ? "कुछ राशि दी गई"
+                    : "Some amount paid"
+                  : draft.citizenConfirmedFields.includes(
+                        "adaptive.requestedAmountPaymentStatus.UNKNOWN",
+                      )
+                    ? locale === "hi"
+                      ? "याद नहीं"
+                      : "Citizen does not remember"
+                    : locale === "hi"
+                      ? "पुष्टि बाकी है"
+                      : "Needs confirmation"
+            }`,
+            {
+              missingQuestion: missingByField.get(
+                "requestedAmountPaymentStatus",
+              ),
+            },
+          ),
+        ]
+      : []),
     ...(capabilities.threatOrExtortion
       ? [
           makeField("threat-present", locale === "hi" ? "धमकी या दबाव" : "Threat or extortion", copy("field.yes")),
-          makeField("demanded-amount", locale === "hi" ? "मांगी गई राशि" : "Amount demanded", draft.adaptiveFacts.demandedAmount ? formatCurrency(draft.adaptiveFacts.demandedAmount) : null),
           makeField("threat-channel", locale === "hi" ? "धमकी का माध्यम" : "Threat channel", draft.adaptiveFacts.threatChannel),
           makeField("threat-description", locale === "hi" ? "धमकी का विवरण" : "Threat description", draft.adaptiveFacts.threatDescription),
         ]
@@ -660,8 +696,10 @@ export function deriveReportGroups(
   ].filter((item) => item.state !== "NOT_PROVIDED_OPTIONAL");
   const threatGroup: ReportGroupView = {
     id: "THREAT_IMPERSONATION",
-    label: locale === "hi" ? "धमकी या प्रतिरूपण" : "Threat or impersonation",
-    missingCount: 0,
+    label: locale === "hi" ? "अनुरोध, धमकी या प्रतिरूपण" : "Requests, threats or impersonation",
+    missingCount: missingQuestions.filter(
+      (question) => question.field === "requestedAmountPaymentStatus",
+    ).length,
     sections: [{ id: "threat-impersonation", fields: threatFields }],
   };
   const informationFields: ReportFieldView[] = [

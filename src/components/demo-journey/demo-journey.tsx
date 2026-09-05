@@ -310,70 +310,76 @@ function SachetPreview() {
           : "Example of shared information becoming a prepared report"
       }
     >
-      <p className="sachet-preview-label">
-        {hi ? "आप बताते हैं कि क्या हुआ" : "You describe what happened"}
-      </p>
-      <blockquote className="sachet-proof-story">
-        {hi ? "“कल मुझे SBI KYC का संदेश मिला। पहले ₹5,000, फिर ₹15,000 गए।”" : "“Yesterday I received an SBI KYC message. ₹5,000 went first, then ₹15,000.”"}
-      </blockquote>
+      <div className="sachet-preview-shared">
+        <p className="sachet-preview-label">
+          {hi ? "मीरा ने जो साझा किया" : "What Meera shared"}
+        </p>
+        <blockquote>
+          {hi
+            ? "“LinkedIn पर नौकरी का प्रस्ताव मिला। WhatsApp पर मैंने दो भुगतान किए, फिर ₹18,000 और मांगे गए।”"
+            : "“A job offer started on LinkedIn, moved to WhatsApp, and led to two payments before another ₹18,000 was requested.”"}
+        </blockquote>
+        <div className="sachet-preview-evidence">
+          <div><span className="sachet-preview-file-icon" aria-hidden="true">▧</span><strong>{hi ? "बातचीत" : "Conversations"}</strong><small>LinkedIn · WhatsApp</small></div>
+          <div><span className="sachet-preview-file-icon" aria-hidden="true">₹</span><strong>{hi ? "भुगतान रसीदें" : "Payment receipts"}</strong><small>₹499 · ₹1,499</small></div>
+        </div>
+      </div>
 
       <div className="sachet-preview-connector" aria-hidden="true">
         <span />
         <b>↓</b>
       </div>
 
-      <div className="sachet-proof-result">
-        <p className="sachet-preview-label">
-          {hi ? "शिकायत की जानकारी" : "Complaint details"}
-        </p>
-        <strong>{hi ? "वित्तीय धोखाधड़ी" : "Financial fraud"}</strong>
-        <span>{hi ? "₹20,000 रिपोर्ट किया गया नुकसान" : "₹20,000 reported loss"}</span>
-        <span>{hi ? "2 लेन-देन" : "2 transactions"}</span>
-        <span>{hi ? "2 सितम्बर 2026" : "2 Sep 2026"}</span>
-        <b>
-          {hi
-            ? "जानकारी आपके बयान और सबूत से जुड़ी है"
-            : "Details linked to your statement and evidence"}
-        </b>
+      <div className="sachet-preview-report">
+        <p className="sachet-preview-label">{hi ? "सचेत ने समझा" : "What सचेत understood"}</p>
+        <div className="sachet-preview-report-heading">
+          <strong>{hi ? "नकली नौकरी का प्रस्ताव" : "Fake job offer"}</strong>
+          <b>₹1,998</b>
+        </div>
+        <dl>
+          <div><dt>{hi ? "शुरुआत" : "Started on"}</dt><dd>LinkedIn → WhatsApp</dd></div>
+          <div><dt>{hi ? "भुगतान किया" : "Paid"}</dt><dd>₹499 + ₹1,499</dd></div>
+          <div><dt>{hi ? "बाद में मांगा" : "Later requested"}</dt><dd>₹18,000 · {hi ? "भुगतान नहीं किया" : "Not paid"}</dd></div>
+        </dl>
       </div>
     </aside>
   );
 }
 
-function LandingCaseCheck({ onReviewAmount }: { onReviewAmount: () => void }) {
+function LandingCaseCheck({ onTryCase }: { onTryCase: () => void }) {
   const { locale } = useI18n();
   const hi = locale === "hi";
   return (
     <section className="landing-case-check" aria-labelledby="landing-case-check-heading">
       <div>
         <h2 id="landing-case-check-heading">
-          {hi ? "जमा करने से पहले जाँचें" : "Check before submitting"}
+          {hi ? "एक घटना, कई तरह की जानकारी" : "One incident, reconstructed clearly"}
         </h2>
         <p>
           {hi
-            ? "अगर कोई जानकारी मेल नहीं खाती, तो सचेत आपसे पूछता है।"
-            : "If something does not add up, सचेत asks you."}
+            ? "सचेत बातचीत, भुगतान और सबूत को जोड़ता है—और जो साफ़ नहीं है, उसके बारे में पूछता है।"
+            : "सचेत connects conversations, payments and evidence—and asks when something important is unclear."}
         </p>
       </div>
       <div className="landing-conflict-example">
         <dl>
-          <div><dt>{hi ? "आपने कहा" : "You said"}</dt><dd>₹25,000 {hi ? "कुल" : "total"}</dd></div>
-          <div><dt>{hi ? "लेन-देन" : "Transactions"}</dt><dd>₹5,000 + ₹15,000</dd></div>
+          <div><dt>{hi ? "भुगतान किया" : "Actually paid"}</dt><dd>₹499 + ₹1,499</dd></div>
+          <div><dt>{hi ? "बाद में मांगा" : "Requested later"}</dt><dd>₹18,000</dd></div>
         </dl>
         <strong>
-          {hi ? "ये राशियाँ मेल नहीं खातीं।" : "These amounts do not match."}
+          {hi ? "₹18,000 का भुगतान नहीं किया गया।" : "The ₹18,000 was not paid."}
         </strong>
         <p>
           {hi
-            ? "लेन-देन का जोड़ा ₹20,000 है।"
-            : "The transactions add up to ₹20,000."}
+            ? "वास्तव में ट्रांसफर हुई राशि ₹1,998 है।"
+            : "Actual money transferred is ₹1,998."}
         </p>
         <button
           className="landing-example-action"
           type="button"
-          onClick={onReviewAmount}
+          onClick={onTryCase}
         >
-          {hi ? "राशि जाँचें" : "Review amount"} →
+          {hi ? "मीरा का मामला देखें" : "Try Meera’s case"} →
         </button>
       </div>
     </section>
@@ -384,31 +390,10 @@ function LandingReassurance() {
   const { locale } = useI18n();
   const hi = locale === "hi";
   return (
-    <section className="landing-reassurance" aria-label={hi ? "शुरू करने के लिए जानकारी" : "Information for getting started"}>
-      <article>
-        <h2>
-          {hi
-            ? "हर जानकारी न होने पर भी आप शुरू कर सकते हैं।"
-            : "You can start even if you don't have every detail."}
-        </h2>
-        <p>{hi ? "उपलब्ध हो तो मददगार:" : "Helpful if available:"}</p>
-        <ul>
-          <li>{hi ? "संदिग्ध संदेशों के स्क्रीनशॉट" : "Screenshots of suspicious messages"}</li>
-          <li>{hi ? "भुगतान रसीद या लेन-देन की जानकारी" : "Payment receipts or transaction details"}</li>
-          <li>{hi ? "जुड़े हुए फ़ोन नंबर, यूज़रनेम या प्रोफ़ाइल लिंक" : "Phone numbers, usernames or profile links involved"}</li>
-        </ul>
-        <strong>{hi ? "सब कुछ नहीं है? फिर भी शुरू करें।" : "Don't have everything? You can still begin."}</strong>
-      </article>
-      <article>
-        <h2>{hi ? "आप घटना बताते हैं।" : "You explain the incident."}</h2>
-        <p>{hi ? "सचेत शिकायत की जानकारी तैयार करता है।" : "सचेत prepares the complaint details."}</p>
-        <ul>
-          <li>{hi ? "पहले शिकायत की श्रेणी चुनने की जरूरत नहीं।" : "No need to choose the complaint category first."}</li>
-          <li>{hi ? "हर तकनीकी शब्द जानना जरूरी नहीं।" : "No need to know every technical term before starting."}</li>
-          <li>{hi ? "जानकारी उपलब्ध न हो तो आप ऐसा बता सकते हैं।" : "If information is unavailable, you can say so."}</li>
-          <li>{hi ? "जमा करने से पहले आप सब कुछ जाँचते हैं।" : "You review everything before submitting."}</li>
-        </ul>
-      </article>
+    <section className="landing-reassurance landing-three-steps" aria-label={hi ? "शिकायत तैयार करने के तीन चरण" : "Three steps to prepare a complaint"}>
+      <article><span>1</span><h2>{hi ? "बताएं कि क्या हुआ" : "Tell us what happened"}</h2><p>{hi ? "बोलें, लिखें या सबूत जोड़ें।" : "Speak, type, or add evidence."}</p></article>
+      <article><span>2</span><h2>{hi ? "देखें कि हमने क्या समझा" : "Check what we understood"}</h2><p>{hi ? "सचेत घटना को व्यवस्थित करता है और केवल जरूरी बात साफ़ न होने पर पूछता है।" : "सचेत organises the incident and asks only when something important is unclear."}</p></article>
+      <article><span>3</span><h2>{hi ? "अपनी शिकायत जाँचें" : "Review your complaint"}</h2><p>{hi ? "जमा करने से पहले नियंत्रण आपके पास रहता है।" : "You stay in control before anything is submitted."}</p></article>
     </section>
   );
 }
@@ -1600,13 +1585,13 @@ export function DemoJourney() {
             <div className="service-entry-copy">
               <h1>
                 {locale === "hi"
-                  ? "साइबर अपराध की रिपोर्ट करें"
-                  : "Report a cybercrime"}
+                  ? "क्या आपके साथ ऑनलाइन धोखाधड़ी हुई या कोशिश की गई?"
+                  : "Were you scammed or targeted online?"}
               </h1>
               <p className="service-entry-support">
                 {locale === "hi"
-                  ? "जो हुआ उसे अपने शब्दों में बताएं। सचेत शिकायत की जानकारी तैयार करता है, जिसे आप जमा करने से पहले जाँचते हैं।"
-                  : "Describe what happened in your own words. सचेत prepares the complaint details for you to review before submitting."}
+                  ? "बताएं कि क्या हुआ। बोलें, लिखें या स्क्रीनशॉट जोड़ें। सचेत आपकी बात को शिकायत की जानकारी में बदलता है, जिसे आप जमा करने से पहले जाँचते हैं।"
+                  : "Tell us what happened. Speak, type, or add screenshots. सचेत turns what happened into complaint details you can review before submitting."}
               </p>
               <p className="landing-category-reassurance">
                 {locale === "hi"
@@ -1621,7 +1606,7 @@ export function DemoJourney() {
                 >
                   {hasSubmittedCase
                     ? locale === "hi" ? "मामला देखें" : "View case"
-                    : locale === "hi" ? "शिकायत शुरू करें" : "Start complaint"}
+                    : locale === "hi" ? "अपनी शिकायत तैयार करें" : "Start preparing my complaint"}
                 </button>
                 <button
                   className="landing-text-action"
@@ -1630,7 +1615,7 @@ export function DemoJourney() {
                 >
                   {hasSubmittedCase
                     ? locale === "hi" ? "नई शिकायत शुरू करें" : "Start new complaint"
-                    : locale === "hi" ? "डेमो देखें" : "View demo"}
+                    : locale === "hi" ? "नमूना घटना देखें" : "Try a sample incident"}
                 </button>
               </div>
               <div className="landing-trust-line">
@@ -1648,7 +1633,7 @@ export function DemoJourney() {
             </div>
             <SachetPreview />
           </div>
-          <LandingCaseCheck onReviewAmount={() => useDemoIncident()} />
+          <LandingCaseCheck onTryCase={() => useDemoIncident()} />
           <LandingReassurance />
         </div>
       </section>

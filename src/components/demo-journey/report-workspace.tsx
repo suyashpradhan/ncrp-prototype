@@ -1347,7 +1347,8 @@ function MissingFieldEditor({
   if (
     question.field === "recoveryInformationChanged" ||
     question.field === "moneyLost" ||
-    question.field === "delayInReporting"
+    question.field === "delayInReporting" ||
+    question.field === "requestedAmountPaymentStatus"
   ) {
     return (
       <div
@@ -1364,7 +1365,11 @@ function MissingFieldEditor({
             type="button"
             onClick={() => onSave("yes")}
           >
-            {question.field === "moneyLost"
+            {question.field === "requestedAmountPaymentStatus"
+              ? locale === "hi"
+                ? "हाँ"
+                : "Yes"
+              : question.field === "moneyLost"
               ? locale === "hi"
                 ? "हाँ, पैसे दिए या डेबिट हुए"
                 : "Yes, money was paid or debited"
@@ -1375,15 +1380,26 @@ function MissingFieldEditor({
             type="button"
             onClick={() => onSave("no")}
           >
-            {t("field.no")}
+            {question.field === "requestedAmountPaymentStatus"
+              ? locale === "hi"
+                ? "नहीं"
+                : "No"
+              : t("field.no")}
           </button>
-          {question.field === "moneyLost" ? (
+          {question.field === "moneyLost" ||
+          question.field === "requestedAmountPaymentStatus" ? (
             <button
               className="secondary-button"
               type="button"
               onClick={() => onSave("unknown")}
             >
-              {locale === "hi" ? "मुझे पक्का नहीं पता" : "I'm not sure"}
+              {question.field === "requestedAmountPaymentStatus"
+                ? locale === "hi"
+                  ? "मुझे याद नहीं"
+                  : "I don’t remember"
+                : locale === "hi"
+                  ? "मुझे पक्का नहीं पता"
+                  : "I'm not sure"}
             </button>
           ) : null}
         </div>
@@ -2790,15 +2806,18 @@ function ReportReview(props: ReportWorkspaceProps) {
   return (
     <>
       <div className="report-pane-heading">
-        <h2>{locale === "hi" ? "शिकायत जाँचें" : "Review complaint"}</h2>
+        <h2>{locale === "hi" ? "आपकी शिकायत" : "Your complaint"}</h2>
         <p>{t("workspace.reviewSupport")}</p>
       </div>
+      <PreparedComplaintSummary draft={props.draft} />
       <section
         className="case-integrity-summary"
         aria-labelledby="case-check-heading"
       >
         <h2 id="case-check-heading">
-          {locale === "hi" ? "जमा करने से पहले जाँच" : "Details to review"}
+          {integrity.unresolvedConflictCount > 0
+            ? locale === "hi" ? "एक बात पर ध्यान देना है" : "Needs your attention"
+            : locale === "hi" ? "जाँचने के लिए तैयार" : "Ready for you to review"}
         </h2>
         <ul>
           {integrity.transactionCount > 0 ? (
@@ -2822,7 +2841,7 @@ function ReportReview(props: ReportWorkspaceProps) {
               <span aria-hidden="true">✓</span>{" "}
               {locale === "hi"
                 ? "कोई अनसुलझा विरोध नहीं"
-                : "No unresolved contradictions"}
+                : "Important complaint details are consistent"}
             </li>
           ) : (
             <li>
@@ -2920,8 +2939,8 @@ function ReportReview(props: ReportWorkspaceProps) {
       </div>
       <section className="review-reporter-details" aria-labelledby="review-reporter-heading">
         <div>
-          <h2 id="review-reporter-heading">{locale === "hi" ? "आपकी जानकारी" : "Your details"}</h2>
-          <p>{locale === "hi" ? "जमा करने से पहले अपनी संपर्क जानकारी जाँचें।" : "Check your contact details before submitting."}</p>
+          <h2 id="review-reporter-heading">{locale === "hi" ? "शिकायत में अपनी जानकारी जोड़ें" : "Add your details to the complaint"}</h2>
+          <p>{locale === "hi" ? "हम यह जानकारी तभी मांगते हैं जब घटना की जानकारी तैयार हो जाती है।" : "We ask for these only after the incident details are ready."}</p>
         </div>
         <div className="review-reporter-fields">
           <label>
@@ -3433,8 +3452,8 @@ function ReportStatusCard({
                 : "Your information changed"
               : readiness?.state === "NEEDS_CLARIFICATION"
                 ? hi
-                  ? "जानकारी जरूरी है"
-                  : "Information required"
+                  ? "एक बात पर ध्यान देना है"
+                  : "One thing needs your attention"
                 : readiness?.state === "MISSING_REQUIRED"
                   ? hi
                     ? "शिकायत लगभग तैयार है"
@@ -3561,9 +3580,22 @@ function PreparedComplaintSummary({ draft }: { draft: IncidentDraft }) {
       .filter(Boolean)
       .join("\n"),
   ).monetaryMentions;
-  const requestedAmount = financialMentions.find(
+  const requestedAmount = draft.adaptiveFacts.demandedAmount ?? financialMentions.find(
     (mention) => mention.role === "REQUESTED_AMOUNT",
   )?.amount;
+  const requestedPaymentStatus = draft.citizenConfirmedFields.includes(
+    "adaptive.requestedAmountPaymentStatus.NOT_PAID",
+  )
+    ? "NOT_PAID"
+    : draft.citizenConfirmedFields.includes(
+          "adaptive.requestedAmountPaymentStatus.PAID",
+        )
+      ? "PAID"
+      : draft.citizenConfirmedFields.includes(
+            "adaptive.requestedAmountPaymentStatus.UNKNOWN",
+          )
+        ? "UNKNOWN"
+        : "NEEDS_CONFIRMATION";
   const displayedLoss =
     financial.resolvedLoss ?? financial.computedTransactionLoss;
   const incidentLabel = draft.adaptiveFacts.threatOrExtortion
@@ -3637,15 +3669,18 @@ function PreparedComplaintSummary({ draft }: { draft: IncidentDraft }) {
             value: draft.adaptiveFacts.affectedPlatforms.join(", "),
           }
         : null,
-    draft.adaptiveFacts.demandedAmount
-      ? {
-          label: hi ? "मांगी गई राशि" : "Amount demanded",
-          value: formatCurrency(draft.adaptiveFacts.demandedAmount),
-        }
-      : requestedAmount
+    requestedAmount
         ? {
-            label: hi ? "मांगी गई राशि" : "Amount requested",
-            value: formatCurrency(requestedAmount),
+            label: hi ? "बाद में मांगी गई राशि" : "Additional amount requested",
+            value: `${formatCurrency(requestedAmount)} · ${
+              requestedPaymentStatus === "NOT_PAID"
+                ? hi ? "भुगतान नहीं किया" : "Not paid"
+                : requestedPaymentStatus === "PAID"
+                  ? hi ? "कुछ राशि दी गई" : "Some amount paid"
+                  : requestedPaymentStatus === "UNKNOWN"
+                    ? hi ? "याद नहीं" : "Citizen does not remember"
+                    : hi ? "पुष्टि बाकी है" : "Needs confirmation"
+            }`,
           }
         : null,
     draft.adaptiveFacts.communicationChannels.length > 1
@@ -3660,12 +3695,12 @@ function PreparedComplaintSummary({ draft }: { draft: IncidentDraft }) {
     <section id="prepared-complaint-summary" className="prepared-complaint-summary" aria-labelledby="prepared-summary-heading">
       <div>
         <h2 id="prepared-summary-heading">
-          {hi ? "शिकायत की जानकारी" : "Complaint details"}
+          {hi ? "हमने यह समझा" : "Here’s what we understood"}
         </h2>
         <p>
           {hi
-            ? "देखें कि सचेत ने आपकी बात से क्या समझा।"
-            : "Check what सचेत understood from what you shared."}
+            ? "देखें कि घटना, भुगतान और सबूत सही तरह से व्यवस्थित हुए हैं।"
+            : "Check that the incident, payments and evidence have been organised correctly."}
         </p>
       </div>
       <dl>
@@ -3676,6 +3711,59 @@ function PreparedComplaintSummary({ draft }: { draft: IncidentDraft }) {
           </div>
         ))}
       </dl>
+      {draft.adaptiveFacts.communicationChannels.length > 1 ? (
+        <div className="reconstruction-flow" aria-label={hi ? "घटना का क्रम" : "Incident flow"}>
+          <p className="report-field-label">{hi ? "कैसे शुरू हुआ" : "How it started"}</p>
+          <div>
+            {draft.adaptiveFacts.communicationChannels.map((channel, index) => (
+              <span key={channel}>
+                <strong>{channel}</strong>
+                {index < draft.adaptiveFacts.communicationChannels.length - 1 ? <b aria-hidden="true">→</b> : null}
+              </span>
+            ))}
+          </div>
+        </div>
+      ) : null}
+      {draft.transactions.length > 0 ? (
+        <div className="reconstruction-payments">
+          <p className="report-field-label">{hi ? "वास्तव में किए गए भुगतान" : "Payments actually made"}</p>
+          {draft.transactions.map((transaction, index) => (
+            <article key={transaction.id}>
+              <div>
+                <strong>{transaction.amount ? formatCurrency(transaction.amount) : hi ? "राशि उपलब्ध नहीं" : "Amount unavailable"}</strong>
+                <span>{transaction.paymentMethod ?? (hi ? `भुगतान ${index + 1}` : `Payment ${index + 1}`)}</span>
+              </div>
+              <b>{hi ? "भुगतान किया" : "Paid"}</b>
+              {transaction.amount ? (
+                <details>
+                  <summary>{hi ? "यह जानकारी कहाँ से आई?" : "Where did this come from?"}</summary>
+                  <p>{draft.evidence.some((item) => item.type === "TRANSACTION_SCREENSHOT" && item.extractedFacts.some((fact) => fact.replaceAll(",", "").includes(String(transaction.amount)))) ? (hi ? "यह राशि आपकी भुगतान रसीद और आपके बयान में मिली।" : "We found this amount in your payment receipt and in what you told us.") : (hi ? "यह राशि आपके द्वारा साझा की गई जानकारी से मिली।" : "This amount came from the information you shared.")}</p>
+                </details>
+              ) : null}
+            </article>
+          ))}
+          <div className="reconstruction-total">
+            <span>{hi ? "वास्तव में ट्रांसफर हुई राशि" : "Actual money transferred"}</span>
+            <strong>{displayedLoss ? formatCurrency(displayedLoss) : "—"}</strong>
+          </div>
+        </div>
+      ) : null}
+      {requestedAmount ? (
+        <div className="reconstruction-requested">
+          <div><span>{hi ? "बाद में मांगी गई राशि" : "Additional amount requested"}</span><strong>{formatCurrency(requestedAmount)}</strong></div>
+          <b>{requestedPaymentStatus === "NOT_PAID" ? (hi ? "भुगतान नहीं किया" : "Not paid") : requestedPaymentStatus === "PAID" ? (hi ? "कुछ राशि दी गई" : "Some amount paid") : requestedPaymentStatus === "UNKNOWN" ? (hi ? "याद नहीं" : "Not remembered") : (hi ? "आपकी पुष्टि जरूरी है" : "Needs your confirmation")}</b>
+          <details>
+            <summary>{hi ? "यह जानकारी कहाँ से आई?" : "Where did this come from?"}</summary>
+            <p>{draft.evidence.some((item) => item.extractedFacts.some((fact) => fact.replaceAll(",", "").includes(String(requestedAmount)))) ? (hi ? "यह राशि जुड़ी हुई बातचीत में मिली। भुगतान की स्थिति आपके जवाब से तय होती है।" : "This amount appears in the attached conversation. Its payment status comes from your answer.") : (hi ? "यह राशि आपकी साझा की गई जानकारी में मिली।" : "This amount came from the information you shared.")}</p>
+          </details>
+        </div>
+      ) : null}
+      {draft.evidence.length > 0 ? (
+        <p className="reconstruction-evidence-count">
+          <strong>{hi ? "जुड़ा हुआ सबूत" : "Evidence connected"}</strong>
+          <span>{draft.evidence.length} {hi ? "आइटम" : draft.evidence.length === 1 ? "item" : "items"}</span>
+        </p>
+      ) : null}
     </section>
   );
 }
@@ -4171,8 +4259,8 @@ function ReportDetailsPane({
             <section className="priority-missing-question">
               <p className="eyebrow">
                 {locale === "hi"
-                  ? "एक जानकारी जाँचें"
-                  : "One detail to check"}
+                  ? "ध्यान देने की जरूरत है"
+                  : "Needs your attention"}
               </p>
               {clarificationDetailCount > 1 ? (
                 <p className="clarification-progress" role="status">
@@ -4343,6 +4431,8 @@ function DemoCaseSelector({
 }) {
   const { locale } = useI18n();
   const hi = locale === "hi";
+  const primaryCase = DEMO_CASES.find((demoCase) => demoCase.id === "JOB_OFFER");
+  const otherCases = DEMO_CASES.filter((demoCase) => demoCase.id !== "JOB_OFFER");
   return (
     <section
       className="demo-case-selector"
@@ -4353,20 +4443,28 @@ function DemoCaseSelector({
           <p className="eyebrow">
             {hi ? "डेमो मोड · सिंथेटिक मामला" : "Demo Mode · Synthetic case"}
           </p>
-          <h2 id="demo-case-selector-heading">
-            {hi ? "डेमो मामले" : "Demo cases"}
-          </h2>
+          <h2 id="demo-case-selector-heading">{hi ? "मीरा का मामला" : "Meera received a fake job offer"}</h2>
+          <p>{hi ? "LinkedIn → WhatsApp → दो भुगतान → एक और राशि मांगी गई" : "LinkedIn → WhatsApp → two payments → another payment requested"}</p>
         </div>
         <button className="text-button" type="button" onClick={onReset}>
           {hi ? "डेमो मामला रीसेट करें" : "Reset demo case"}
         </button>
       </div>
-      <div
-        className="demo-case-options"
-        role="radiogroup"
-        aria-label={hi ? "डेमो मामला चुनें" : "Choose a demo case"}
-      >
-        {DEMO_CASES.map((demoCase) => (
+      {primaryCase ? (
+        <button
+          type="button"
+          role="radio"
+          aria-checked={activeCase.id === primaryCase.id}
+          className={`demo-primary-case${activeCase.id === primaryCase.id ? " is-selected" : ""}`}
+          onClick={() => onChange(primaryCase.id)}
+        >
+          {hi ? "मीरा का मामला आज़माएँ" : "Try Meera’s case"}
+        </button>
+      ) : null}
+      <details className="demo-other-cases">
+        <summary>{hi ? "दूसरे उदाहरण देखें" : "Explore other examples"}</summary>
+        <div className="demo-case-options" role="radiogroup" aria-label={hi ? "दूसरा डेमो मामला चुनें" : "Choose another demo case"}>
+        {otherCases.map((demoCase) => (
           <button
             key={demoCase.id}
             type="button"
@@ -4380,7 +4478,8 @@ function DemoCaseSelector({
             {hi ? demoCase.selectorLabelHi : demoCase.selectorLabel}
           </button>
         ))}
-      </div>
+        </div>
+      </details>
     </section>
   );
 }

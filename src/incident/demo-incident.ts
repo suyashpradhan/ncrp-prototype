@@ -3,6 +3,7 @@ import { CITIZEN_DOES_NOT_HAVE, IncidentDraftSchema, type IncidentDraft, type Tr
 
 export type DemoNarrationLanguage = "hi-IN" | "en-IN";
 export type DemoCaseId =
+  | "JOB_OFFER"
   | "AMOUNT_MISMATCH"
   | "ACCOUNT_COMPROMISE"
   | "LOTTERY_ATTEMPT"
@@ -116,6 +117,114 @@ const emptyAdaptiveFacts = {
   requestedSensitiveInfo: [] as string[],
   sharedSensitiveInfo: [] as string[],
   sensitiveEvidenceRedacted: null,
+};
+
+const jobOfferStatement =
+  "I was looking for a job when someone contacted me on LinkedIn about an opportunity. They moved the conversation to WhatsApp. I paid ₹499 as a registration fee and ₹1,499 for verification. Later they asked me to pay another ₹18,000 as a security deposit. I did not pay the security deposit. I have the LinkedIn and WhatsApp conversations and both payment receipts, but I do not have the UTR numbers.";
+const jobOfferEnglish = jobOfferStatement;
+const jobOfferHindi =
+  "मैं नौकरी ढूँढ रही थी, तभी LinkedIn पर किसी ने नौकरी के अवसर के बारे में संपर्क किया। बाद में बातचीत WhatsApp पर चली गई। मैंने पंजीकरण के लिए ₹499 और सत्यापन के लिए ₹1,499 का भुगतान किया। फिर उन्होंने ₹18,000 की सुरक्षा जमा राशि मांगी, लेकिन मैंने वह राशि नहीं दी। मेरे पास LinkedIn और WhatsApp की बातचीत और दोनों भुगतान रसीदें हैं, लेकिन UTR नंबर नहीं हैं।";
+
+const jobOfferDraft: IncidentDraft = {
+  classification: {
+    reportFamily: "FINANCIAL_FRAUD",
+    category: "Financial Fraud",
+    subCategory: "Online Job Fraud",
+    cyberElementPresent: true,
+    moneyLost: true,
+    platform: "LinkedIn and WhatsApp",
+    ambiguity: "NONE",
+    explanation: "A fake job opportunity moved from LinkedIn to WhatsApp and led to two payments and a further payment request.",
+    requiresCitizenConfirmation: false,
+  },
+  adaptiveFacts: {
+    ...emptyAdaptiveFacts,
+    platform: "LinkedIn",
+    messageSourcePlatforms: ["LinkedIn", "WhatsApp"],
+    affectedPlatforms: ["LinkedIn", "WhatsApp"],
+    entityRelationship: "RELATED_BOTH_AFFECTED",
+    platformType: "SOCIAL_MEDIA",
+    impersonation: true,
+    impersonatedEntity: "Job recruiter",
+    demandedAmount: 18_000,
+    communicationChannels: ["LinkedIn", "WhatsApp"],
+  },
+  citizenSummary: {
+    incidentLabel: "Fake job-offer fraud",
+    shortSummary: "Meera was contacted about a job on LinkedIn and moved to WhatsApp. She paid ₹499 and ₹1,499, then declined a further ₹18,000 security-deposit request.",
+  },
+  officialMapping: {
+    category: "FINANCIAL_FRAUD",
+    categoryLabel: "Financial Fraud",
+    subCategoryLabel: "Online Job Fraud",
+    mappingConfidence: "HIGH",
+  },
+  incident: {
+    financialLossState: "YES",
+    moneyLost: true,
+    statedTotalLoss: null,
+    citizenConfirmedLoss: null,
+    reportedAmount: 1_998,
+    openingBalance: null,
+    intermediateBalances: [],
+    closingBalance: null,
+    incidentDate: "2026-09-03",
+    incidentDateWithoutYear: null,
+    approximateTime: null,
+    delayInReporting: false,
+    delayReason: null,
+    occurredOn: "LinkedIn and WhatsApp",
+    narrative: jobOfferStatement,
+  },
+  financialExposure: {
+    bankDetailsRequested: null,
+    identityDocumentRequested: null,
+    otpRequested: null,
+    paymentLinkReceived: true,
+    upiCollectRequestReceived: null,
+  },
+  mentionedInstitutions: ["UPI"],
+  transactions: [
+    {
+      id: "meera-registration-payment",
+      institution: "UPI",
+      currency: "INR",
+      paymentMethod: "Registration fee",
+      accountOrUpiId: CITIZEN_DOES_NOT_HAVE,
+      transactionIdOrUtr: CITIZEN_DOES_NOT_HAVE,
+      amount: 499,
+      transactionDate: "2026-09-03",
+      approximateTime: "11:18",
+      referenceNumber: null,
+      status: "KNOWN",
+    },
+    {
+      id: "meera-verification-payment",
+      institution: "UPI",
+      currency: "INR",
+      paymentMethod: "Verification fee",
+      accountOrUpiId: CITIZEN_DOES_NOT_HAVE,
+      transactionIdOrUtr: CITIZEN_DOES_NOT_HAVE,
+      amount: 1_499,
+      transactionDate: "2026-09-03",
+      approximateTime: "12:06",
+      referenceNumber: null,
+      status: "KNOWN",
+    },
+  ],
+  suspectIdentifiers: [
+    { type: "SOCIAL_HANDLE", value: "Synthetic LinkedIn recruiter" },
+    { type: "PHONE", value: "98XX XX1800" },
+  ],
+  evidence: [
+    { type: "CHAT_SCREENSHOT", extractedFacts: ["Job opportunity first shared on LinkedIn", "Conversation moved to WhatsApp"] },
+    { type: "CHAT_SCREENSHOT", extractedFacts: ["₹18,000 security deposit requested", "Security deposit was not paid"] },
+    { type: "TRANSACTION_SCREENSHOT", extractedFacts: ["₹499 registration payment", "3 September 2026 at about 11:18 AM"] },
+    { type: "TRANSACTION_SCREENSHOT", extractedFacts: ["₹1,499 verification payment", "3 September 2026 at about 12:06 PM"] },
+  ],
+  citizenConfirmedFields: [],
+  missingRequiredFields: [],
+  warnings: [],
 };
 
 const amountMismatchStatement =
@@ -459,11 +568,31 @@ const extortionDraft: IncidentDraft = {
   warnings: [],
 };
 
-for (const draft of [amountMismatchDraft, accountCompromiseDraft, lotteryDraft, extortionDraft]) {
+for (const draft of [jobOfferDraft, amountMismatchDraft, accountCompromiseDraft, lotteryDraft, extortionDraft]) {
   IncidentDraftSchema.parse(draft);
 }
 
 export const DEMO_CASES: readonly DemoCaseDefinition[] = [
+  {
+    id: "JOB_OFFER",
+    selectorLabel: "Meera's fake job offer",
+    selectorLabelHi: "मीरा को मिला नकली नौकरी का प्रस्ताव",
+    citizen: demoProfile("Meera Sharma", "Female", "1800", "meera.demo"),
+    sourceLanguage: "English / Hindi",
+    statement: jobOfferStatement,
+    narrations: {
+      "en-IN": narration("en-IN", jobOfferEnglish, 24, "/demo/audio/job-offer.mp3"),
+      "hi-IN": narration("hi-IN", jobOfferHindi, 29, "/demo/audio/job-offer-hi.mp3"),
+    },
+    evidence: [
+      { id: "demo-evidence-0", src: "/demo/evidence/meera-linkedin-demo.svg", label: "LinkedIn conversation", labelHi: "LinkedIn बातचीत", typeLabel: "Conversation screenshot", typeLabelHi: "बातचीत का स्क्रीनशॉट" },
+      { id: "demo-evidence-1", src: "/demo/evidence/meera-whatsapp-demo.svg", label: "WhatsApp conversation", labelHi: "WhatsApp बातचीत", typeLabel: "Conversation screenshot", typeLabelHi: "बातचीत का स्क्रीनशॉट" },
+      { id: "demo-evidence-2", src: "/demo/evidence/meera-payment-499-demo.svg", label: "₹499 payment receipt", labelHi: "₹499 भुगतान रसीद", typeLabel: "Payment receipt", typeLabelHi: "भुगतान रसीद" },
+      { id: "demo-evidence-3", src: "/demo/evidence/meera-payment-1499-demo.svg", label: "₹1,499 payment receipt", labelHi: "₹1,499 भुगतान रसीद", typeLabel: "Payment receipt", typeLabelHi: "भुगतान रसीद" },
+    ],
+    draft: jobOfferDraft,
+    reference: "सचेत-DEMO-JOB-001",
+  },
   {
     id: "AMOUNT_MISMATCH",
     selectorLabel: "Amount mismatch",
@@ -542,7 +671,7 @@ export const DEMO_CASES: readonly DemoCaseDefinition[] = [
   },
 ];
 
-export const DEFAULT_DEMO_CASE_ID: DemoCaseId = "AMOUNT_MISMATCH";
+export const DEFAULT_DEMO_CASE_ID: DemoCaseId = "JOB_OFFER";
 
 export function getDemoCase(caseId: DemoCaseId): DemoCaseDefinition {
   return DEMO_CASES.find((item) => item.id === caseId) ?? DEMO_CASES[0];

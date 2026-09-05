@@ -6,7 +6,10 @@ import {
 } from "./report-requirements";
 
 export type MissingQuestion = {
-  field: ReportRequirementKey | "incidentDateYear";
+  field:
+    | ReportRequirementKey
+    | "incidentDateYear"
+    | "requestedAmountPaymentStatus";
   question: string;
   questionHi: string;
   inputType: "text" | "date" | "time" | "number";
@@ -14,6 +17,12 @@ export type MissingQuestion = {
 };
 
 const QUESTIONS: Record<MissingQuestion["field"], MissingQuestion> = {
+  requestedAmountPaymentStatus: {
+    field: "requestedAmountPaymentStatus",
+    question: "Did you pay any part of the additional amount requested?",
+    questionHi: "क्या आपने बाद में मांगी गई राशि का कोई हिस्सा दिया था?",
+    inputType: "text",
+  },
   moneyLost: {
     field: "moneyLost",
     question: "Did any money leave your account or did you make a payment?",
@@ -131,6 +140,7 @@ const QUESTIONS: Record<MissingQuestion["field"], MissingQuestion> = {
 };
 
 const FINANCIAL_QUESTION_PRIORITY: readonly MissingQuestion["field"][] = [
+  "requestedAmountPaymentStatus",
   "moneyLost",
   "incidentDateYear",
   "incidentDate",
@@ -254,6 +264,22 @@ export function deriveMissingQuestions(draft: IncidentDraft): MissingQuestion[] 
     draft.incident.narrative ?? draft.citizenSummary.shortSummary,
   );
 
+  const requestedAmountPaymentStatusConfirmed = draft.citizenConfirmedFields.some(
+    (field) => field.startsWith("adaptive.requestedAmountPaymentStatus."),
+  );
+  if (
+    draft.incident.financialLossState === "YES" &&
+    Boolean(draft.adaptiveFacts.demandedAmount) &&
+    !requestedAmountPaymentStatusConfirmed
+  ) {
+    const amount = draft.adaptiveFacts.demandedAmount ?? 0;
+    missing.push({
+      ...QUESTIONS.requestedAmountPaymentStatus,
+      question: `Did you pay any part of the ${amount.toLocaleString("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 })} requested?`,
+      questionHi: `क्या आपने मांगी गई ₹${amount.toLocaleString("en-IN")} राशि का कोई हिस्सा दिया था?`,
+    });
+  }
+
   if (requirements.some((item) => item.key === "incidentDate") && !draft.incident.incidentDate && draft.incident.incidentDateWithoutYear) {
     missing.push(QUESTIONS.incidentDateYear);
   }
@@ -305,6 +331,27 @@ export function applyMissingAnswer(
 ): IncidentDraft {
   const answer = value.trim();
   if (!answer) return draft;
+
+  if (field === "requestedAmountPaymentStatus") {
+    const normalized = answer.toLowerCase();
+    const status = /^(no|n|false|नहीं)$/.test(normalized)
+      ? "NOT_PAID"
+      : /^(yes|y|true|हाँ|हां)$/.test(normalized)
+        ? "PAID"
+        : "UNKNOWN";
+    return {
+      ...draft,
+      citizenConfirmedFields: Array.from(new Set([
+        ...draft.citizenConfirmedFields.filter(
+          (item) => !item.startsWith("adaptive.requestedAmountPaymentStatus."),
+        ),
+        `adaptive.requestedAmountPaymentStatus.${status}`,
+      ])),
+      missingRequiredFields: draft.missingRequiredFields.filter(
+        (item) => item !== field,
+      ),
+    };
+  }
 
   if (field === "moneyLost" || field === "delayInReporting") {
     const normalized = answer.toLowerCase();
