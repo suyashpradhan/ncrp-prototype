@@ -103,7 +103,7 @@ export function deriveCitizenNudges(
     ? preferences.email.trim()
     : preferences.whatsapp.trim();
   const complete = (
-    nudges: Array<Omit<CitizenNudge, "category" | "recipient" | "source" | "scheduledAt" | "sentAt" | "deliveryState" | "mode">>,
+    nudges: Array<Omit<CitizenNudge, "complaintId" | "category" | "recipient" | "source" | "scheduledAt" | "sentAt" | "deliveryState" | "mode">>,
   ): CitizenNudge[] => [...nudges, {
     id: "official-follow-up",
     title: hi ? "आधिकारिक शिकायत की स्थिति जाँचें" : "Check your official complaint status",
