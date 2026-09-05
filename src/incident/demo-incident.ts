@@ -29,6 +29,10 @@ export type DemoCaseDefinition = {
   id: DemoCaseId;
   selectorLabel: string;
   selectorLabelHi: string;
+  bannerTitle?: string;
+  bannerTitleHi?: string;
+  incidentTrail?: string;
+  incidentTrailHi?: string;
   citizen: ReporterProfile;
   sourceLanguage: string;
   statement: string;
@@ -579,6 +583,10 @@ export const DEMO_CASES: readonly DemoCaseDefinition[] = [
     id: "JOB_OFFER",
     selectorLabel: "Meera's fake job offer",
     selectorLabelHi: "मीरा को मिला नकली नौकरी का प्रस्ताव",
+    bannerTitle: "Meera received a fake job offer",
+    bannerTitleHi: "मीरा को नकली नौकरी का प्रस्ताव मिला",
+    incidentTrail: "LinkedIn → WhatsApp → ₹499 paid → ₹1,499 paid → ₹18,000 requested",
+    incidentTrailHi: "LinkedIn → WhatsApp → ₹499 भुगतान → ₹1,499 भुगतान → ₹18,000 मांगे गए",
     citizen: demoProfile("Meera Sharma", "Female", "1800", "meera.demo"),
     sourceLanguage: "English / Hindi",
     statement: jobOfferStatement,

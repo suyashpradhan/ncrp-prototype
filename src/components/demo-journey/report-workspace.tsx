@@ -178,6 +178,22 @@ function languageLabel(languageCode: string): string {
   return labels[languageCode] ?? "Original language";
 }
 
+function UploadedEvidenceInlinePreview({ file }: { file: File }) {
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    const objectUrl = URL.createObjectURL(file);
+    setPreviewUrl(objectUrl);
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [file]);
+
+  if (!previewUrl) return null;
+
+  // Blob URLs are local browser resources and cannot use next/image.
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img className="inline-evidence-image ph-no-capture" src={previewUrl} alt={`Preview of ${file.name}`} />;
+}
+
 function EvidenceRows({
   screenshots,
   draft,
@@ -275,15 +291,39 @@ function EvidenceRows({
     setActiveUploadedEvidence(null);
   }
 
-  if (!isDemoIncident && screenshots.length === 0) return null;
-
   const evidenceCount = isDemoIncident
     ? (demoCase?.evidence.length ?? 0)
     : screenshots.length;
+  const evidenceContributions = draft
+    ? deriveEvidenceContributions(draft, {
+        locale,
+        isDemoIncident,
+        screenshotNames: isDemoIncident
+          ? (demoCase?.evidence.map((item) => item.label) ?? [])
+          : screenshots.map((file) => file.name),
+        demoEvidence: demoCase?.evidence,
+      })
+    : [];
+
+  if (!isDemoIncident && screenshots.length === 0) {
+    return compact ? (
+      <section className="report-source-block inline-evidence-section">
+        <h3>{locale === "hi" ? "सबूत" : "Evidence"}</h3>
+        <p className="source-note">
+          {locale === "hi" ? "अभी कोई सबूत नहीं जोड़ा गया है।" : "No evidence added yet."}
+        </p>
+      </section>
+    ) : null;
+  }
+
   const rows = (
-    <ul className="report-source-files">
+    <ul className={`report-source-files${compact ? " report-source-files-inline" : ""}`}>
       {isDemoIncident
-        ? (demoCase?.evidence ?? []).map((item) => (
+        ? (demoCase?.evidence ?? []).map((item) => {
+            const contribution = evidenceContributions.find(
+              (candidate) => candidate.evidenceId === item.id,
+            );
+            return (
             <li className="report-source-file-preview" key={item.src}>
               <button
                 className="evidence-preview-trigger"
@@ -295,10 +335,10 @@ function EvidenceRows({
               >
                 <Image
                   src={item.src}
-                  alt=""
-                  width={72}
-                  height={54}
-                  sizes="72px"
+                  alt={locale === "hi" ? item.labelHi : item.label}
+                  width={720}
+                  height={460}
+                  sizes={compact ? "(max-width: 820px) calc(100vw - 84px), 390px" : "72px"}
                 />
                 <span className="evidence-row-copy">
                   <strong>{locale === "hi" ? item.labelHi : item.label}</strong>
@@ -307,12 +347,27 @@ function EvidenceRows({
                   </small>
                 </span>
                 <span className="evidence-row-action">
-                  {t("workspace.view")}
+                  {compact ? (locale === "hi" ? "बड़ा देखें" : "Enlarge") : t("workspace.view")}
                 </span>
               </button>
+              {compact && contribution?.contributions.length ? (
+                <ul className="inline-evidence-facts">
+                  {contribution.contributions.map((fact) => (
+                    <li key={`${item.id}-${fact.fieldKey}`}>
+                      {/^(Detail found|सबूत में मिली जानकारी)$/.test(fact.label) ? null : <strong>{fact.label}: </strong>}
+                      {fact.displayValue}
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
             </li>
-          ))
-        : screenshots.map((file, index) => (
+          );
+        })
+        : screenshots.map((file, index) => {
+            const contribution = evidenceContributions.find(
+              (candidate) => candidate.evidenceId === `uploaded-${index}`,
+            );
+            return (
             <li
               className="report-source-file-preview uploaded-evidence-row"
               key={`${file.name}-${file.lastModified}`}
@@ -325,17 +380,29 @@ function EvidenceRows({
                 aria-label={`${t("workspace.openEvidence")}: ${file.name}`}
                 onClick={() => setActiveUploadedEvidence(file)}
               >
-                <span className="evidence-file-icon" aria-hidden="true">
-                  ▧
-                </span>
+                {compact ? (
+                  <UploadedEvidenceInlinePreview file={file} />
+                ) : (
+                  <span className="evidence-file-icon" aria-hidden="true">▧</span>
+                )}
                 <span className="evidence-row-copy">
                   <strong>{file.name}</strong>
                   <small>{locale === "hi" ? "तैयार" : "Ready"}</small>
                 </span>
                 <span className="evidence-row-action">
-                  {t("workspace.view")}
+                  {compact ? (locale === "hi" ? "बड़ा देखें" : "Enlarge") : t("workspace.view")}
                 </span>
               </button>
+              {compact && contribution?.contributions.length ? (
+                <ul className="inline-evidence-facts">
+                  {contribution.contributions.map((fact) => (
+                    <li key={`${file.name}-${fact.fieldKey}`}>
+                      {/^(Detail found|सबूत में मिली जानकारी)$/.test(fact.label) ? null : <strong>{fact.label}: </strong>}
+                      {fact.displayValue}
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
               {!compact ? (
                 <button
                   className="text-button evidence-remove-button"
@@ -346,7 +413,8 @@ function EvidenceRows({
                 </button>
               ) : null}
             </li>
-          ))}
+          );
+        })}
     </ul>
   );
 
@@ -479,32 +547,19 @@ function EvidenceRows({
     ) : null;
 
   if (compact) {
-    if (isDemoIncident) {
-      return (
-        <section
-          className="report-source-block demo-evidence-list"
-          aria-label={t("workspace.evidence")}
-        >
-          <h3>{locale === "hi" ? "सबूत" : "Evidence"}</h3>
-          {rows}
-          {preview}
-        </section>
-      );
-    }
     return (
-      <>
-        <details className="report-source-block compact-source-disclosure">
-          <summary>
-            <span>{t("workspace.evidence")}</span>
-            <strong>
-              {evidenceCount} {t("workspace.screenshots")}
-            </strong>
-          </summary>
-          {rows}
-        </details>
+      <section
+        className="report-source-block inline-evidence-section"
+        aria-label={t("workspace.evidence")}
+      >
+        <div className="inline-evidence-heading">
+          <h3>{locale === "hi" ? "सबूत" : "Evidence"}</h3>
+          <span>{evidenceCount} {t("workspace.screenshots")}</span>
+        </div>
+        {rows}
         {preview}
         {removalDialog}
-      </>
+      </section>
     );
   }
 
@@ -879,6 +934,8 @@ function ReportInputPane(props: ReportWorkspaceProps) {
   const processing = props.mode === "PROCESSING";
   const [editingTranscript, setEditingTranscript] = useState(false);
   const isSpeakMode = props.reportMethod === "SPEAK";
+  const sourcePersonName = props.demoCase?.citizen.displayName.split(/\s+/)[0];
+  const showingCaseFile = Boolean(props.draft);
   const recordingTime = `${Math.floor(props.recordingSeconds / 60)}:${String(
     props.recordingSeconds % 60,
   ).padStart(2, "0")}`;
@@ -901,18 +958,31 @@ function ReportInputPane(props: ReportWorkspaceProps) {
 
   return (
     <section
-      className="report-input-pane"
+      className={`report-input-pane${showingCaseFile ? " report-input-pane-case-file" : ""}`}
       aria-labelledby="journey-stage-heading"
     >
+      {showingCaseFile ? (
+        <p className="case-file-column-label">
+          {locale === "hi" ? "घटना का स्रोत" : "Incident source"}
+        </p>
+      ) : null}
       <h1 id="journey-stage-heading" tabIndex={-1}>
         {props.mode === "REVIEW"
           ? t("workspace.reviewSubmit")
+          : props.isDemoIncident && sourcePersonName
+            ? locale === "hi"
+              ? `${sourcePersonName} ने हमें क्या बताया`
+              : `What ${sourcePersonName} told us`
           : props.mode === "READY"
             ? t("workspace.yourInformation")
             : t("workspace.tell")}
       </h1>
       <p className="pane-intro">
-        {props.mode === "REVIEW" || props.mode === "READY"
+        {props.isDemoIncident && showingCaseFile
+          ? locale === "hi"
+            ? `${sourcePersonName ?? "नागरिक"} का पूरा बयान और उससे जुड़े सिंथेटिक सबूत।`
+            : "The full statement and synthetic evidence provided for this case."
+          : props.mode === "REVIEW" || props.mode === "READY"
           ? t("workspace.reviewIntro")
           : locale === "hi"
             ? "घटना अपने शब्दों में बताएं। रिपोर्ट की श्रेणी जानना जरूरी नहीं है।"
@@ -3515,8 +3585,8 @@ function ReportStatusCard({
                     ? `${readiness.blockingItems.length} जरूरी जानकारी पर अभी ध्यान देना बाकी है।`
                     : `${readiness.blockingItems.length} required ${readiness.blockingItems.length === 1 ? "detail still needs" : "details still need"} your attention.`
                   : hi
-                    ? "इस शिकायत के लिए जरूरी जानकारी उपलब्ध है।"
-                    : "The required complaint information is available.";
+                    ? "शिकायत की जरूरी जानकारी आपस में मेल खाती है। जो जानकारी आपके पास नहीं है, वह अनुपलब्ध के रूप में ही रहेगी।"
+                    : "Important complaint details are consistent. Anything you don’t know stays marked as unavailable.";
   const actionLabel =
     props.mode === "PROCESSING"
       ? t("workspace.preparingReport")
@@ -3646,6 +3716,10 @@ function PreparedComplaintSummary({ draft }: { draft: IncidentDraft }) {
             ? hi
               ? "लेन-देन का कुल"
               : "Payments add up to"
+            : draft.transactions.length > 0
+              ? hi
+                ? "वास्तव में ट्रांसफर हुई राशि"
+                : "Actually transferred"
             : hi
               ? "रिपोर्ट की गई हानि"
               : "Reported loss",
@@ -3706,10 +3780,34 @@ function PreparedComplaintSummary({ draft }: { draft: IncidentDraft }) {
         }
       : null,
   ].filter((item): item is { label: string; value: string } => Boolean(item));
+  const factMentionsAmount = (fact: string, amount: number) => {
+    const normalizedFact = fact.replaceAll(",", "");
+    const formattedAmount = formatCurrency(amount).replaceAll(",", "");
+    return normalizedFact.includes(formattedAmount);
+  };
+  const evidenceSupportsAmount = (amount: number) =>
+    draft.evidence.some(
+      (item) =>
+        item.type === "TRANSACTION_SCREENSHOT" &&
+        item.extractedFacts.some((fact) => factMentionsAmount(fact, amount)),
+    );
+  const requestedAmountHasEvidence = requestedAmount
+    ? draft.evidence.some((item) =>
+        item.extractedFacts.some((fact) =>
+          factMentionsAmount(fact, requestedAmount),
+        ),
+      )
+    : false;
+  const requestedStatusConfirmed = draft.citizenConfirmedFields.some((field) =>
+    field.startsWith("adaptive.requestedAmountPaymentStatus."),
+  );
 
   return (
     <section id="prepared-complaint-summary" className="prepared-complaint-summary" aria-labelledby="prepared-summary-heading">
       <div>
+        <p className="case-file-column-label">
+          {hi ? "तैयार शिकायत" : "Prepared complaint"}
+        </p>
         <h2 id="prepared-summary-heading">
           {hi ? "हमने यह समझा" : "Here’s what we understood"}
         </h2>
@@ -3732,10 +3830,17 @@ function PreparedComplaintSummary({ draft }: { draft: IncidentDraft }) {
           <p className="report-field-label">{hi ? "कैसे शुरू हुआ" : "How it started"}</p>
           <div>
             {draft.adaptiveFacts.communicationChannels.map((channel, index) => (
-              <span key={channel}>
-                <strong>{channel}</strong>
+              <div className="reconstruction-flow-step" key={channel}>
+                <span>
+                  <strong>{channel}</strong>
+                  <small>
+                    {index === 0
+                      ? hi ? "पहला संपर्क" : "Initial contact"
+                      : hi ? "बातचीत जारी रही" : "Conversation continued"}
+                  </small>
+                </span>
                 {index < draft.adaptiveFacts.communicationChannels.length - 1 ? <b aria-hidden="true">→</b> : null}
-              </span>
+              </div>
             ))}
           </div>
         </div>
@@ -3748,33 +3853,45 @@ function PreparedComplaintSummary({ draft }: { draft: IncidentDraft }) {
               <div>
                 <strong>{transaction.amount ? formatCurrency(transaction.amount) : hi ? "राशि उपलब्ध नहीं" : "Amount unavailable"}</strong>
                 <span>{transaction.paymentMethod ?? (hi ? `भुगतान ${index + 1}` : `Payment ${index + 1}`)}</span>
+                <small className="reconstruction-source">
+                  <b>{hi ? "स्रोत:" : "Source:"}</b>{" "}
+                  {transaction.amount && evidenceSupportsAmount(transaction.amount)
+                    ? hi ? "भुगतान रसीद + घटना का बयान" : "Payment receipt + incident statement"
+                    : hi ? "घटना का बयान" : "Incident statement"}
+                </small>
                 {citizenVisibleValue(transaction.transactionIdOrUtr ?? transaction.referenceNumber) ? (
                   <small>{hi ? "लेन-देन संदर्भ" : "Transaction reference"}: {citizenVisibleValue(transaction.transactionIdOrUtr ?? transaction.referenceNumber)}</small>
                 ) : null}
               </div>
               <b>{hi ? "भुगतान किया" : "Paid"}</b>
-              {transaction.amount ? (
-                <details>
-                  <summary>{hi ? "यह जानकारी कहाँ से आई?" : "Where did this come from?"}</summary>
-                  <p>{draft.evidence.some((item) => item.type === "TRANSACTION_SCREENSHOT" && item.extractedFacts.some((fact) => fact.replaceAll(",", "").includes(String(transaction.amount)))) ? (hi ? "यह राशि आपकी भुगतान रसीद और आपके बयान में मिली।" : "We found this amount in your payment receipt and in what you told us.") : (hi ? "यह राशि आपके द्वारा साझा की गई जानकारी से मिली।" : "This amount came from the information you shared.")}</p>
-                </details>
-              ) : null}
             </article>
           ))}
           <div className="reconstruction-total">
-            <span>{hi ? "वास्तव में ट्रांसफर हुई राशि" : "Actual money transferred"}</span>
-            <strong>{displayedLoss ? formatCurrency(displayedLoss) : "—"}</strong>
+            <span>{hi ? "वास्तव में ट्रांसफर" : "Actually transferred"}</span>
+            <strong>{displayedLoss ? `${formatCurrency(displayedLoss)} ${hi ? "वास्तव में ट्रांसफर" : "actually transferred"}` : "—"}</strong>
           </div>
         </div>
       ) : null}
       {requestedAmount ? (
         <div className="reconstruction-requested">
-          <div><span>{hi ? "बाद में मांगी गई राशि" : "Additional amount requested"}</span><strong>{formatCurrency(requestedAmount)}</strong></div>
-          <b>{requestedPaymentStatus === "NOT_PAID" ? (hi ? "भुगतान नहीं किया" : "Not paid") : requestedPaymentStatus === "PAID" ? (hi ? "कुछ राशि दी गई" : "Some amount paid") : requestedPaymentStatus === "UNKNOWN" ? (hi ? "याद नहीं" : "Not remembered") : (hi ? "आपकी पुष्टि जरूरी है" : "Needs your confirmation")}</b>
-          <details>
-            <summary>{hi ? "यह जानकारी कहाँ से आई?" : "Where did this come from?"}</summary>
-            <p>{draft.evidence.some((item) => item.extractedFacts.some((fact) => fact.replaceAll(",", "").includes(String(requestedAmount)))) ? (hi ? "यह राशि जुड़ी हुई बातचीत में मिली। भुगतान की स्थिति आपके जवाब से तय होती है।" : "This amount appears in the attached conversation. Its payment status comes from your answer.") : (hi ? "यह राशि आपकी साझा की गई जानकारी में मिली।" : "This amount came from the information you shared.")}</p>
-          </details>
+          <div><span>{hi ? "बाद में मांगी गई राशि" : "Additional money requested"}</span><strong>{formatCurrency(requestedAmount)}</strong></div>
+          <b>{requestedPaymentStatus === "NOT_PAID" ? (hi ? "मांगा गया · भुगतान नहीं किया" : "Requested · Not paid") : requestedPaymentStatus === "PAID" ? (hi ? "कुछ राशि दी गई" : "Some amount paid") : requestedPaymentStatus === "UNKNOWN" ? (hi ? "याद नहीं" : "Not remembered") : (hi ? "आपकी पुष्टि जरूरी है" : "Needs your confirmation")}</b>
+          <p className="reconstruction-source">
+            <b>{hi ? "स्रोत:" : "Source:"}</b>{" "}
+            {requestedAmountHasEvidence
+              ? hi ? "जुड़ी हुई बातचीत" : "Attached conversation"
+              : hi ? "घटना का बयान" : "Incident statement"}
+          </p>
+          {requestedStatusConfirmed ? (
+            <p className="reconstruction-confirmation">
+              <b>{hi ? "आपके द्वारा पुष्टि:" : "Confirmed by you:"}</b>{" "}
+              {requestedPaymentStatus === "NOT_PAID"
+                ? hi ? "भुगतान नहीं किया" : "Not paid"
+                : requestedPaymentStatus === "PAID"
+                  ? hi ? "कुछ राशि दी गई" : "Some amount paid"
+                  : hi ? "याद नहीं" : "Not remembered"}
+            </p>
+          ) : null}
         </div>
       ) : null}
       {draft.evidence.length > 0 ? (
@@ -4450,8 +4567,13 @@ function DemoCaseSelector({
 }) {
   const { locale } = useI18n();
   const hi = locale === "hi";
-  const primaryCase = DEMO_CASES.find((demoCase) => demoCase.id === "JOB_OFFER");
-  const otherCases = DEMO_CASES.filter((demoCase) => demoCase.id !== "JOB_OFFER");
+  const otherCases = DEMO_CASES.filter((demoCase) => demoCase.id !== activeCase.id);
+  const bannerTitle = hi
+    ? activeCase.bannerTitleHi ?? activeCase.selectorLabelHi
+    : activeCase.bannerTitle ?? activeCase.selectorLabel;
+  const incidentTrail = hi
+    ? activeCase.incidentTrailHi ?? activeCase.draft.citizenSummary.shortSummary
+    : activeCase.incidentTrail ?? activeCase.draft.citizenSummary.shortSummary;
   return (
     <section
       className="demo-case-selector"
@@ -4460,28 +4582,24 @@ function DemoCaseSelector({
       <div className="demo-case-selector-heading">
         <div>
           <p className="eyebrow">
-            {hi ? "डेमो मोड · सिंथेटिक मामला" : "Demo Mode · Synthetic case"}
+            {hi ? "डेमो मामला · सिंथेटिक" : "Demo case · Synthetic"}
           </p>
-          <h2 id="demo-case-selector-heading">{hi ? "मीरा का मामला" : "Meera received a fake job offer"}</h2>
-          <p>{hi ? "LinkedIn → WhatsApp → दो भुगतान → एक और राशि मांगी गई" : "LinkedIn → WhatsApp → two payments → another payment requested"}</p>
+          <h2 id="demo-case-selector-heading">{bannerTitle}</h2>
+          <p>{incidentTrail}</p>
         </div>
         <button className="text-button" type="button" onClick={onReset}>
           {hi ? "डेमो मामला रीसेट करें" : "Reset demo case"}
         </button>
       </div>
-      {primaryCase ? (
-        <button
-          type="button"
-          role="radio"
-          aria-checked={activeCase.id === primaryCase.id}
-          className={`demo-primary-case${activeCase.id === primaryCase.id ? " is-selected" : ""}`}
-          onClick={() => onChange(primaryCase.id)}
-        >
-          {hi ? "मीरा का मामला आज़माएँ" : "Try Meera’s case"}
-        </button>
-      ) : null}
+      <button
+        type="button"
+        className="demo-primary-case"
+        onClick={() => onChange(activeCase.id)}
+      >
+        {hi ? "डेमो शुरू करें" : "Start demo"}
+      </button>
       <details className="demo-other-cases">
-        <summary>{hi ? "दूसरे उदाहरण देखें" : "Explore other examples"}</summary>
+        <summary>{hi ? "दूसरे डेमो मामले" : "Other demo cases"}</summary>
         <div className="demo-case-options" role="radiogroup" aria-label={hi ? "दूसरा डेमो मामला चुनें" : "Choose another demo case"}>
         {otherCases.map((demoCase) => (
           <button
@@ -4763,7 +4881,7 @@ export function ReportWorkspace(props: ReportWorkspaceProps) {
           current={props.mode === "REVIEW" ? "RESTORE" : "REPORT"}
         />
         <div
-          className={`report-workspace report-workspace-${props.mode.toLowerCase()}`}
+          className={`report-workspace report-workspace-${props.mode.toLowerCase()}${props.draft ? " report-workspace-case-file" : ""}`}
         >
           <ReportInputPane {...props} />
           <ReportDetailsPane
