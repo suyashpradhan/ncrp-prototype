@@ -45,7 +45,10 @@ import { useI18n } from "../../i18n/i18n-provider";
 import { useJourneyNavigation } from "../../navigation/journey-navigation";
 import { deriveReportReadiness } from "../../presentation/report-readiness";
 import type { PostReportMilestones } from "../../presentation/post-report-case";
-import type { NotificationChannel } from "../../notifications/citizen-nudges";
+import {
+  createReminderPreferences,
+  type ReminderPreferences,
+} from "../../notifications/citizen-nudges";
 import { DEMO_CASE_ACCESS, useDemoCase } from "../demo-case/demo-case-provider";
 import { PostSubmissionCaseHome } from "./post-submission-case-home";
 import {
@@ -88,8 +91,7 @@ type PersistedDemoSession = {
   submittedReference: string;
   postReportMilestones?: PostReportMilestones | null;
   demoCaseId?: DemoCaseId;
-  remindersEnabled?: boolean;
-  notificationChannel?: NotificationChannel;
+  reminderPreferences?: ReminderPreferences;
 };
 
 type PersistedEvidenceMetadata = {
@@ -123,6 +125,24 @@ function isPostReportMilestones(
       typeof value.preparedAt === "string" &&
       typeof value.reviewedAt === "string" &&
       typeof value.submittedAt === "string",
+  );
+}
+
+function isReminderPreferences(value: unknown): value is ReminderPreferences {
+  if (!value || typeof value !== "object") return false;
+  const candidate = value as Partial<ReminderPreferences>;
+  return Boolean(
+    typeof candidate.enabled === "boolean" &&
+      (candidate.channel === "EMAIL" || candidate.channel === "WHATSAPP") &&
+      typeof candidate.email === "string" &&
+      typeof candidate.whatsapp === "string" &&
+      candidate.categories &&
+      typeof candidate.categories.IMPORTANT_ACTIONS === "boolean" &&
+      typeof candidate.categories.MISSING_DETAILS === "boolean" &&
+      typeof candidate.categories.EVIDENCE_SAFETY === "boolean" &&
+      typeof candidate.categories.FOLLOW_UP === "boolean" &&
+      (candidate.scheduledAt === null || typeof candidate.scheduledAt === "string") &&
+      (candidate.sentAt === null || typeof candidate.sentAt === "string"),
   );
 }
 
@@ -449,9 +469,8 @@ export function DemoJourney() {
     useState<PostReportMilestones | null>(null);
   const [submittedDraft, setSubmittedDraft] = useState<IncidentDraft | null>(null);
   const [submittedTranscription, setSubmittedTranscription] = useState<TranscriptionResult | null>(null);
-  const [remindersEnabled, setRemindersEnabled] = useState(false);
-  const [notificationChannel, setNotificationChannel] =
-    useState<NotificationChannel>("EMAIL");
+  const [reminderPreferences, setReminderPreferences] =
+    useState<ReminderPreferences>(() => createReminderPreferences(false));
   const [recoverableReport, setRecoverableReport] =
     useState<PersistedUnfinishedReport | null>(null);
   const [unavailableEvidenceNames, setUnavailableEvidenceNames] = useState<
@@ -668,9 +687,10 @@ export function DemoJourney() {
         setSubmittedDraft(structuredClone(restoredDraft.data));
         setSubmittedTranscription(structuredClone(restoredTranscription.data));
         preparedAtRef.current = restoredMilestones?.preparedAt ?? null;
-        setRemindersEnabled(candidate.remindersEnabled === true);
-        setNotificationChannel(
-          candidate.notificationChannel === "WHATSAPP" ? "WHATSAPP" : "EMAIL",
+        setReminderPreferences(
+          isReminderPreferences(candidate.reminderPreferences)
+            ? candidate.reminderPreferences
+            : createReminderPreferences(true),
         );
       } else {
         setPostReportMilestones(null);
@@ -721,8 +741,7 @@ export function DemoJourney() {
       submittedReference,
       postReportMilestones,
       demoCaseId: selectedDemoCaseId,
-      remindersEnabled,
-      notificationChannel,
+      reminderPreferences,
     };
     try {
       window.sessionStorage.setItem(DEMO_SESSION_KEY, JSON.stringify(session));
@@ -735,10 +754,9 @@ export function DemoJourney() {
     experienceMode,
     isDemoIncident,
     narrative,
-    notificationChannel,
+    reminderPreferences,
     postReportMilestones,
     recordingSeconds,
-    remindersEnabled,
     selectedDemoCaseId,
     submittedReference,
     transcription,
@@ -850,8 +868,7 @@ export function DemoJourney() {
     setPostReportMilestones(null);
     setSubmittedDraft(null);
     setSubmittedTranscription(null);
-    setRemindersEnabled(false);
-    setNotificationChannel("EMAIL");
+    setReminderPreferences(createReminderPreferences(false));
     setUnavailableEvidenceNames([]);
     setIsDraftSaved(false);
     preparedAtRef.current = null;
@@ -963,6 +980,7 @@ export function DemoJourney() {
       demoCase.narrations[selectedNarrationLanguage].durationSeconds,
     );
     setIsDemoIncident(true);
+    setReminderPreferences(createReminderPreferences(true));
     setDraft(structuredClone(demoCase.draft));
     setSubmittedReference(demoCase.reference);
     preparedAtRef.current = DEMO_POST_REPORT_MILESTONES.preparedAt;
@@ -1755,10 +1773,8 @@ export function DemoJourney() {
         demoCase={isDemoIncident ? activeDemoCase : null}
         milestones={postReportMilestones}
         transcription={submittedTranscription}
-        remindersEnabled={remindersEnabled}
-        notificationChannel={notificationChannel}
-        onRemindersEnabledChange={setRemindersEnabled}
-        onNotificationChannelChange={setNotificationChannel}
+        reminderPreferences={reminderPreferences}
+        onReminderPreferencesChange={setReminderPreferences}
         onDraftChange={(nextDraft) => {
           setDraft(nextDraft);
           setSubmittedDraft(nextDraft);

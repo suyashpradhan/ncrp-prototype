@@ -1486,6 +1486,13 @@ function MissingFieldEditor({
       data-missing-field={question.field}
       data-report-field-id={field.id}
     >
+      {isTransactionReference ? (
+        <p className="report-field-state">
+          {locale === "hi"
+            ? "लेन-देन संदर्भ नहीं मिला"
+            : "Transaction reference not found"}
+        </p>
+      ) : null}
       <label htmlFor={inputId}>
         {locale === "hi" ? question.questionHi : question.question}
       </label>
@@ -1592,7 +1599,9 @@ function MissingFieldEditor({
           disabled={!value.trim()}
           onClick={() => onSave()}
         >
-          {locale === "hi" ? "सहेजें और आगे बढ़ें" : "Save and continue"}
+          {isTransactionReference
+            ? locale === "hi" ? "लेन-देन संदर्भ जोड़ें" : "Add transaction reference"
+            : locale === "hi" ? "सहेजें और आगे बढ़ें" : "Save and continue"}
         </button>
         {UNAVAILABLE_QUESTION_FIELDS.has(question.field) ? (
           <button
@@ -2851,6 +2860,13 @@ function ReportReview(props: ReportWorkspaceProps) {
             </li>
           )}
         </ul>
+        {integrity.unresolvedConflictCount === 0 ? (
+          <p>
+            {locale === "hi"
+              ? "शिकायत की जरूरी जानकारी आपस में मेल खाती है। जो जानकारी आपके पास नहीं है, वह अनुपलब्ध के रूप में ही दर्ज रहेगी।"
+              : "Important complaint details are consistent. Anything you don’t know remains marked as unavailable."}
+          </p>
+        ) : null}
         {integrity.unavailableImportantDetails.length > 0 ? (
           <p>
             <strong>
@@ -3732,6 +3748,9 @@ function PreparedComplaintSummary({ draft }: { draft: IncidentDraft }) {
               <div>
                 <strong>{transaction.amount ? formatCurrency(transaction.amount) : hi ? "राशि उपलब्ध नहीं" : "Amount unavailable"}</strong>
                 <span>{transaction.paymentMethod ?? (hi ? `भुगतान ${index + 1}` : `Payment ${index + 1}`)}</span>
+                {citizenVisibleValue(transaction.transactionIdOrUtr ?? transaction.referenceNumber) ? (
+                  <small>{hi ? "लेन-देन संदर्भ" : "Transaction reference"}: {citizenVisibleValue(transaction.transactionIdOrUtr ?? transaction.referenceNumber)}</small>
+                ) : null}
               </div>
               <b>{hi ? "भुगतान किया" : "Paid"}</b>
               {transaction.amount ? (

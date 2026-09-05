@@ -19,13 +19,13 @@ const narrations = [
     file: "job-offer.mp3",
     languageCode: "en-IN",
     speaker: "priya",
-    text: "I was looking for a job when someone contacted me on LinkedIn about an opportunity. They moved the conversation to WhatsApp. I paid ₹499 as a registration fee and ₹1,499 for verification. Later they asked me to pay another ₹18,000 as a security deposit. I did not pay the security deposit. I have the conversations and both payment receipts, but I do not have the UTR numbers.",
+    text: "I was looking for a job when someone contacted me on LinkedIn about an opportunity. They moved the conversation to WhatsApp. I paid ₹499 as a registration fee and ₹1,499 for verification. Later they asked me to pay another ₹18,000 as a security deposit, but I did not pay it. I have the LinkedIn and WhatsApp conversations and both payment receipts.",
   },
   {
     file: "job-offer-hi.mp3",
     languageCode: "hi-IN",
     speaker: "priya",
-    text: "मैं नौकरी ढूँढ रही थी, तभी लिंक्डइन पर किसी ने नौकरी के अवसर के बारे में संपर्क किया। बाद में बातचीत व्हाट्सऐप पर चली गई। मैंने पंजीकरण के लिए ₹499 और सत्यापन के लिए ₹1,499 का भुगतान किया। फिर उन्होंने ₹18,000 की सुरक्षा जमा राशि मांगी, लेकिन मैंने वह राशि नहीं दी। मेरे पास बातचीत और दोनों भुगतान रसीदें हैं, लेकिन यू टी आर नंबर नहीं हैं।",
+    text: "मैं नौकरी ढूँढ रही थी, तभी लिंक्डइन पर किसी ने नौकरी के अवसर के बारे में संपर्क किया। बाद में बातचीत व्हाट्सऐप पर चली गई। मैंने पंजीकरण के लिए ₹499 और सत्यापन के लिए ₹1,499 का भुगतान किया। फिर उन्होंने ₹18,000 की सुरक्षा जमा राशि मांगी, लेकिन मैंने वह राशि नहीं दी। मेरे पास लिंक्डइन और व्हाट्सऐप की बातचीत और दोनों भुगतान रसीदें हैं।",
   },
   {
     file: "amount-mismatch.mp3",

@@ -120,10 +120,10 @@ const emptyAdaptiveFacts = {
 };
 
 const jobOfferStatement =
-  "I was looking for a job when someone contacted me on LinkedIn about an opportunity. They moved the conversation to WhatsApp. I paid ₹499 as a registration fee and ₹1,499 for verification. Later they asked me to pay another ₹18,000 as a security deposit. I did not pay the security deposit. I have the LinkedIn and WhatsApp conversations and both payment receipts, but I do not have the UTR numbers.";
+  "I was looking for a job when someone contacted me on LinkedIn about an opportunity. They moved the conversation to WhatsApp. I paid ₹499 as a registration fee and ₹1,499 for verification. Later they asked me to pay another ₹18,000 as a security deposit, but I did not pay it. I have the LinkedIn and WhatsApp conversations and both payment receipts.";
 const jobOfferEnglish = jobOfferStatement;
 const jobOfferHindi =
-  "मैं नौकरी ढूँढ रही थी, तभी LinkedIn पर किसी ने नौकरी के अवसर के बारे में संपर्क किया। बाद में बातचीत WhatsApp पर चली गई। मैंने पंजीकरण के लिए ₹499 और सत्यापन के लिए ₹1,499 का भुगतान किया। फिर उन्होंने ₹18,000 की सुरक्षा जमा राशि मांगी, लेकिन मैंने वह राशि नहीं दी। मेरे पास LinkedIn और WhatsApp की बातचीत और दोनों भुगतान रसीदें हैं, लेकिन UTR नंबर नहीं हैं।";
+  "मैं नौकरी ढूँढ रही थी, तभी LinkedIn पर किसी ने नौकरी के अवसर के बारे में संपर्क किया। बाद में बातचीत WhatsApp पर चली गई। मैंने पंजीकरण के लिए ₹499 और सत्यापन के लिए ₹1,499 का भुगतान किया। फिर उन्होंने ₹18,000 की सुरक्षा जमा राशि मांगी, लेकिन मैंने वह राशि नहीं दी। मेरे पास LinkedIn और WhatsApp की बातचीत और दोनों भुगतान रसीदें हैं।";
 
 const jobOfferDraft: IncidentDraft = {
   classification: {
@@ -191,7 +191,7 @@ const jobOfferDraft: IncidentDraft = {
       currency: "INR",
       paymentMethod: "Registration fee",
       accountOrUpiId: CITIZEN_DOES_NOT_HAVE,
-      transactionIdOrUtr: CITIZEN_DOES_NOT_HAVE,
+      transactionIdOrUtr: "DEMO-UPI-499-030926",
       amount: 499,
       transactionDate: "2026-09-03",
       approximateTime: "11:18",
@@ -204,7 +204,7 @@ const jobOfferDraft: IncidentDraft = {
       currency: "INR",
       paymentMethod: "Verification fee",
       accountOrUpiId: CITIZEN_DOES_NOT_HAVE,
-      transactionIdOrUtr: CITIZEN_DOES_NOT_HAVE,
+      transactionIdOrUtr: "DEMO-UPI-1499-030926",
       amount: 1_499,
       transactionDate: "2026-09-03",
       approximateTime: "12:06",
@@ -219,10 +219,12 @@ const jobOfferDraft: IncidentDraft = {
   evidence: [
     { type: "CHAT_SCREENSHOT", extractedFacts: ["Job opportunity first shared on LinkedIn", "Conversation moved to WhatsApp"] },
     { type: "CHAT_SCREENSHOT", extractedFacts: ["₹18,000 security deposit requested", "Security deposit was not paid"] },
-    { type: "TRANSACTION_SCREENSHOT", extractedFacts: ["₹499 registration payment", "3 September 2026 at about 11:18 AM"] },
-    { type: "TRANSACTION_SCREENSHOT", extractedFacts: ["₹1,499 verification payment", "3 September 2026 at about 12:06 PM"] },
+    { type: "TRANSACTION_SCREENSHOT", extractedFacts: ["₹499 registration payment", "Transaction reference DEMO-UPI-499-030926", "3 September 2026 at about 11:18 AM"] },
+    { type: "TRANSACTION_SCREENSHOT", extractedFacts: ["₹1,499 verification payment", "Transaction reference DEMO-UPI-1499-030926", "3 September 2026 at about 12:06 PM"] },
   ],
-  citizenConfirmedFields: [],
+  citizenConfirmedFields: [
+    "adaptive.requestedAmountPaymentStatus.NOT_PAID",
+  ],
   missingRequiredFields: [],
   warnings: [],
 };
@@ -591,7 +593,7 @@ export const DEMO_CASES: readonly DemoCaseDefinition[] = [
       { id: "demo-evidence-3", src: "/demo/evidence/meera-payment-1499-demo.svg", label: "₹1,499 payment receipt", labelHi: "₹1,499 भुगतान रसीद", typeLabel: "Payment receipt", typeLabelHi: "भुगतान रसीद" },
     ],
     draft: jobOfferDraft,
-    reference: "सचेत-DEMO-JOB-001",
+    reference: "DEMO-NCRP-2026-000184",
   },
   {
     id: "AMOUNT_MISMATCH",

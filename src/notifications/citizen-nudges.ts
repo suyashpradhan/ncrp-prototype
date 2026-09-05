@@ -4,30 +4,86 @@ import { getIncidentCapabilities } from "../incident/capabilities";
 import { isInternalCaseValue } from "../presentation/citizen-visible-value";
 
 export type NotificationChannel = "EMAIL" | "WHATSAPP";
+export type ReminderCategory =
+  | "IMPORTANT_ACTIONS"
+  | "MISSING_DETAILS"
+  | "EVIDENCE_SAFETY"
+  | "FOLLOW_UP";
+export type ReminderMode = "DEMO" | "LIVE";
+export type ReminderPreferences = {
+  enabled: boolean;
+  channel: NotificationChannel;
+  email: string;
+  whatsapp: string;
+  categories: Record<ReminderCategory, boolean>;
+  scheduledAt: string | null;
+  sentAt: string | null;
+};
 export type CitizenNudgeReason =
   | "FINANCIAL_SAFETY"
   | "ACCOUNT_SECURITY"
   | "MISSING_INFORMATION"
   | "EVIDENCE_PRESERVATION"
   | "RECOVERY_SCAM_WARNING"
+  | "FOLLOW_UP"
   | "SENSITIVE_INFORMATION"
   | "PERSONAL_SAFETY";
 export type CitizenNudgeSchedule = "TODAY" | "TOMORROW";
 
 export type CitizenNudge = {
   id: string;
+  complaintId: string;
+  category: ReminderCategory;
   title: string;
   body: string;
   reason: CitizenNudgeReason;
   schedule: CitizenNudgeSchedule;
   channel: NotificationChannel;
-  deliveryState: "PROTOTYPE_PREVIEW";
+  recipient: string;
+  source: "SACHET";
+  priority: "HIGH" | "MEDIUM" | "NORMAL";
+  scheduledAt: string | null;
+  sentAt: string | null;
+  deliveryState: "SCHEDULED" | "SENT" | "PROTOTYPE_PREVIEW";
+  mode: ReminderMode;
+  relatedField?: string;
 };
+
+export function createReminderPreferences(isDemo: boolean): ReminderPreferences {
+  return {
+    enabled: false,
+    channel: "WHATSAPP",
+    email: isDemo ? "meera.demo@example.invalid" : "",
+    whatsapp: isDemo ? "+91 98765 43210" : "",
+    categories: {
+      IMPORTANT_ACTIONS: true,
+      MISSING_DETAILS: true,
+      EVIDENCE_SAFETY: true,
+      FOLLOW_UP: true,
+    },
+    scheduledAt: null,
+    sentAt: null,
+  };
+}
+
+function categoryForReason(reason: CitizenNudgeReason): ReminderCategory {
+  if (reason === "FOLLOW_UP") return "FOLLOW_UP";
+  if (reason === "MISSING_INFORMATION") return "MISSING_DETAILS";
+  if (reason === "EVIDENCE_PRESERVATION" || reason === "RECOVERY_SCAM_WARNING") {
+    return "EVIDENCE_SAFETY";
+  }
+  if (reason === "FINANCIAL_SAFETY" || reason === "ACCOUNT_SECURITY" || reason === "PERSONAL_SAFETY") {
+    return "IMPORTANT_ACTIONS";
+  }
+  return "FOLLOW_UP";
+}
 
 export function deriveCitizenNudges(
   draft: IncidentDraft,
   locale: UiLocale,
-  channel: NotificationChannel,
+  preferences: ReminderPreferences,
+  mode: ReminderMode,
+  complaintId: string,
 ): CitizenNudge[] {
   const hi = locale === "hi";
   const capabilities = getIncidentCapabilities(draft);
@@ -43,22 +99,65 @@ export function deriveCitizenNudges(
     },
   );
 
+  const recipient = preferences.channel === "EMAIL"
+    ? preferences.email.trim()
+    : preferences.whatsapp.trim();
+  const complete = (
+    nudges: Array<Omit<CitizenNudge, "category" | "recipient" | "source" | "scheduledAt" | "sentAt" | "deliveryState" | "mode">>,
+  ): CitizenNudge[] => [...nudges, {
+    id: "official-follow-up",
+    title: hi ? "आधिकारिक शिकायत की स्थिति जाँचें" : "Check your official complaint status",
+    body: hi
+      ? "अपना पावती या संदर्भ नंबर तैयार रखें और उचित समय पर आधिकारिक पोर्टल पर स्थिति जाँचें।"
+      : "Keep your acknowledgement or reference available and check the official portal after an appropriate time.",
+    reason: "FOLLOW_UP" as const,
+    schedule: "TOMORROW" as const,
+    channel: preferences.channel,
+    priority: "NORMAL" as const,
+  }]
+    .map((nudge) => ({
+      ...nudge,
+      complaintId,
+      category: categoryForReason(nudge.reason),
+      recipient,
+      source: "SACHET" as const,
+      scheduledAt: preferences.scheduledAt,
+      sentAt: preferences.sentAt,
+      deliveryState: preferences.sentAt
+        ? "SENT" as const
+        : preferences.scheduledAt
+          ? "SCHEDULED" as const
+          : "PROTOTYPE_PREVIEW" as const,
+      mode,
+    }))
+    .filter((nudge) => preferences.categories[nudge.category]);
+
   if (financialLoss) {
-    return [
-      {
-        id: "transaction-details-today",
-        title: hi
-          ? "लेन-देन के संदर्भ तैयार रखें"
-          : "Keep your transaction references ready",
+    return complete([
+      ...(missingReference ? [{
+        id: "missing-transaction-reference",
+        title: hi ? "लेन-देन संदर्भ जोड़ें" : "Add the missing transaction reference",
         body: hi
-          ? "अपनी शिकायत, भुगतान रिकॉर्ड और उपलब्ध लेन-देन संदर्भ एक साथ रखें।"
-          : "Keep your complaint, payment records and available transaction references together.",
-        reason: missingReference
-          ? "MISSING_INFORMATION"
-          : "FINANCIAL_SAFETY",
+          ? "अपने UPI या बैंकिंग ऐप में भुगतान खोलें और UPI ट्रांज़ैक्शन ID, UTR, बैंक संदर्भ या लेन-देन संदर्भ देखें।"
+          : "Open the payment in your UPI or banking app and look for the UPI transaction ID, UTR, bank reference or transaction reference.",
+        reason: "MISSING_INFORMATION" as const,
+        schedule: "TODAY" as const,
+        channel: preferences.channel,
+        priority: "HIGH" as const,
+        relatedField: "transactions.reference",
+      }] : []),
+      {
+        id: "financial-action-today",
+        title: hi
+          ? "जरूरी वित्तीय कार्रवाई पूरी करें"
+          : "Complete the important financial-fraud actions",
+        body: hi
+          ? "यदि अभी तक नहीं किया है, तो 1930 पर कॉल करें और अपने भुगतान प्रदाता को सूचित करें।"
+          : "If you have not already, call 1930 and notify your payment provider.",
+        reason: "FINANCIAL_SAFETY",
         schedule: "TODAY",
-        channel,
-        deliveryState: "PROTOTYPE_PREVIEW",
+        channel: preferences.channel,
+        priority: "HIGH",
       },
       {
         id: "recovery-scam-tomorrow",
@@ -70,14 +169,25 @@ export function deriveCitizenNudges(
           : "Do not pay someone who promises guaranteed recovery in exchange for a fee.",
         reason: "RECOVERY_SCAM_WARNING",
         schedule: "TOMORROW",
-        channel,
-        deliveryState: "PROTOTYPE_PREVIEW",
+        channel: preferences.channel,
+        priority: "MEDIUM",
       },
-    ];
+      {
+        id: "preserve-financial-evidence",
+        title: hi ? "मूल सबूत सुरक्षित रखें" : "Keep the original evidence safe",
+        body: hi
+          ? "अपनी बातचीत, भुगतान रसीदें और शिकायत की प्रति न मिटाएँ।"
+          : "Do not delete your conversations, payment receipts or complaint copy.",
+        reason: "EVIDENCE_PRESERVATION",
+        schedule: "TOMORROW",
+        channel: preferences.channel,
+        priority: "MEDIUM",
+      },
+    ]);
   }
 
   if (accountCompromise) {
-    return [
+    return complete([
       {
         id: "account-security-today",
         title: hi ? "अपने रिकवरी विवरण जाँचें" : "Check your recovery details",
@@ -86,8 +196,8 @@ export function deriveCitizenNudges(
           : "Check your recovery email and phone number. Review active sessions and secure your primary email account.",
         reason: "ACCOUNT_SECURITY",
         schedule: "TODAY",
-        channel,
-        deliveryState: "PROTOTYPE_PREVIEW",
+        channel: preferences.channel,
+        priority: "HIGH",
       },
       {
         id: "review-active-sessions-tomorrow",
@@ -97,14 +207,14 @@ export function deriveCitizenNudges(
           : "Review active sessions in the account's official security settings and sign out unfamiliar devices.",
         reason: "ACCOUNT_SECURITY",
         schedule: "TOMORROW",
-        channel,
-        deliveryState: "PROTOTYPE_PREVIEW",
+        channel: preferences.channel,
+        priority: "MEDIUM",
       },
-    ];
+    ]);
   }
 
   if (threatOrExtortion) {
-    return [
+    return complete([
       {
         id: "preserve-threat-evidence-today",
         title: hi ? "धमकी वाले संदेश सुरक्षित रखें" : "Preserve the threatening messages",
@@ -113,8 +223,8 @@ export function deriveCitizenNudges(
           : "Keep the original messages, sender details and available screenshots.",
         reason: "EVIDENCE_PRESERVATION",
         schedule: "TODAY",
-        channel,
-        deliveryState: "PROTOTYPE_PREVIEW",
+        channel: preferences.channel,
+        priority: "MEDIUM",
       },
       {
         id: "extortion-safety-tomorrow",
@@ -124,17 +234,17 @@ export function deriveCitizenNudges(
           : "Use official police or support channels if the threat continues or there is immediate danger.",
         reason: "PERSONAL_SAFETY",
         schedule: "TOMORROW",
-        channel,
-        deliveryState: "PROTOTYPE_PREVIEW",
+        channel: preferences.channel,
+        priority: "HIGH",
       },
-    ];
+    ]);
   }
 
   if (
     draft.classification.reportFamily === "FINANCIAL_FRAUD" &&
     draft.incident.financialLossState === "NO"
   ) {
-    return [
+    return complete([
       {
         id: "avoid-payment-today",
         title: hi ? "कोई शुल्क या भुगतान न भेजें" : "Do not pay a processing or release fee",
@@ -143,8 +253,8 @@ export function deriveCitizenNudges(
           : "Do not share Aadhaar, bank details, OTPs, PINs or other sensitive information.",
         reason: "SENSITIVE_INFORMATION",
         schedule: "TODAY",
-        channel,
-        deliveryState: "PROTOTYPE_PREVIEW",
+        channel: preferences.channel,
+        priority: "HIGH",
       },
       {
         id: "preserve-contact-tomorrow",
@@ -154,13 +264,13 @@ export function deriveCitizenNudges(
           : "Keep the phone number, profile, links and screenshots used to contact you.",
         reason: "EVIDENCE_PRESERVATION",
         schedule: "TOMORROW",
-        channel,
-        deliveryState: "PROTOTYPE_PREVIEW",
+        channel: preferences.channel,
+        priority: "MEDIUM",
       },
-    ];
+    ]);
   }
 
-  return [
+  return complete([
     {
       id: "preserve-evidence-today",
       title: hi ? "सबूत सुरक्षित रखें" : "Preserve the evidence",
@@ -169,8 +279,8 @@ export function deriveCitizenNudges(
         : "Keep messages, screenshots and account notifications. Do not delete suspicious messages yet.",
       reason: "EVIDENCE_PRESERVATION",
       schedule: "TODAY",
-      channel,
-      deliveryState: "PROTOTYPE_PREVIEW",
+      channel: preferences.channel,
+      priority: "MEDIUM",
     },
-  ];
+  ]);
 }

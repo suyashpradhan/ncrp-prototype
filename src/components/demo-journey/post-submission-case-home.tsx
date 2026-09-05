@@ -27,7 +27,8 @@ import { formatIndiaShortDateWithYear } from "../../presentation/format";
 import type { DemoCaseDefinition } from "../../incident/demo-incident";
 import {
   deriveCitizenNudges,
-  type NotificationChannel,
+  type ReminderCategory,
+  type ReminderPreferences,
 } from "../../notifications/citizen-nudges";
 import { citizenVisibleValue } from "../../presentation/citizen-visible-value";
 import {
@@ -43,10 +44,8 @@ type PostSubmissionCaseHomeProps = {
   demoCase: DemoCaseDefinition | null;
   milestones: PostReportMilestones;
   transcription: TranscriptionResult | null;
-  remindersEnabled: boolean;
-  notificationChannel: NotificationChannel;
-  onRemindersEnabledChange: (enabled: boolean) => void;
-  onNotificationChannelChange: (channel: NotificationChannel) => void;
+  reminderPreferences: ReminderPreferences;
+  onReminderPreferencesChange: (preferences: ReminderPreferences) => void;
   onDraftChange: (draft: IncidentDraft) => void;
   onStartNewReport: () => void;
 };
@@ -293,10 +292,8 @@ export function PostSubmissionCaseHome({
   demoCase,
   milestones,
   transcription,
-  remindersEnabled,
-  notificationChannel,
-  onRemindersEnabledChange,
-  onNotificationChannelChange,
+  reminderPreferences,
+  onReminderPreferencesChange,
   onDraftChange,
   onStartNewReport,
 }: PostSubmissionCaseHomeProps) {
@@ -308,7 +305,7 @@ export function PostSubmissionCaseHome({
   const secondaryActions = actions.slice(1);
   const keepReady = getKeepReadyPacket(draft, locale);
   const process = getProcessExplainer(draft, locale);
-  const timeline = getPostSubmissionTimeline(
+  const baseTimeline = getPostSubmissionTimeline(
     draft,
     locale,
     isDemoIncident,
@@ -322,7 +319,42 @@ export function PostSubmissionCaseHome({
   const [followUpOpen, setFollowUpOpen] = useState(false);
   const [followUpValue, setFollowUpValue] = useState("");
   const [followUpSaved, setFollowUpSaved] = useState(false);
-  const nudges = deriveCitizenNudges(draft, locale, notificationChannel);
+  const [managingReminders, setManagingReminders] = useState(false);
+  const [reminderError, setReminderError] = useState<string | null>(null);
+  const nudges = deriveCitizenNudges(
+    draft,
+    locale,
+    reminderPreferences,
+    isDemoIncident ? "DEMO" : "LIVE",
+    prototypeReference,
+  );
+  const timeline = [
+    ...baseTimeline,
+    ...(reminderPreferences.enabled && reminderPreferences.scheduledAt
+      ? [{
+          id: "reminders-enabled",
+          timeLabel: new Intl.DateTimeFormat(hi ? "hi-IN" : "en-IN", {
+            dateStyle: "medium",
+            timeStyle: "short",
+            timeZone: "Asia/Kolkata",
+          }).format(new Date(reminderPreferences.scheduledAt)),
+          title: hi ? "सचेत रिमाइंडर तय हुआ" : "Sachet reminder scheduled",
+          sourceRefs: [{ type: "SYSTEM" as const, label: hi ? "स्रोत: सचेत" : "Source: सचेत" }],
+        }]
+      : []),
+    ...(reminderPreferences.sentAt
+      ? [{
+          id: "demo-reminder-sent",
+          timeLabel: new Intl.DateTimeFormat(hi ? "hi-IN" : "en-IN", {
+            dateStyle: "medium",
+            timeStyle: "short",
+            timeZone: "Asia/Kolkata",
+          }).format(new Date(reminderPreferences.sentAt)),
+          title: hi ? "सिंथेटिक डेमो रिमाइंडर भेजा गया" : "Synthetic demo reminder sent",
+          sourceRefs: [{ type: "PROTOTYPE" as const, label: hi ? "स्रोत: सिंथेटिक डेमो" : "Source: Synthetic demo" }],
+        }]
+      : []),
+  ];
   const stateExplanation = getCaseStateExplanation(
     missingReferenceIndex >= 0 ? "ADDITIONAL_INFO_REQUESTED" : "SUBMITTED",
     locale,
@@ -349,6 +381,61 @@ export function PostSubmissionCaseHome({
   const processBoundaries = Array.from(
     new Set([stateExplanation.whatItDoesNotMean, ...process.importantBoundaries]),
   );
+  const activeRecipient = reminderPreferences.channel === "EMAIL"
+    ? reminderPreferences.email.trim()
+    : reminderPreferences.whatsapp.trim();
+  const recipientIsValid = reminderPreferences.channel === "EMAIL"
+    ? /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(activeRecipient)
+    : /^\+?91\s?[6-9](?:[\s-]?\d){9}$/.test(activeRecipient);
+  const maskedRecipient = reminderPreferences.channel === "EMAIL"
+    ? activeRecipient.replace(/^(.{1,2}).*(@.*)$/, "$1••••$2")
+    : `+91 ••••• ${activeRecipient.replace(/\D/g, "").slice(-4)}`;
+  const reminderCategoryLabels: Record<ReminderCategory, string> = hi
+    ? {
+        IMPORTANT_ACTIONS: "जरूरी कार्रवाई",
+        MISSING_DETAILS: "शिकायत की छूटी जानकारी",
+        EVIDENCE_SAFETY: "सबूत और सुरक्षा",
+        FOLLOW_UP: "उपलब्ध होने पर मामले की स्थिति",
+      }
+    : {
+        IMPORTANT_ACTIONS: "Important actions",
+        MISSING_DETAILS: "Missing complaint details",
+        EVIDENCE_SAFETY: "Evidence & safety",
+        FOLLOW_UP: "Case-status changes when available",
+      };
+
+  function updateReminderPreferences(
+    update: Partial<ReminderPreferences>,
+  ) {
+    onReminderPreferencesChange({ ...reminderPreferences, ...update });
+  }
+
+  function enableReminders() {
+    if (!recipientIsValid) {
+      setReminderError(
+        reminderPreferences.channel === "EMAIL"
+          ? hi ? "सही ईमेल पता दर्ज करें।" : "Enter a valid email address."
+          : hi ? "सही भारतीय मोबाइल नंबर दर्ज करें।" : "Enter a valid Indian mobile number.",
+      );
+      return;
+    }
+    if (!Object.values(reminderPreferences.categories).some(Boolean)) {
+      setReminderError(hi ? "कम से कम एक रिमाइंडर प्रकार चुनें।" : "Choose at least one reminder type.");
+      return;
+    }
+    setReminderError(null);
+    setManagingReminders(false);
+    const normalizedWhatsapp = `+91 ${activeRecipient.replace(/\D/g, "").slice(-10).replace(/(\d{5})(\d{5})/, "$1 $2")}`;
+    updateReminderPreferences({
+      enabled: true,
+      email: reminderPreferences.email.trim(),
+      whatsapp: reminderPreferences.channel === "WHATSAPP"
+        ? normalizedWhatsapp
+        : reminderPreferences.whatsapp.trim(),
+      scheduledAt: new Date(Date.now() + 2 * 60 * 1000).toISOString(),
+      sentAt: null,
+    });
+  }
 
   function saveTransactionReference(value: string) {
     if (missingReferenceIndex < 0) return;
@@ -399,7 +486,11 @@ export function PostSubmissionCaseHome({
           <header className="post-submission-header">
             <div className="post-submission-title-row">
               <span className="success-mark" aria-hidden="true">✓</span>
-              <h1 tabIndex={-1}>{hi ? "शिकायत जमा हो गई" : "Complaint submitted"}</h1>
+              <h1 tabIndex={-1}>
+                {isDemoIncident
+                  ? hi ? "डेमो शिकायत जमा हो गई" : "Demo complaint submitted"
+                  : hi ? "आपकी शिकायत तैयार है" : "Your complaint is ready"}
+              </h1>
             </div>
             <div className="prototype-reference-line">
               <span>{hi ? "प्रोटोटाइप संदर्भ:" : "Prototype reference:"}</span>
@@ -409,9 +500,13 @@ export function PostSubmissionCaseHome({
               </button>
             </div>
             <p className="prototype-boundary">
-              {hi
-                ? "यह सबमिशन केवल इस प्रोटोटाइप में दर्ज है। इसे NCRP या किसी अन्य सरकारी प्रणाली को नहीं भेजा गया।"
-                : "This submission is recorded only in this prototype. It has not been sent to NCRP or another government system."}
+              {isDemoIncident
+                ? hi
+                  ? "यह एक सिंथेटिक डेमो है। कोई शिकायत NCRP या किसी अन्य सरकारी प्रणाली को नहीं भेजी गई।"
+                  : "This is a synthetic demo. No complaint was sent to NCRP or another government system."
+                : hi
+                  ? "शिकायत की जानकारी इस प्रोटोटाइप में तैयार हुई है। इसे NCRP या किसी अन्य सरकारी प्रणाली को नहीं भेजा गया।"
+                  : "Your complaint details were prepared in this prototype. They have not been sent to NCRP or another government system."}
             </p>
           </header>
 
@@ -572,53 +667,91 @@ export function PostSubmissionCaseHome({
 
           <section className="companion-section stay-informed" aria-labelledby="stay-informed-heading">
             <div>
-              <h2 id="stay-informed-heading">{hi ? "जानकारी पाते रहें" : "Stay informed"}</h2>
-              <p>{hi ? "अगले उपयोगी कदमों और साइबर सुरक्षा सावधानियों के बारे में रिमाइंडर पाएँ।" : "Get reminders about useful next steps and cyber-safety precautions."}</p>
+              <h2 id="stay-informed-heading">{hi ? "अपनी शिकायत पर नज़र रखें" : "Stay on top of your complaint"}</h2>
+              <p>{hi ? "जरूरी कार्रवाई, छूटी हुई जानकारी, सबूत और सुरक्षा के बारे में रिमाइंडर पाएँ।" : "Get reminders about actions you may need to take, missing complaint details, evidence and safety."}</p>
             </div>
-            {remindersEnabled ? (
+            {reminderPreferences.enabled && !managingReminders ? (
               <div className="reminders-confirmed" role="status">
                 <span className="success-mark" aria-hidden="true">✓</span>
                 <div>
                   <h3>{hi ? "रिमाइंडर चालू हैं" : "Reminders on"}</h3>
-                  <strong>{notificationChannel === "EMAIL" ? (hi ? "ईमेल" : "Email") : "WhatsApp"}</strong>
-                  <p>{hi ? "इस शिकायत के लिए उपयोगी सुरक्षा रिमाइंडर मिलेंगे।" : "You'll receive follow-up safety reminders for this complaint."}</p>
-                  <button className="text-button" type="button" onClick={() => onRemindersEnabledChange(false)}>{hi ? "पसंद बदलें" : "Change preference"}</button>
+                  <strong>{reminderPreferences.channel === "EMAIL" ? (hi ? "ईमेल" : "Email") : "WhatsApp"} · {maskedRecipient}</strong>
+                  <p>
+                    {reminderPreferences.sentAt
+                      ? hi
+                        ? `सिंथेटिक रिमाइंडर भेजा गया · ${new Intl.DateTimeFormat("hi-IN", { timeStyle: "short", timeZone: "Asia/Kolkata" }).format(new Date(reminderPreferences.sentAt))}`
+                        : `Synthetic reminder sent · ${new Intl.DateTimeFormat("en-IN", { timeStyle: "short", timeZone: "Asia/Kolkata" }).format(new Date(reminderPreferences.sentAt))}`
+                      : isDemoIncident
+                        ? hi ? "अगला सिंथेटिक रिमाइंडर · 2 मिनट में" : "Next synthetic reminder · in 2 minutes"
+                        : hi ? "सचेत रिमाइंडर इस प्रोटोटाइप सत्र में सहेजा गया" : "Sachet reminder saved in this prototype session"}
+                  </p>
+                  <ul className="reminder-enabled-categories">
+                    {Object.entries(reminderPreferences.categories).filter(([, enabled]) => enabled).map(([category]) => <li key={category}>{reminderCategoryLabels[category as ReminderCategory]}</li>)}
+                  </ul>
+                  <div className="entry-actions">
+                    <button className="text-button" type="button" onClick={() => setManagingReminders(true)}>{hi ? "रिमाइंडर प्रबंधित करें" : "Manage reminders"}</button>
+                    <button className="text-button" type="button" onClick={() => updateReminderPreferences({ enabled: false, scheduledAt: null, sentAt: null })}>{hi ? "रिमाइंडर बंद करें" : "Turn off reminders"}</button>
+                  </div>
                 </div>
               </div>
             ) : (
-              <>
-                <fieldset>
+              <div className="reminder-setup">
+                <fieldset className="reminder-channel-options">
                   <legend>{hi ? "रिमाइंडर का माध्यम" : "Reminder channel"}</legend>
                   <label>
-                    <input type="radio" name="notification-channel" value="EMAIL" checked={notificationChannel === "EMAIL"} onChange={() => onNotificationChannelChange("EMAIL")} />
+                    <input type="radio" name="notification-channel" value="EMAIL" checked={reminderPreferences.channel === "EMAIL"} onChange={() => updateReminderPreferences({ channel: "EMAIL" })} />
                     <span>{hi ? "ईमेल" : "Email"}</span>
                   </label>
                   <label>
-                    <input type="radio" name="notification-channel" value="WHATSAPP" checked={notificationChannel === "WHATSAPP"} onChange={() => onNotificationChannelChange("WHATSAPP")} />
+                    <input type="radio" name="notification-channel" value="WHATSAPP" checked={reminderPreferences.channel === "WHATSAPP"} onChange={() => updateReminderPreferences({ channel: "WHATSAPP" })} />
                     <span>WhatsApp</span>
                   </label>
                 </fieldset>
-                <button className="secondary-button" type="button" onClick={() => onRemindersEnabledChange(true)}>
+                <label className="reminder-contact-field">
+                  <span>{reminderPreferences.channel === "EMAIL" ? (hi ? "ईमेल पता" : "Email address") : (hi ? "WhatsApp नंबर" : "WhatsApp number")}</span>
+                  <input
+                    type={reminderPreferences.channel === "EMAIL" ? "email" : "tel"}
+                    inputMode={reminderPreferences.channel === "EMAIL" ? "email" : "tel"}
+                    autoComplete={reminderPreferences.channel === "EMAIL" ? "email" : "tel"}
+                    value={reminderPreferences.channel === "EMAIL" ? reminderPreferences.email : reminderPreferences.whatsapp}
+                    onChange={(event) => updateReminderPreferences(reminderPreferences.channel === "EMAIL" ? { email: event.target.value } : { whatsapp: event.target.value })}
+                    placeholder={reminderPreferences.channel === "EMAIL" ? "name@example.com" : "+91 98765 43210"}
+                  />
+                </label>
+                <fieldset className="reminder-category-options">
+                  <legend>{hi ? "इनके बारे में याद दिलाएँ" : "Remind me about"}</legend>
+                  {(Object.keys(reminderPreferences.categories) as ReminderCategory[]).map((category) => (
+                    <label key={category}>
+                      <input type="checkbox" checked={reminderPreferences.categories[category]} onChange={(event) => updateReminderPreferences({ categories: { ...reminderPreferences.categories, [category]: event.target.checked } })} />
+                      <span>{reminderCategoryLabels[category]}</span>
+                    </label>
+                  ))}
+                </fieldset>
+                <p className="source-note">{hi ? "आधिकारिक स्थिति अपडेट के लिए NCRP या एजेंसी का इंटीग्रेशन जरूरी है।" : "Official case-status updates require an NCRP or agency integration."}</p>
+                {reminderError ? <p className="form-error" role="alert">{reminderError}</p> : null}
+                <button className="secondary-button" type="button" onClick={enableReminders}>
                   {hi ? "रिमाइंडर चालू करें" : "Turn on reminders"}
                 </button>
+                {managingReminders ? <button className="text-button" type="button" onClick={() => setManagingReminders(false)}>{hi ? "रद्द करें" : "Cancel"}</button> : null}
                 <p className="source-note">
                   {isDemoIncident
                     ? hi ? "सिंथेटिक संपर्क · केवल डेमो पूर्वावलोकन" : "Synthetic contact · Demo preview only"
-                    : hi ? "केवल प्रोटोटाइप · कोई असली संदेश नहीं भेजा जाएगा" : "Prototype only · No real message will be sent"}
+                    : hi ? "यह संपर्क केवल आपके द्वारा चालू किए गए प्रोटोटाइप रिमाइंडर के लिए इस सत्र में उपयोग होता है। कोई असली संदेश नहीं भेजा जाएगा।" : "This contact is used only in this session for the prototype reminders you enable. No real message will be sent."}
                 </p>
-              </>
+              </div>
             )}
-            {remindersEnabled ? (
+            {reminderPreferences.enabled ? (
               <div className="reminder-preview" aria-label={hi ? "आने वाले रिमाइंडर" : "Upcoming reminders"}>
-                <h3>{hi ? "आने वाले रिमाइंडर" : "Upcoming reminders"}</h3>
+                <h3>{reminderPreferences.sentAt ? (hi ? "रिमाइंडर भेजा गया" : "Reminder sent") : (hi ? "आने वाले रिमाइंडर" : "Upcoming reminders")}</h3>
                 {nudges.slice(0, 2).map((nudge) => (
                   <article key={nudge.id}>
-                    <span>{nudge.schedule === "TODAY" ? (hi ? "आज" : "Today") : (hi ? "कल" : "Tomorrow")}</span>
+                    <span>{nudge.deliveryState === "SENT" ? (hi ? "भेजा गया" : "Sent") : nudge.schedule === "TODAY" ? (hi ? "आज" : "Today") : (hi ? "कल" : "Tomorrow")}</span>
                     <strong>{nudge.title}</strong>
                     <p>{nudge.body}</p>
                   </article>
                 ))}
-                <p className="source-note">{hi ? "प्रोटोटाइप पूर्वावलोकन · कोई असली संदेश नहीं भेजा गया" : "Prototype preview · No real message was sent"}</p>
+                {isDemoIncident && !reminderPreferences.sentAt ? <button className="secondary-button" type="button" onClick={() => updateReminderPreferences({ sentAt: new Date().toISOString() })}>{hi ? "डेमो समय आगे बढ़ाएँ" : "Advance demo reminder"}</button> : null}
+                <p className="source-note">{isDemoIncident ? (hi ? "सिंथेटिक डेमो · NCRP से जुड़ा नहीं · कोई असली संदेश नहीं भेजा गया" : "Synthetic demo · Not connected to NCRP · No real message was sent") : (hi ? "इस प्रोटोटाइप सत्र में रिमाइंडर सहेजा गया · कोई बाहरी संदेश नहीं भेजा गया" : "Reminder saved in this prototype session · No external message was sent")}</p>
               </div>
             ) : null}
           </section>

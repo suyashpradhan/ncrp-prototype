@@ -1728,6 +1728,42 @@ html[data-ui-locale="hi"] .landing-case-check h2 {
   border: 0;
 }
 
+.stay-informed {
+  border-color: var(--primary-100);
+  background: var(--primary-050);
+}
+
+.reminder-setup {
+  margin-top: 18px;
+}
+
+.reminder-contact-field {
+  max-width: 520px;
+  display: grid;
+  gap: 7px;
+  font-weight: 700;
+}
+
+.reminder-contact-field input {
+  width: 100%;
+  background: var(--surface);
+}
+
+.stay-informed .reminder-category-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.reminder-enabled-categories {
+  margin: 10px 0 12px;
+  padding-left: 20px;
+  color: var(--secondary);
+}
+
+.reminder-enabled-categories li + li {
+  margin-top: 4px;
+}
+
 .stay-informed legend {
   width: 100%;
   margin-bottom: 6px;
@@ -1810,6 +1846,14 @@ html[data-ui-locale="hi"] .landing-case-check h2 {
 
   .reminder-preview article > span {
     grid-row: auto;
+  }
+
+  .stay-informed .reminder-category-options {
+    grid-template-columns: 1fr;
+  }
+
+  .stay-informed fieldset label {
+    width: 100%;
   }
 }
 
