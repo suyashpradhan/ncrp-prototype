@@ -347,7 +347,7 @@ function EvidenceRows({
                   </small>
                 </span>
                 <span className="evidence-row-action">
-                  {compact ? (locale === "hi" ? "बड़ा देखें" : "Enlarge") : t("workspace.view")}
+                  {compact ? (locale === "hi" ? "पूरा सबूत देखें" : "View full evidence") : t("workspace.view")}
                 </span>
               </button>
               {compact && contribution?.contributions.length ? (
@@ -390,7 +390,7 @@ function EvidenceRows({
                   <small>{locale === "hi" ? "तैयार" : "Ready"}</small>
                 </span>
                 <span className="evidence-row-action">
-                  {compact ? (locale === "hi" ? "बड़ा देखें" : "Enlarge") : t("workspace.view")}
+                  {compact ? (locale === "hi" ? "पूरा सबूत देखें" : "View full evidence") : t("workspace.view")}
                 </span>
               </button>
               {compact && contribution?.contributions.length ? (
@@ -958,9 +958,10 @@ function ReportInputPane(props: ReportWorkspaceProps) {
 
   return (
     <section
-      className={`report-input-pane${showingCaseFile ? " report-input-pane-case-file" : ""}`}
+      className="report-input-pane"
       aria-labelledby="journey-stage-heading"
     >
+      <div className={showingCaseFile ? "report-input-pane-sticky" : undefined}>
       {showingCaseFile ? (
         <p className="case-file-column-label">
           {locale === "hi" ? "घटना का स्रोत" : "Incident source"}
@@ -1308,6 +1309,7 @@ function ReportInputPane(props: ReportWorkspaceProps) {
           {props.formError}
         </p>
       ) : null}
+      </div>
     </section>
   );
 }
@@ -2888,7 +2890,10 @@ function ReportReview(props: ReportWorkspaceProps) {
         <h2>{locale === "hi" ? "आपकी शिकायत" : "Your complaint"}</h2>
         <p>{t("workspace.reviewSupport")}</p>
       </div>
-      <PreparedComplaintSummary draft={props.draft} />
+      <PreparedComplaintSummary
+        draft={props.draft}
+        reporterName={props.reporterProfile.displayName}
+      />
       <section
         className="case-integrity-summary"
         aria-labelledby="case-check-heading"
@@ -3653,7 +3658,13 @@ function ReportStatusCard({
   );
 }
 
-function PreparedComplaintSummary({ draft }: { draft: IncidentDraft }) {
+function PreparedComplaintSummary({
+  draft,
+  reporterName,
+}: {
+  draft: IncidentDraft;
+  reporterName: string;
+}) {
   const { locale } = useI18n();
   const hi = locale === "hi";
   const financial = resolveFinancialLoss(draft);
@@ -3801,6 +3812,7 @@ function PreparedComplaintSummary({ draft }: { draft: IncidentDraft }) {
   const requestedStatusConfirmed = draft.citizenConfirmedFields.some((field) =>
     field.startsWith("adaptive.requestedAmountPaymentStatus."),
   );
+  const reporterFirstName = reporterName.trim().split(/\s+/)[0] ?? "";
 
   return (
     <section id="prepared-complaint-summary" className="prepared-complaint-summary" aria-labelledby="prepared-summary-heading">
@@ -3874,7 +3886,7 @@ function PreparedComplaintSummary({ draft }: { draft: IncidentDraft }) {
       ) : null}
       {requestedAmount ? (
         <div className="reconstruction-requested">
-          <div><span>{hi ? "बाद में मांगी गई राशि" : "Additional money requested"}</span><strong>{formatCurrency(requestedAmount)}</strong></div>
+          <div><span>{hi ? "बाद में मांगी गई राशि" : "Additional amount requested"}</span><strong>{formatCurrency(requestedAmount)}</strong></div>
           <b>{requestedPaymentStatus === "NOT_PAID" ? (hi ? "मांगा गया · भुगतान नहीं किया" : "Requested · Not paid") : requestedPaymentStatus === "PAID" ? (hi ? "कुछ राशि दी गई" : "Some amount paid") : requestedPaymentStatus === "UNKNOWN" ? (hi ? "याद नहीं" : "Not remembered") : (hi ? "आपकी पुष्टि जरूरी है" : "Needs your confirmation")}</b>
           <p className="reconstruction-source">
             <b>{hi ? "स्रोत:" : "Source:"}</b>{" "}
@@ -3884,7 +3896,13 @@ function PreparedComplaintSummary({ draft }: { draft: IncidentDraft }) {
           </p>
           {requestedStatusConfirmed ? (
             <p className="reconstruction-confirmation">
-              <b>{hi ? "आपके द्वारा पुष्टि:" : "Confirmed by you:"}</b>{" "}
+              <b>
+                {reporterFirstName
+                  ? hi
+                    ? `${reporterFirstName} द्वारा पुष्टि:`
+                    : `Confirmed by ${reporterFirstName}:`
+                  : hi ? "आपके द्वारा पुष्टि:" : "Confirmed by you:"}
+              </b>{" "}
               {requestedPaymentStatus === "NOT_PAID"
                 ? hi ? "भुगतान नहीं किया" : "Not paid"
                 : requestedPaymentStatus === "PAID"
@@ -4007,7 +4025,10 @@ function ReportDetailsPane({
       ) : null}
 
       {props.mode === "READY" && props.draft ? (
-        <PreparedComplaintSummary draft={props.draft} />
+        <PreparedComplaintSummary
+          draft={props.draft}
+          reporterName={props.reporterProfile.displayName}
+        />
       ) : null}
 
       {props.draft?.incident.financialLossState === "YES" &&
